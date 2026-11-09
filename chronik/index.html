@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Mikkaner Chronik</title>
+<style>html,body{margin:0;background:#000}canvas{display:block;width:100vw;height:auto}</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script src="scene.js"></script>
+<script>
+  // Vorschau im Browser: ?f=123 zeigt ein Einzelbild, sonst Wiedergabe in Echtzeit
+  const q = new URLSearchParams(location.search);
+  if (!navigator.webdriver) {
+    const wait = () => window.ready ? start() : requestAnimationFrame(wait);
+    const start = () => {
+      if (q.has('f')) return render(+q.get('f'));
+      const t0 = performance.now();
+      const loop = () => { render(Math.floor((performance.now() - t0) / 1000 * FPS) % TOTAL_FRAMES); requestAnimationFrame(loop); };
+      loop();
+    };
+    wait();
+  }
+</script>
+</body>
+</html>
