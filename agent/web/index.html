@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0a0a0b">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>MIKKA Studio Remote</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/assets/icon-192.png">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">M</span><div><b>MIKKA</b> STUDIO REMOTE<small>Your Studio. Anywhere.</small></div></div>
+  <div class="pills">
+    <span id="pill-agent" class="pill off" title="Verbindung zum Mac">MAC</span>
+    <span id="pill-live" class="pill off" title="Verbindung zu Ableton Live">LIVE</span>
+    <span id="pill-latency" class="pill dim">– ms</span>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="studio" class="active">Studio</button>
+  <button data-tab="mixer">Mixer</button>
+  <button data-tab="session">Session</button>
+  <button data-tab="arrangement">Arrangement</button>
+  <button data-tab="devices">Devices</button>
+  <button data-tab="ai">AI Engineer</button>
+  <button data-tab="mastering">Mastering</button>
+  <button data-tab="desktop">Remote Desktop</button>
+  <button data-tab="settings">Settings</button>
+</nav>
+
+<div id="banner" class="banner hidden"></div>
+
+<main>
+  <!-- STUDIO -->
+  <section id="tab-studio" class="tab active">
+    <div class="card transport">
+      <div class="pos"><span id="pos-bars">–</span><small id="pos-sig">–</small></div>
+      <div class="tbtns">
+        <button id="btn-stop" class="tbtn" aria-label="Stop"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></svg></button>
+        <button id="btn-play" class="tbtn" aria-label="Play"><svg viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg></button>
+        <button id="btn-continue" class="tbtn" aria-label="Fortsetzen" title="Ab Stopp-Position fortsetzen"><svg viewBox="0 0 24 24"><path d="M5 5h3v14H5zM10 5v14l10-7z"/></svg></button>
+        <button id="btn-rec" class="tbtn rec" aria-label="Arrangement-Aufnahme"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/></svg></button>
+      </div>
+      <div class="row wrap">
+        <button id="btn-metro" class="tog">Metronom</button>
+        <button id="btn-loop" class="tog">Loop</button>
+        <button id="btn-srec" class="tog">Session Rec</button>
+        <button id="btn-overdub" class="tog">Overdub</button>
+        <button id="btn-undo" class="tog">Undo</button>
+        <button id="btn-redo" class="tog">Redo</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">Tempo</div>
+      <div class="tempo-row">
+        <button class="step" data-tempo="-1">−1</button>
+        <button class="step" data-tempo="-0.1">−.1</button>
+        <input id="tempo" class="tempo" type="number" inputmode="decimal" step="0.01" min="20" max="999">
+        <button class="step" data-tempo="0.1">+.1</button>
+        <button class="step" data-tempo="1">+1</button>
+      </div>
+      <div class="row wrap">
+        <button id="btn-tap" class="tog wide">TAP</button>
+        <button class="tog" data-settempo="130">130</button>
+        <button class="tog" data-settempo="140">140</button>
+        <button class="tog" data-settempo="145">145</button>
+        <button class="tog" data-settempo="150">150</button>
+        <button class="tog" data-settempo="160">160</button>
+      </div>
+      <div class="row">
+        <label class="lbl">Taktart
+          <span class="sig"><input id="sig-num" type="number" min="1" max="99"> / <select id="sig-den"><option>1</option><option>2</option><option selected>4</option><option>8</option><option>16</option></select></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">Monitor <span class="hint">Master-Ausgang abhören (komprimiert, nur zum Abhören)</span></div>
+      <div class="row wrap">
+        <button id="mon-toggle" class="tog wide">▶ Abhören</button>
+        <select id="mon-quality"></select>
+        <button id="mon-mute" class="tog">Mute</button>
+      </div>
+      <div class="row"><label class="lbl grow">Lautstärke <input id="mon-volume" type="range" min="0" max="1" step="0.01" value="0.9"></label></div>
+      <div class="mon-status" id="mon-status">Aus</div>
+      <div class="meter-h"><div class="mh" id="master-meter-l"></div><div class="mh" id="master-meter-r"></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">Projekt</div>
+      <div id="project-info" class="muted">–</div>
+      <div class="row wrap" id="project-keys"></div>
+    </div>
+  </section>
+
+  <!-- MIXER -->
+  <section id="tab-mixer" class="tab">
+    <div class="mixer-tools row wrap">
+      <label class="lbl">Sends <select id="mix-sends"><option value="2">A–B</option><option value="4">A–D</option><option value="0">aus</option><option value="99">alle</option></select></label>
+      <label class="lbl"><input type="checkbox" id="mix-returns" checked> Returns</label>
+      <span class="hint">Doppeltipp auf Fader = 0 dB · Name antippen = umbenennen</span>
+    </div>
+    <div id="mixer" class="mixer"></div>
+  </section>
+
+  <!-- SESSION -->
+  <section id="tab-session" class="tab">
+    <div class="row wrap">
+      <button id="btn-stopall" class="tog">Alle Clips stoppen</button>
+      <button id="btn-newscene" class="tog">+ Szene</button>
+      <label class="lbl">Quantisierung <select id="quant"></select></label>
+    </div>
+    <div id="session" class="session"></div>
+    <p class="hint">Clip antippen = starten · leerer Slot auf scharfgeschalteter Spur = Aufnahme · ■ = Spur stoppen</p>
+  </section>
+
+  <!-- ARRANGEMENT -->
+  <section id="tab-arrangement" class="tab">
+    <div class="card">
+      <div class="card-h">Position</div>
+      <div class="row wrap">
+        <button class="tog" data-jump="-64">−16 T</button>
+        <button class="tog" data-jump="-16">−4 T</button>
+        <button class="tog" data-jump="-4">−1 T</button>
+        <button class="tog" data-jump="4">+1 T</button>
+        <button class="tog" data-jump="16">+4 T</button>
+        <button class="tog" data-jump="64">+16 T</button>
+        <button class="tog" id="btn-tostart">⇤ Anfang</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h">Loop-Bereich</div>
+      <div class="row wrap">
+        <button id="arr-loop" class="tog">Loop</button>
+        <span>Start <b id="loop-start">–</b></span>
+        <button class="tog" data-loopstart="-4">◀</button><button class="tog" data-loopstart="4">▶</button>
+        <span>Länge <b id="loop-len">–</b></span>
+        <button class="tog" data-looplen="-4">−</button><button class="tog" data-looplen="4">+</button>
+        <button class="tog" id="loop-here">Loop ab Position</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h">Marker <button id="btn-cue" class="tog small">Marker setzen/löschen an Position</button></div>
+      <div id="cues" class="list"></div>
+    </div>
+    <div class="card notimpl">
+      <div class="card-h">Clip-Bearbeitung in der Timeline <span class="badge">Noch nicht implementiert</span></div>
+      <p>Verschieben, Kopieren, Duplizieren, Längen und Automation von Arrangement-Clips sind in dieser Version nicht nativ umgesetzt. Bitte vorerst den <a href="#" data-goto="desktop">Remote-Desktop-Fallback</a> verwenden.</p>
+    </div>
+  </section>
+
+  <!-- DEVICES -->
+  <section id="tab-devices" class="tab">
+    <div class="row wrap">
+      <label class="lbl grow">Spur <select id="dev-track"></select></label>
+      <button id="dev-refresh" class="tog">↻</button>
+    </div>
+    <div id="dev-list" class="list"></div>
+    <div id="dev-params" class="params"></div>
+  </section>
+
+  <!-- AI -->
+  <section id="tab-ai" class="tab">
+    <div class="card">
+      <div class="card-h">AI Studio Engineer <span class="hint">Stufe 1: klare deutsche Befehle</span></div>
+      <div class="ai-input">
+        <textarea id="ai-text" rows="2" placeholder="z.B. „Stelle das Projekt auf 145 BPM“ oder „Die Hi-Hats sind zu laut“"></textarea>
+        <div class="col">
+          <button id="ai-send" class="tog primary">Planen</button>
+          <button id="ai-mic" class="tog" title="Spracheingabe">🎤</button>
+        </div>
+      </div>
+      <div class="row wrap chips" id="ai-examples"></div>
+    </div>
+    <div id="ai-plan"></div>
+    <div class="card">
+      <div class="card-h">Änderungsprotokoll <button id="ai-history" class="tog small">↻</button></div>
+      <div id="ai-log" class="list small"></div>
+    </div>
+  </section>
+
+  <!-- MASTERING -->
+  <section id="tab-mastering" class="tab">
+    <div class="card">
+      <div class="card-h">Exporte <button id="exp-refresh" class="tog small">↻</button></div>
+      <p class="hint" id="exp-dir">Ordner: –</p>
+      <p class="hint">Rendern in Ableton (Datei › Audio/Video exportieren) in diesen Ordner. Messung und Konvertierung erfolgen auf dem Mac am unkomprimierten Original.</p>
+      <div id="exp-list" class="list"></div>
+      <audio id="exp-player" controls preload="none" class="hidden"></audio>
+    </div>
+    <div id="exp-analysis"></div>
+    <div class="card notimpl">
+      <div class="card-h">Mastering-Profile <span class="badge">Noch nicht implementiert</span></div>
+      <p>Streaming, Club, Radio/Broadcast und Dynamic Master sind geplant. Eine automatische Mastering-Bearbeitung findet in dieser Version <b>nicht</b> statt. Lautheitsziele hängen von Genre, Referenz und Ausspielweg ab – es gibt keinen universell „richtigen“ Wert.</p>
+    </div>
+  </section>
+
+  <!-- REMOTE DESKTOP -->
+  <section id="tab-desktop" class="tab">
+    <div class="card">
+      <div class="card-h">Remote Desktop (Fallback)</div>
+      <p>Für Funktionen ohne native Steuerung (Plug-in-Oberflächen, Arrangement-Bearbeitung, Export-Dialog) nutzt du die in macOS eingebaute <b>Bildschirmfreigabe</b> (VNC) – über die sichere Tailscale-Verbindung, nie offen im Internet.</p>
+      <ol class="steps">
+        <li>Am Mac einmalig: Systemeinstellungen › Freigaben › <b>Bildschirmfreigabe</b> aktivieren (nur für deinen Benutzer).</li>
+        <li>Auf dem Pixel einen kostenlosen VNC-Client installieren, z.B. <b>AVNC</b> (Open Source, F-Droid/Play Store).</li>
+        <li>Verbinden mit: <code id="vnc-host">–</code></li>
+      </ol>
+      <a id="vnc-link" class="tog primary linkbtn" href="#">VNC-Verbindung öffnen</a>
+      <p class="hint">Touch, Maus, Zoom, Scrollen und Bildschirmtastatur stellt der VNC-Client bereit. Bildqualität im Client einstellbar (für Mobilfunk: niedrige Farbtiefe).</p>
+    </div>
+    <div class="card">
+      <div class="card-h">Tastaturkürzel an Ableton <span class="badge warn">Fernbedienungsmethode</span></div>
+      <p class="hint">Nicht über die Live-API verfügbar. Wird per macOS-Tastatursimulation gesendet und von Ableton <b>nicht bestätigt</b>.</p>
+      <div id="desk-keys" class="row wrap"></div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="tab-settings" class="tab">
+    <div class="card">
+      <div class="card-h">Verbindung</div>
+      <div id="set-conn" class="kv"></div>
+    </div>
+    <div class="card">
+      <div class="card-h">Gekoppelte Geräte <button id="set-devrefresh" class="tog small">↻</button></div>
+      <div id="set-devices" class="list"></div>
+    </div>
+    <div class="card">
+      <div class="card-h">Optionen</div>
+      <label class="lbl"><input type="checkbox" id="opt-autoexec"> AI: unkritische Befehle sofort ausführen</label>
+      <label class="lbl"><input type="checkbox" id="opt-meters" checked> Pegelanzeigen</label>
+    </div>
+    <div class="card">
+      <button id="set-logout" class="tog danger">Dieses Gerät abmelden</button>
+    </div>
+  </section>
+</main>
+
+<div id="pair" class="overlay hidden">
+  <div class="pair-box">
+    <span class="logo big">M</span>
+    <h1>Gerät koppeln</h1>
+    <p>Am Mac im Terminal ausführen:<br><code>./scripts/pair.sh</code><br>und den 6-stelligen Code eingeben.</p>
+    <input id="pair-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000">
+    <input id="pair-name" maxlength="64" placeholder="Gerätename" value="Pixel 9 Pro">
+    <button id="pair-go" class="tog primary wide">Koppeln</button>
+    <p id="pair-msg" class="err"></p>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<script src="/assets/app.js"></script>
+</body>
+</html>

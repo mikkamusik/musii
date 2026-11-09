@@ -1,0 +1,2 @@
+# Laufzeit (Python >= 3.8, kompatibel mit macOS Monterey)
+aiohttp>=3.8,<4
