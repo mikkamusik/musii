@@ -1,0 +1,31 @@
+{
+  "titel": "Narco Clarity",
+  "kapitel": {
+    "open": "TEASER · BERLIN",
+    "down": "TEASER · AALEN",
+    "lapse": "TEASER · DIE FRAGE",
+    "title": "NARCO CLARITY",
+    "help": "TEASER · REDEN",
+    "outro": "HILFE UND BERATUNG"
+  },
+  "panel": {
+    "help": [["Reden", "der erste Schritt"], ["Zuhören", "ohne Urteil"], ["Deine Erfahrung", "in die Kommentare"]]
+  },
+  "zeilen": [
+    { "szene": "open", "text": "Lukas lebt in Berlin. Und er ist abhängig von Ketamin.", "pause": 0.9 },
+    { "szene": "open", "text": "Also zieht er weg. Mit seiner Freundin nach Aalen, zu seiner Familie.", "pause": 0.6 },
+    { "szene": "open", "text": "Um clean zu werden.", "sprich": "Um kliehn zu werden.", "pause": 0.9 },
+    { "szene": "open", "text": "Und er schafft es.", "pause": 1.4 },
+    { "szene": "down", "text": "Dann passiert es erst richtig.", "pause": 0.8 },
+    { "szene": "down", "text": "Genau dort, wo alles besser werden sollte, wird er abhängig von Crack.", "sprich": "Genau dort, wo alles besser werden sollte, wird er abhängig von Kräck.", "pause": 0.9 },
+    { "szene": "down", "text": "Es wird nicht besser. Es wird schlimmer. Er verliert alles.", "pause": 1.4 },
+    { "szene": "lapse", "text": "Wie kommt man vom Crack weg?", "sprich": "Wie kommt man vom Kräck weg?", "pause": 1.4 },
+    { "szene": "title", "text": "Deshalb gibt es jetzt diesen Kanal. Narco Clarity.", "pause": 0.8 },
+    { "szene": "title", "text": "Keine Verherrlichung. Keine Moralpredigt. Keine Anleitung.", "pause": 1.3 },
+    { "szene": "help", "text": "Reden ist der erste Schritt zur Besserung.", "pause": 0.9 },
+    { "szene": "help", "text": "Erzähl deine Erfahrung. Vielleicht steckst du mittendrin.", "pause": 0.7 },
+    { "szene": "help", "text": "Vielleicht hast du es schon geschafft.", "pause": 1.3 },
+    { "szene": "outro", "text": "Und wenn du jetzt selbst Hilfe brauchst:", "pause": 0.5 },
+    { "szene": "outro", "text": "Die Nummern stehen hier und in der Beschreibung.", "pause": 2.6 }
+  ]
+}

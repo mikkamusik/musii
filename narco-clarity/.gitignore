@@ -1,0 +1,9 @@
+voices/
+*.wav
+*_stumm.mp4
+*_part*.mp4
+*_list.txt
+probe_*.png
+plate_*.png
+timeline.json
+__pycache__/
