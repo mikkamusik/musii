@@ -2,7 +2,8 @@
 
 Erzeugt am 09.11.2026 über Higgsfield, Modell **Seedance 2.0 Mini**,
 720p, 16:9, ohne Ton (der Ton kommt aus dem Folgen-Build).
-Je Einstellung eine Variante, 48 Credits verbraucht, 50,75 übrig.
+Je Einstellung eine Variante, dazu ein zweiter Versuch für Einstellung 5.
+58 Credits verbraucht, 40,75 übrig.
 
 ## Ergebnis
 
@@ -12,10 +13,11 @@ Je Einstellung eine Variante, 48 Credits verbraucht, 50,75 übrig.
 | 2 | Leere Straße | 10 s | passt. Die Tüte liegt vorne statt hinten, das ganze Bild ist warm statt nur der Schein um die Laterne | [mp4](https://d8j0ntlcm91z4.cloudfront.net/user_3L1XJ3KwCO2DtrdrDjR8xcD67rt/hf_20261109_072801_47962a1c-0b81-4a43-a7e3-b5d8fef11bf8.mp4) |
 | 3 | Hände am Geländer | 8 s | brauchbar. Die Hände falten sich und lösen sich wieder, statt fest zuzugreifen | [mp4](https://d8j0ntlcm91z4.cloudfront.net/user_3L1XJ3KwCO2DtrdrDjR8xcD67rt/hf_20261109_072802_fa1d02e6-d02f-44e0-aa86-c761b65bfff5.mp4) |
 | 4 | Innenraum | 10 s | passt. Fenster rechts, Lichtfeld auf der Wand, Staub, kalt-blau | [mp4](https://d8j0ntlcm91z4.cloudfront.net/user_3L1XJ3KwCO2DtrdrDjR8xcD67rt/hf_20261109_072801_06069841-4ca6-4c5d-a364-9c2b3ae8ab1f.mp4) |
-| 5 | Abspann, zwei Figuren | 10 s | **neu erzeugen.** Bodenlange Kutten statt Kapuzenpullover; wirkt wie Mönche oder Sensenmänner, nicht wie die Kanalfigur | [mp4](https://d8j0ntlcm91z4.cloudfront.net/user_3L1XJ3KwCO2DtrdrDjR8xcD67rt/hf_20261109_072801_d717a03e-3f52-4da3-b1a5-30a921337b0e.mp4) |
+| 5 | Abspann, zwei Figuren (2. Versuch) | 10 s | **passt.** Kapuzenpullover, Jeans und Sneaker, gehen von der Kamera weg, die Kamera folgt. Sie laufen allerdings einen Steg hinaus aufs Wasser statt am Ufer entlang | [mp4](https://d8j0ntlcm91z4.cloudfront.net/user_3L1XJ3KwCO2DtrdrDjR8xcD67rt/hf_20261109_082611_73726a82-d8a5-49cf-bd49-335176c5139f.mp4) |
+| 5 | Abspann, 1. Versuch (verworfen) | 10 s | Bodenlange Kutten statt Kapuzenpullover; wirkt wie Mönche oder Sensenmänner, nicht wie die Kanalfigur | [mp4](https://d8j0ntlcm91z4.cloudfront.net/user_3L1XJ3KwCO2DtrdrDjR8xcD67rt/hf_20261109_072801_d717a03e-3f52-4da3-b1a5-30a921337b0e.mp4) |
 
 Job-IDs bei Higgsfield: 1 `0d64882a`, 2 `47962a1c`, 3 `fa1d02e6`,
-4 `06069841`, 5 `d717a03e`.
+4 `06069841`, 5 `73726a82` (verworfen: `d717a03e`).
 
 ## Hinweise für den Schnitt
 
@@ -28,7 +30,7 @@ Job-IDs bei Higgsfield: 1 `0d64882a`, 2 `47962a1c`, 3 `fa1d02e6`,
   setzen und in der Beschreibung neben der KI-Stimme auch die KI-Bilder
   nennen.
 
-## Korrigierter Prompt für Einstellung 5
+## Korrigierter Prompt für Einstellung 5 (so erzeugt im 2. Versuch)
 
 "Hooded figure" verstehen die Modelle oft als Kutte. Darum das Kleidungsstück
 ausdrücklich nennen und Roben ausschließen:
