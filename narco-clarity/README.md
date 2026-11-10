@@ -30,3 +30,17 @@ Probebilder vor einem vollen Render:
 ```bash
 python3 ../scripts/animate_ref.py --probe 6,20,33,44,52
 ```
+
+## Fassung zum Weiterschneiden (CapCut und andere Schnittprogramme)
+
+`teaser/capcut/` enthält den Teaser ohne eingebrannte Untertitel und ohne
+Fortschrittslinie, die Untertitel als `untertitel.srt` sowie Stimme und
+Tonbett als einzelne Spuren. Titelkarte, Stichpunkte und Hilfekarte bleiben
+im Bild.
+
+Neu erzeugen, nachdem `build_ref.sh` einmal gelaufen ist:
+
+```bash
+cd narco-clarity/teaser
+NC_CLEAN=1 bash ../scripts/build_video.sh ../scripts/animate_ref.py capcut/narco-clarity-teaser_ohne-untertitel.mp4 4 clean
+```

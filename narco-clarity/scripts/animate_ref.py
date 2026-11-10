@@ -14,6 +14,10 @@ stays clean.
   python3 animate_ref.py --probe 5,20,33,44,52   # look before you render
   python3 animate_ref.py --plates                # one PNG per camera setup
   python3 animate_ref.py --render                # raw RGB24 frames on stdout
+
+NC_CLEAN=1 leaves out the burnt-in captions and the progress line. That is
+the master for further editing: captions get added in the editor, and a
+progress line would be wrong as soon as the film is trimmed.
 """
 import sys, json, math, os
 import numpy as np
@@ -31,6 +35,7 @@ KAPITEL = TL.get("kapitel", {})
 PANEL_SPEC = TL.get("panel", {})
 TITEL = TL.get("titel") or "NARCO CLARITY"
 ORDER = TL["order"]
+CLEAN = os.environ.get("NC_CLEAN") == "1"
 
 INK     = (236, 232, 225)
 AMBER   = (201, 138, 60)
@@ -841,16 +846,17 @@ def render(t):
     over(f, LABELS[sc], 96, 52, 0.9)
     if sc != "title":
         over(f, BUG, W - 96 - BUG.size[0], 55, 0.6)
-    ln = line_at(t)
+    ln = None if CLEAN else line_at(t)
     if ln is not None:
         cap = CAPS[ln["i"]]
         fade = min(ease((t - ln["start"] + 0.25) / 0.25), ease((ln["end"] + 0.45 - t) / 0.3))
         over(f, cap, (W - cap.size[0]) / 2, 990 - cap.size[1] / 2, fade)
 
-    f[H - 34:H - 32, 96:W - 96] = np.array([38, 42, 46], dtype=np.float32)
-    ex = int(96 + (W - 192) * min(1.0, t / TOTAL))
-    if ex > 96:
-        f[H - 34:H - 32, 96:ex] = AMBER_F
+    if not CLEAN:
+        f[H - 34:H - 32, 96:W - 96] = np.array([38, 42, 46], dtype=np.float32)
+        ex = int(96 + (W - 192) * min(1.0, t / TOTAL))
+        if ex > 96:
+            f[H - 34:H - 32, 96:ex] = AMBER_F
 
     g = ease((t - 0.1) / 1.2) * ease((TOTAL - t) / 0.6)
     if g < 0.999:
