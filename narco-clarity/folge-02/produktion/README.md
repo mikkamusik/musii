@@ -14,6 +14,10 @@ Alle Schritte laufen offline, sobald Rohmaterial und Rohstimme geladen sind
 8. `python3 render.py WORKDIR --srt folge02.srt` – Untertitel als SRT
 9. Bild und Ton zusammenführen (AAC 48 kHz)
 
+Logo und Pinselstrich-Balken (Look des Referenzvideos) baut `brand.py`; es
+braucht die Schrift Permanent Marker (Apache-2.0) in `produktion/fonts/`:
+`https://raw.githubusercontent.com/google/fonts/main/apache/permanentmarker/PermanentMarker-Regular.ttf`
+
 Schnittliste, Bildausschnitte, Farblook (LUT), Titel und Untertitel stehen
 oben in `render.py`. Die Untertitel werden aus dem exakten Skripttext gebaut
 und an den gemessenen Satzzeiten der fertigen Stimme ausgerichtet; ein

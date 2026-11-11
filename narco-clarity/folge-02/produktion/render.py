@@ -13,6 +13,8 @@ and vignette, and overlaid with titles and burned-in subtitles.
 import sys, os, json, math, subprocess, re
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import brand
 
 WD = sys.argv[1]
 RAW = f'{WD}/stock/raw'
@@ -128,8 +130,8 @@ def make_lut(n=33):
     # split tone: blue-teal shadows, cool neutral highlights
     sh = (1 - np.clip(y2, 0, 1)) ** 3
     hi = np.clip(y2, 0, 1) ** 2
-    out += sh[:, None] * np.array([-0.006, 0.010, 0.026]) + hi[:, None] * np.array([-0.012, 0.002, 0.012])
-    out *= np.array([0.965, 1.0, 1.035])
+    out += sh[:, None] * np.array([-0.010, 0.019, 0.030]) + hi[:, None] * np.array([-0.020, 0.010, 0.014])
+    out *= np.array([0.94, 1.0, 1.03])
     out = np.clip(out, 0, 1)
     with open(LUT, 'w') as f:
         f.write('TITLE "NARCO CLARITY"\nLUT_3D_SIZE %d\n' % n)
@@ -353,49 +355,102 @@ def build_cues():
 
 # ---- big documentary titles
 TITLE_FONT = font(F_DISPLAY, 80)
-TITLE_Y = 690
+TITLE_Y = 760
 
 def title(lines_spec, size=80, track=1, glow=True):
     f = font(F_DISPLAY, size)
     lines = [[(w, w.strip('.,„“').upper() in acc) for w in ln.split()] for ln, acc in lines_spec]
     return text_block(lines, f, None, track=track, lead=1.04, glow=glow)
 
+F_BOLD = '/usr/share/fonts/opentype/inter/InterDisplay-ExtraBold.otf'
+
+def banner_title(lines_spec, size=74, seed=1):
+    """reference look: sentence case, white with a teal key word, on a black brush stroke"""
+    # like the reference: a line that is only the key word is set a size larger
+    parts = []
+    for ln, acc in lines_spec:
+        words = [(w, re.sub(r'[^\wäöüÄÖÜß]', '', w) in acc) for w in ln.split()]
+        big = all(a_ for _, a_ in words) and len(lines_spec) > 1
+        im = text_block([words], font(F_BOLD, int(size * (1.2 if big else 1.0))), None,
+                        track=0, lead=1.0, shadow=False, glow=False)
+        parts.append(im.crop(im.getbbox()))
+    gap = int(size * 0.20)
+    tw = max(p_.size[0] for p_ in parts)
+    th = sum(p_.size[1] for p_ in parts) + gap * (len(parts) - 1)
+    txt = Image.new('RGBA', (tw, th), (0, 0, 0, 0))
+    yy_ = 0
+    for p_ in parts:
+        txt.alpha_composite(p_, ((tw - p_.size[0]) // 2, yy_)); yy_ += p_.size[1] + gap
+    tw, th = txt.size
+    ban = brand.brush_stroke(tw + 120, th + 54, seed, opacity=0.88)
+    W, H = max(ban.size[0], tw), max(ban.size[1], th)
+    out = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    out.alpha_composite(ban, ((W - ban.size[0]) // 2, (H - ban.size[1]) // 2))
+    al = txt.split()[3].filter(ImageFilter.GaussianBlur(3)).point(lambda v: int(v * 0.6))
+    sh = Image.new('RGBA', txt.size, (0, 0, 0, 0)); sh.putalpha(al)
+    out.alpha_composite(sh, ((W - tw) // 2, (H - th) // 2 + 3))
+    out.alpha_composite(txt, ((W - tw) // 2, (H - th) // 2))
+    return out
+
+LOGO = brand.logo(1.0)
+LOGO = LOGO.resize((520, int(LOGO.size[1] * 520 / LOGO.size[0])), Image.LANCZOS)
+LOGO_X, LOGO_Y = 22, 128
+
 def build_titles():
     T = []
-    T.append(dict(img=title([("ICH HABE SOGAR", []), ("IM URLAUB VERSUCHT", []), ("AUFZUHÖREN.", ['AUFZUHÖREN'])], size=80),
+    T.append(dict(img=banner_title([("Ich habe sogar", []), ("im Urlaub versucht", []), ("aufzuhören.", ['aufzuhören'])], 84, 3),
                   a=-1.0, b=C['c1'] - 0.25, y=TITLE_Y, rise=0))
-    T.append(dict(img=title([("EIN ANDERER ORT.", []), ("DIESELBE ABHÄNGIGKEIT.", ['ABHÄNGIGKEIT'])], size=70),
+    T.append(dict(img=banner_title([("Ein anderer Ort.", []), ("Dieselbe Abhängigkeit.", ['Abhängigkeit'])], 76, 5),
                   a=L(3) + 0.05, b=L(3, 'end') + 0.55, y=TITLE_Y))
-    T.append(dict(img=title([("ICH HABE MIR", []), ("HILFE GESUCHT.", ['HILFE'])], size=82),
+    T.append(dict(img=banner_title([("Ich habe mir", []), ("Hilfe gesucht.", ['Hilfe'])], 84, 7),
                   a=L(4) - 0.05, b=L(4, 'end') + 0.40, y=TITLE_Y))
-    T.append(dict(img=title([("UND WURDE TROTZDEM", []), ("RÜCKFÄLLIG.", ['RÜCKFÄLLIG'])], size=76, glow=False),
+    T.append(dict(img=banner_title([("Und wurde trotzdem", []), ("rückfällig.", ['rückfällig'])], 82, 9),
                   a=L(7) - 0.05, b=L(7) + 2.0, y=TITLE_Y))
-    T.append(dict(img=title([("BIS HEUTE.", [])], size=96),
+    T.append(dict(img=banner_title([("Bis heute.", ['heute'])], 96, 13),
                   a=L(8) - 0.04, b=C['c8'] - 0.15, y=TITLE_Y))
-    lab = text_block([[('SYMBOLBILDER', False)]], font(F_SEMI, 26), None, track=5, shadow=True, glow=False)
-    T.append(dict(img=lab, a=-1.0, b=5.2, x=64 - 40, y=205, alpha=0.62, rise=0))
+    # brand logo top left, like the reference, until the end card takes over
+    T.append(dict(img=LOGO, a=-1.0, b=C['card'] - 0.5, x=LOGO_X, y=LOGO_Y + LOGO.size[1] / 2, rise=0, alpha=0.97))
+    lab = text_block([[('SYMBOLBILDER', False)]], font(F_SEMI, 24), None, track=5, shadow=True, glow=False)
+    T.append(dict(img=lab, a=-1.0, b=5.2, x=LOGO_X + 4 - 40, y=LOGO_Y + LOGO.size[1] + 22, alpha=0.62, rise=0))
     return T
 
-# ---- end card
+# ---- end card, in the reference layout (teal frame lines, brush logo)
+def card_background():
+    g = np.zeros((OUTH, OUTW, 3), np.float32)
+    r1 = np.sqrt(((xx - OUTW * 0.30) / (OUTW * 0.9)) ** 2 + ((yy - OUTH * 0.40) / (OUTH * 0.40)) ** 2)
+    r2 = np.sqrt(((xx - OUTW * 0.80) / (OUTW * 0.7)) ** 2 + ((yy - OUTH * 0.66) / (OUTH * 0.35)) ** 2)
+    glow = np.clip(1 - r1, 0, 1) ** 2 * 1.0 + np.clip(1 - r2, 0, 1) ** 2 * 0.7
+    g += np.array([3, 6, 8], np.float32) + glow[..., None] * np.array([6, 30, 34], np.float32)
+    return g
+
 def end_card():
     E = []
-    f_logo = font(F_BLACK, 112)
-    logo = text_block([[('NARCO', False), ('CLARITY', True)]], f_logo, None, track=4, lead=1.0, glow=True)
-    E.append(dict(img=logo, a=L(13) - 0.10, b=TOTAL + 1, y=800, fade=0.55))
-    line = Image.new('RGBA', (600, 8), (0, 0, 0, 0))
-    ImageDraw.Draw(line).rectangle([0, 2, 599, 5], fill=TEAL + (255,))
-    E.append(dict(img=line, a=L(13) + 0.35, b=TOTAL + 1, y=905, fade=0.6, wipe=True))
-    folge = text_block([[('FOLGE 02', False)]], font(F_SEMI, 46), None, track=14, glow=False)
-    E.append(dict(img=folge, a=L(14) - 0.08, b=TOTAL + 1, y=975, fade=0.5))
-    weiter = text_block([[('„DIE', False), ('GESCHICHTE', False), ('GEHT', False), ('WEITER.“', False)]],
-                        font(F_DISPLAY, 54), None, track=1, glow=False)
-    E.append(dict(img=weiter, a=L(14, 'end') + 0.22, b=TOTAL + 1, y=1100, fade=0.7))
+    big = brand.logo(2.0, backdrop=False)
+    big = big.resize((780, int(big.size[1] * 780 / big.size[0])), Image.LANCZOS)
+    E.append(dict(img=big, a=L(13) - 0.10, b=TOTAL + 1, y=850, fade=0.55))
+    def hline(w=OUTW):
+        im = Image.new('RGBA', (w, 4), (0, 0, 0, 0))
+        ImageDraw.Draw(im).rectangle([0, 1, w - 1, 2], fill=TEAL + (190,))
+        return im
+    def vline(h=110):
+        im = Image.new('RGBA', (4, h), (0, 0, 0, 0))
+        ImageDraw.Draw(im).rectangle([1, 0, 2, h - 1], fill=TEAL + (200,))
+        return im
+    E.append(dict(img=hline(), a=C['card'] + 0.05, b=TOTAL + 1, y=700, fade=0.5, wipe=True, still=True))
+    E.append(dict(img=hline(), a=C['card'] + 0.20, b=TOTAL + 1, y=1000, fade=0.5, wipe=True, still=True))
+    E.append(dict(img=vline(), a=C['card'] + 0.45, b=TOTAL + 1, x=26, y=600, fade=0.5, still=True))
+    E.append(dict(img=vline(), a=C['card'] + 0.55, b=TOTAL + 1, x=OUTW - 26, y=1100, fade=0.5, still=True))
+    folge = text_block([[('FOLGE 02', False)]], font(F_SEMI, 44), None, track=14, glow=False)
+    E.append(dict(img=folge, a=L(14) - 0.08, b=TOTAL + 1, y=1085, fade=0.5))
+    weiter = text_block([[('„Die', False), ('Geschichte', False), ('geht', False), ('weiter.“', True)]],
+                        font(F_BOLD, 58), None, track=0, glow=False)
+    E.append(dict(img=weiter, a=L(14, 'end') + 0.22, b=TOTAL + 1, y=1195, fade=0.7))
     f_h = font(F_MED, 34)
     hl = text_block([[('Hilfe', False), ('&', False), ('Beratung,', False), ('anonym:', False)],
                      [('TelefonSeelsorge', False), ('0800', True), ('111', True), ('0', True), ('111', True), ('·', False), ('kostenlos', False)],
                      [('Sucht-', False), ('&', False), ('Drogen-Hotline', False), ('01806', True), ('313031', True), ('·', False), ('kostenpflichtig', False)]],
                     f_h, None, lead=1.30, glow=False)
-    E.append(dict(img=hl, a=L(14, 'end') + 0.55, b=TOTAL + 1, y=1415, fade=0.6, alpha=0.82))
+    E.append(dict(img=hl, a=L(14, 'end') + 0.55, b=TOTAL + 1, y=1420, fade=0.6, alpha=0.82))
     return E
 
 # ------------------------------------------------------------------ finishing
@@ -451,9 +506,11 @@ def compose(t, frames):
 
 def render(times, sink):
     make_lut()
+    global CARD_BG
     cues = build_cues()
     titles = build_titles()
     card = end_card()
+    CARD_BG = card_background()
     readers = {}
     for n, t in times:
         frames = []
@@ -492,6 +549,9 @@ def render(times, sink):
                 over(f, c['img'], OUTW / 2, SUB_Y, k)
         if t >= C['card'] - 0.2:
             fin = 1 - ease((t - (TOTAL - 0.95)) / 0.9)
+            kb = ease((t - C['card']) / 0.6) * fin
+            if kb > 0:
+                f = f * (1 - kb) + grain(CARD_BG.copy(), 3.0) * kb
             for E in card:
                 if t >= E['a'] - 0.05:
                     k = ease((t - E['a']) / E['fade']) * fin * E.get('alpha', 1.0)
@@ -500,7 +560,8 @@ def render(times, sink):
                         p = ease((t - E['a']) / 0.9)
                         wv = max(2, int(img.size[0] * p))
                         img = img.crop(((img.size[0] - wv) // 2, 0, (img.size[0] + wv) // 2, img.size[1]))
-                    over(f, img, OUTW / 2, E['y'] + 10 * (1 - ease((t - E['a']) / 0.6)), k)
+                    dy = 0 if E.get('still') else 10 * (1 - ease((t - E['a']) / 0.6))
+                    over(f, img, E.get('x', OUTW / 2), E['y'] + dy, k)
         out = np.clip(f, 0, 255).astype(np.uint8)
         if sink is None:
             Image.fromarray(out).save(f"{WD}/build/probe_{t:06.2f}.png")
