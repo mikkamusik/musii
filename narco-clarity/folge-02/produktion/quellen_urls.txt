@@ -1,0 +1,15 @@
+# Rohmaterial (in WORKDIR/stock/raw/ ablegen, Dateinamen wie links)
+p6944074.mp4  https://videos.pexels.com/video-files/6944074/6944074-uhd_4096_2160_25fps.mp4
+p6944071.mp4  https://videos.pexels.com/video-files/6944071/6944071-uhd_4096_2160_25fps.mp4
+p6944076.mp4  https://videos.pexels.com/video-files/6944076/6944076-uhd_2160_4096_25fps.mp4
+p36827483.mp4 https://videos.pexels.com/video-files/36827483/15603244_1440_2560_60fps.mp4
+c2737.mp4     https://cdn.coverr.co/videos/coverr-a-man-taking-in-a-view-from-his-hotel-room-2737/1080p.mp4
+p5712771.mp4  https://videos.pexels.com/video-files/5712771/5712771-uhd_2160_3840_25fps.mp4
+p7579331.mp4  https://videos.pexels.com/video-files/7579331/7579331-uhd_4096_2160_25fps.mp4
+p5203510.mp4  https://videos.pexels.com/video-files/5203510/5203510-hd_1920_1080_30fps.mp4
+p31069867.mp4 https://videos.pexels.com/video-files/31069867/13277769_1440_2560_50fps.mp4
+p4538212.mp4  https://videos.pexels.com/video-files/4538212/4538212-uhd_3840_2160_25fps.mp4
+p13335630.mp4 https://videos.pexels.com/video-files/13335630/13335630-uhd_2160_3840_24fps.mp4
+p38003073.mp4 https://videos.pexels.com/video-files/38003073/16127786_1440_2560_30fps.mp4
+# Rohe Sprachaufnahme (ElevenLabs "Roger" via vidIQ, unbearbeitet)
+voice/vo_raw.mp3 https://assets.vidiq.com/voiceovers/efb7c7b9-feb9-4726-a042-30606281ca3c/fbbb7fbc-34c2-47b2-a0a8-94e88d93fec5.mp3
