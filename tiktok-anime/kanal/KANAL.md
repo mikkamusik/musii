@@ -25,13 +25,23 @@ Alternative:
 - **Direkt danach selbst kommentieren und anpinnen:**
   > Team Nanuka 😼 oder Team Oma 👵? Gewinner bekommt Folge 2 🍪
 
-## Plan für die erste Woche
-| Tag | Post | Ziel |
+## Plan: 2 Videos pro Tag (Woche 1)
+Posten um **ca. 13 Uhr** (A) und **ca. 19 Uhr** (B). Fast alles entsteht aus dem Material von Folge 1. Jeder Clip bekommt einen eigenen Hook-Text, damit er sich wie ein neues Video anfühlt.
+
+| Tag | A (Mittag) | B (Abend) |
 |---|---|---|
-| 1 | **Folge 1** (ganzes Video) | Start der Serie |
-| 2 | **Foto-Karussell** mit den 3 Figuren (Nanuka, Oma, Blorp): „Wer ist euer Favorit?“ | Kommentare, die Figuren bekannt machen |
-| 3–4 | **10-Sekunden-Teaser**: nur Drop und fliegendes Gebiss, Text: „Das Ende ist absurd 💀 ganze Folge im Profil“ | neue Leute auf Folge 1 lenken |
-| 5–7 | **Folge 2: „Die Kekse“** | zeigen, dass die Serie weitergeht |
+| 1 | ✅ **Teaser „Drop“** (`out/teaser-drop.mp4`, 10 s) | ✅ **Folge 1** (`out/bass-kater-nanuka_ohne-stimmen.mp4`) |
+| 2 | **Figuren-Karussell** (3 Bilder aus `figuren/`): „Wer ist euer Favorit?“ | **Clip „Oma-Auftritt“** (Wand bricht, Rivalen-Karte): „Wenn deine Nachbarin 1994 Rave-Königin war“ |
+| 3 | **Clip „Bass-Level 11/10“**: „Wenn du den Regler auf 11 drehst“ | **Folge 1 auf Englisch** |
+| 4 | **Clip „Blorp“** (Mond, Kopfhörer, Tränen): „Sogar Aliens feiern den Beat“ | **Folge 1 mit neuem Hook** (Cold Open mit dem Gebiss) |
+| 5 | **Clip „Bass-Duell“**: „Team Nanuka oder Team Oma? 👇“ | **Antwort-Video** auf den besten Kommentar |
+| 6 | **Teaser Folge 2** („Die Kekse“) | **Folge 2** |
+| 7 | **Clip aus Folge 2** | **Best-of / Loop** beider Folgen |
+
+**Wichtig bei 2 Posts pro Tag:**
+- Nie zweimal dasselbe Video hochladen. TikTok erkennt Kopien und zeigt sie weniger. Die Clips oben sind verschiedene Ausschnitte mit eigenem Text.
+- Lieber ein Post weniger als ein schwacher Post. Wenn ein Video gut läuft, kein Video direkt danach posten, sondern ihm ein paar Stunden geben.
+- Ab Woche 2 kommt pro Woche **eine neue Folge**, und die Clips daraus füllen die restlichen Tage.
 
 ## Regeln, die Reichweite bringen
 - **Regelmäßig posten** zählt mehr als ein perfektes Video. Am besten immer am gleichen Wochentag.
