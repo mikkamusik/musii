@@ -26,7 +26,7 @@ Figurenbilder (mit Canva KI erzeugt, im Video als Auftritte eingebaut): [`figure
 
 ## TikTok-Post
 **Caption:**
-> Wenn die Nachbarin „leiser“ sagt, aber du „LAUTER“ verstehst 🔊😼 Teil 2? #anime #animeedit #producer #bassdrop #musikproduktion #lustig #fyp #fürdich #oma #catsoftiktok
+> Wenn die Nachbarin „leiser“ sagt, aber du „LAUTER“ verstehst 🔊😼 Teil 2? #anime #animeedit #producer #bassdrop #musikproduktion #lustig #fyp #fürdich #oma #catsoftiktok #beatzandcatz
 
 **Tipps**
 - Cover = Hook-Frame (`out/cover.png`).

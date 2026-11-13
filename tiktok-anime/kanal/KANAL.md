@@ -1,19 +1,17 @@
-# TikTok-Kanal: Bass-Kater Nanuka
+# TikTok-Kanal: @beatzandcatz
+
+https://www.tiktok.com/@beatzandcatz
 
 ## Name und Handle
-**Anzeigename:** `Bass-Kater Nanuka 😼🎧`
+**Handle:** `@beatzandcatz`
 
-**Handle-Ideen** (in der App prüfen, welcher noch frei ist):
-1. `@basskater.nanuka`
-2. `@nanuka.drops`
-3. `@nanuka.beats`
-4. `@nanuka_vs_oma`
+**Anzeigename:** `Beatz & Catz 😼🎧`
 
 ## Profilbild
 [`profilbild.png`](profilbild.png): Nanuka mit Kopfhörern, als Kreis zugeschnitten.
 
 ## Bio (max. 80 Zeichen)
-> 😼🎧 Bass-Kater Nanuka vs. Rave-Oma Hildegard · neue Folge jede Woche 🔊
+> 😼🎧 Bass-Kater Nanuka vs. Rave-Oma Hildegard · jede Woche neue Folge 🔊
 
 Alternative:
 > Ein Kater. Ein Drop. Eine Oma ohne Gebiss. 💀 Folge 1 ⬇️
@@ -22,7 +20,7 @@ Alternative:
 - **Video:** `out/bass-kater-nanuka_ohne-stimmen.mp4`
 - **Cover:** `out/cover.png` (in TikTok beim Posten als Titelbild wählen)
 - **Caption:**
-  > Wenn die Nachbarin „leiser“ sagt, aber du „LAUTER“ verstehst 🔊😼 Teil 2? #anime #animeedit #producer #bassdrop #musikproduktion #lustig #fyp #fürdich #oma #catsoftiktok
+  > Wenn die Nachbarin „leiser“ sagt, aber du „LAUTER“ verstehst 🔊😼 Teil 2? #anime #animeedit #producer #bassdrop #musikproduktion #lustig #fyp #fürdich #oma #catsoftiktok #beatzandcatz
 - **Uhrzeit:** abends zwischen 18 und 21 Uhr
 - **Direkt danach selbst kommentieren und anpinnen:**
   > Team Nanuka 😼 oder Team Oma 👵? Gewinner bekommt Folge 2 🍪
