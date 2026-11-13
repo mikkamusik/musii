@@ -4,6 +4,7 @@ Aufruf: python3 audio.py <ausgabe.wav>
 Alle Zeitpunkte passen zu scene.html / timeline.json.
 """
 import json
+import os
 import sys
 import wave
 from pathlib import Path
@@ -378,7 +379,8 @@ add(ufo(1.6), 38.4, 1.0)
 for k, m in enumerate([72, 76, 79, 84]):
     add(lead(m, 0.25, 0.12), 38.9 + k * 0.08, 1.0)
 
-voices()
+if os.environ.get('NO_VOICES') != '1':
+    voices()
 
 # ------------------------------------------------------------- Mastering
 mix += lp(muffle, 350) * 0.55
