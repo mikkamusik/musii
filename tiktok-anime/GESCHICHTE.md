@@ -1,26 +1,26 @@
-# BASS-KATER MIKKA – Folge 1: „Der Drop“
+# BASS-KATER NANUKA – Folge 1: „Der Drop“
 
 Ein lustiger TikTok-Anime (40 s, 9:16, deutsch untertitelt).
-Fertiges Video: [`out/bass-kater-mikka.mp4`](out/bass-kater-mikka.mp4) · Cover: [`out/cover.png`](out/cover.png)
+Fertiges Video: [`out/bass-kater-nanuka.mp4`](out/bass-kater-nanuka.mp4) · Cover: [`out/cover.png`](out/cover.png)
 
 ## Die Figuren
 | Figur | Look | Persönlichkeit |
 |---|---|---|
-| **Mikka** | schwarzer Kater, riesige grüne Anime-Augen, neonpinke Kopfhörer, gelber „BASS“-Hoodie | Schlafzimmer-Producer, hält jeden Beat für den besten aller Zeiten |
+| **Nanuka** | schwarzer Kater, riesige grüne Anime-Augen, neonpinke Kopfhörer, gelber „BASS“-Hoodie | Schlafzimmer-Producer, hält jeden Beat für den besten aller Zeiten |
 | **Oma Hildegard** | lila Dutt, schwarze Sonnenbrille, lila Bomberjacke, goldene Creolen, ein Goldzahn | Nachbarin, war 1994 Rave-Königin und ist noch immer die Härteste im Haus |
 | **Blorp** | grünes Alien, drei Augen, Antenne, cyanfarbene Kopfhörer | lebt auf dem Mond und hat noch nie einen guten Beat gehört, bis heute |
 
 ## Drehbuch
 | Zeit | Szene | Bild | Text / Dialog |
 |---|---|---|---|
-| 0–3 s | **Hook** | Mikka in Glitzer-Großaufnahme, pinker Strahlenhintergrund | „POV: Dein Drop ist ZU HART!!“ |
-| 3–8 s | **Studio** | Mikka am Laptop, Noten fliegen. Es klopft dreimal an der Wand | **Mikka:** „Heute baue ich den perfektesten Drop aller Zeiten!“ · **Nachbarin (durch die Wand):** „LEISER DA DRÜBEN!!“ |
-| 8–13 s | **Power-up** | Böser Blick → Pfote dreht den BASS-Regler auf **11** → Aura, Blitze, Fell sträubt sich, BASS-LEVEL-Anzeige platzt | **Mikka:** „Leiser? … Ich glaube, sie meint LAUTER.“ · „AAAAAAHHHH!!!“ |
+| 0–3 s | **Hook** | Nanuka in Glitzer-Großaufnahme, pinker Strahlenhintergrund | „POV: Dein Drop ist ZU HART!!“ |
+| 3–8 s | **Studio** | Nanuka am Laptop, Noten fliegen. Es klopft dreimal an der Wand | **Nanuka:** „Heute baue ich den perfektesten Drop aller Zeiten!“ · **Nachbarin (durch die Wand):** „LEISER DA DRÜBEN!!“ |
+| 8–13 s | **Power-up** | Böser Blick → Pfote dreht den BASS-Regler auf **11** → Aura, Blitze, Fell sträubt sich, BASS-LEVEL-Anzeige platzt | **Nanuka:** „Leiser? … Ich glaube, sie meint LAUTER.“ · „AAAAAAHHHH!!!“ |
 | 13–18 s | **DER DROP** | Impact-Frames „DROP!!!“, Schockwellen, die Tasse fliegt in die Kamera, das Fenster zerspringt, ein Gebiss fliegt durch die Wand und klappert auf dem Tisch | *Ein Gebiss fliegt durch die Wand* |
 | 18–24 s | **Oma Hildegard** | „KRAWUMM!“: Die Wand bricht auf, Rivalen-Karte „OMA HILDEGARD · Rave-Königin 1994 · Status: Gebiss verloren“. *KLACK*, das Gebiss ist wieder drin, die Brille rutscht runter | **Oma:** „Du nennst DAS einen Drop, Kätzchen?“ |
-| 24–31 s | **Bass-Duell** | VS-Bildschirm → Oma schreit → Strahlenkampf „BASS-KANONE!!“ gegen „BOOMBOX-STRAHL!!“ → Explosion | **Mikka:** „Oma … das heißt BASS-DUELL!“ · **Oma:** „Ich hab schon geravt, da warst du noch ein Wollknäuel!“ |
+| 24–31 s | **Bass-Duell** | VS-Bildschirm → Oma schreit → Strahlenkampf „BASS-KANONE!!“ gegen „BOOMBOX-STRAHL!!“ → Explosion | **Nanuka:** „Oma … das heißt BASS-DUELL!“ · **Oma:** „Ich hab schon geravt, da warst du noch ein Wollknäuel!“ |
 | 31–36 s | **Weltall** | Die Erde pulsiert, der Mond wackelt im Takt, Alien Blorp nimmt die Kopfhörer ab und weint vor Glück | *Unterdessen, 384.400 km entfernt …* · **Blorp:** „Endlich mal ein guter Beat.“ |
-| 36–40 s | **Ende** | High-Five („KLATSCH!“) im zerstörten Zimmer, Blorp fliegt im UFO vorbei | **Mikka:** „Gleiche Zeit nächste Woche?“ · **Oma:** „Bring Kekse mit.“ · **TEIL 2? Folgen für mehr!** |
+| 36–40 s | **Ende** | High-Five („KLATSCH!“) im zerstörten Zimmer, Blorp fliegt im UFO vorbei | **Nanuka:** „Gleiche Zeit nächste Woche?“ · **Oma:** „Bring Kekse mit.“ · **TEIL 2? Folgen für mehr!** |
 
 ## TikTok-Post
 **Caption:**
@@ -29,10 +29,10 @@ Fertiges Video: [`out/bass-kater-mikka.mp4`](out/bass-kater-mikka.mp4) · Cover:
 **Tipps**
 - Cover = Hook-Frame (`out/cover.png`).
 - Als Text-Sticker in den ersten 2 Sekunden: „warte auf die Oma 💀“, das hält die Leute bis Sekunde 18.
-- Kommentar-Frage pinnen: „Team Mikka oder Team Oma?“
+- Kommentar-Frage pinnen: „Team Nanuka oder Team Oma?“
 
 ## Idee für Teil 2: „Die Kekse“
-Mikka backt für Oma Kekse, aber jeder Keks ist auf eine andere Frequenz gestimmt. Beim ersten Bissen fängt Omas Gebiss an, im Takt zu klappern. Blorp landet mit dem UFO auf dem Balkon und will auch einen. Ende: Die drei gründen die Band **„3 Augen, 1 Gebiss“**.
+Nanuka backt für Oma Kekse, aber jeder Keks ist auf eine andere Frequenz gestimmt. Beim ersten Bissen fängt Omas Gebiss an, im Takt zu klappern. Blorp landet mit dem UFO auf dem Balkon und will auch einen. Ende: Die drei gründen die Band **„3 Augen, 1 Gebiss“**.
 
 ---
 
@@ -41,7 +41,7 @@ Stil-Zusatz für **jeden** Prompt, damit alles einheitlich aussieht:
 > `2D anime style, cel shading, bold clean outlines, vibrant neon pink and purple palette, comedic shonen anime, vertical 9:16`
 
 **Figuren-Referenzbilder zuerst (Bild):**
-1. *Mikka:* `A cute black cat character with huge glossy green anime eyes, neon pink over-ear headphones, wearing a yellow hoodie with the word "BASS" on the pocket, character sheet, front view, plain background`
+1. *Nanuka:* `A cute black cat character with huge glossy green anime eyes, neon pink over-ear headphones, wearing a yellow hoodie with the word "BASS" on the pocket, character sheet, front view, plain background`
 2. *Oma Hildegard:* `A cool elderly grandma with a lavender hair bun, black rectangular sunglasses, purple bomber jacket over a white "RAVE" shirt, big gold hoop earrings, one gold tooth, confident smirk, character sheet, front view, plain background`
 3. *Blorp:* `A small chubby green alien with three big eyes, a pink-tipped antenna and cyan headphones, cute, character sheet, plain background`
 
@@ -61,7 +61,7 @@ Stil-Zusatz für **jeden** Prompt, damit alles einheitlich aussieht:
 Alles ist Code, Änderungen an Text, Timing oder Figuren sind also schnell gemacht:
 ```bash
 cd tiktok-anime
-./build.sh            # rendert Frames, synthetisiert Audio, baut out/bass-kater-mikka.mp4
+./build.sh            # rendert Frames, synthetisiert Audio, baut out/bass-kater-nanuka.mp4
 ```
 - `timeline.json`: alle Untertitel und Zeiten
 - `scene.html`: Animation (im Browser öffnen für eine Live-Vorschau, `scene.html?t=13.2` zeigt ein Einzelbild)

@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<title>Bass-Kater Mikka</title>
+<title>Bass-Kater Nanuka</title>
 <style>
   html,body{margin:0;padding:0;background:#000;overflow:hidden}
   canvas{display:block}
@@ -12,7 +12,7 @@
 <canvas id="c" width="1080" height="1920"></canvas>
 <script>
 // =====================================================================
-//  BASS-KATER MIKKA – Folge 1: "Der Drop"
+//  BASS-KATER NANUKA – Folge 1: "Der Drop"
 //  Deterministischer Canvas-Renderer: renderFrame(t) zeichnet Sekunde t.
 // =====================================================================
 const W = 1080, H = 1920;
@@ -118,8 +118,8 @@ function smoke(t, x, y, n, t0, seed = 9, scale = 1) {
 }
 
 // ============================================================ FIGUREN
-// ---- Mikka: schwarzer Kater, Riesenaugen, neonpinke Kopfhörer, gelber Hoodie
-function drawMikka(x, y, s, o = {}) {
+// ---- Nanuka: schwarzer Kater, Riesenaugen, neonpinke Kopfhörer, gelber Hoodie
+function drawNanuka(x, y, s, o = {}) {
   const t = o.t || 0;
   ctx.save(); ctx.translate(x, y); ctx.rotate(o.rot || 0); ctx.scale(s, s);
   if (!o.noBody) {
@@ -527,7 +527,7 @@ function scene1(t) {   // HOOK 0–3 s
   for (let i = 0; i < 30; i++) { const x = r() * W, y = r() * H, ph = r() * 6; sparkle(x, y, 10 + 18 * Math.abs(Math.sin(t * 3 + ph)), 'rgba(255,255,255,.85)'); }
   ctx.save(); cam(1 + t * .03, 540, 1100);
   const bob = pulse(t) * 18;
-  drawMikka(540, 1080 - bob, 1.5, { t, eyes: 'sparkle', mouth: t > 1 && talk(t, 4) ? 'open' : 'smile', blush: true, armR: [230, 60 - bob], armL: [-185, 380] });
+  drawNanuka(540, 1080 - bob, 1.5, { t, eyes: 'sparkle', mouth: t > 1 && talk(t, 4) ? 'open' : 'smile', blush: true, armR: [230, 60 - bob], armL: [-185, 380] });
   ctx.restore();
   popTxt('POV:', 540, 300, 76, .15, t);
   popTxt('Dein Drop ist', 540, 405, 96, .45, t);
@@ -536,7 +536,7 @@ function scene1(t) {   // HOOK 0–3 s
   flash(prog(t, 2.85, 3) * .8);
 }
 
-function scene2(t) {   // 3–8 s: Mikka will den perfekten Drop, Nachbarin klopft
+function scene2(t) {   // 3–8 s: Nanuka will den perfekten Drop, Nachbarin klopft
   const lt = t - 3;
   const knocks = [5.75, 5.97, 6.19];
   let sh = 0; knocks.forEach(k => { if (t >= k) sh += 26 * Math.exp(-(t - k) * 9); });
@@ -545,7 +545,7 @@ function scene2(t) {   // 3–8 s: Mikka will den perfekten Drop, Nachbarin klop
   drawRoom({ t });
   const speaking = t > 3.2 && t < 5.6;
   const shocked = t > 5.8;
-  drawMikka(540, 960 - pulse(t) * (shocked ? 0 : 10), 1.0, {
+  drawNanuka(540, 960 - pulse(t) * (shocked ? 0 : 10), 1.0, {
     t, eyes: shocked ? 'shock' : 'sparkle', mouth: shocked ? 'o' : speaking && talk(t) ? 'open' : 'smile',
     sweat: t > 6.3, look: shocked ? 1 : 0, noBody: false
   });
@@ -560,7 +560,7 @@ function scene3(t) {   // 8–13 s: Power-up
     const lt = t - 8;
     ctx.save(); cam(1.75 + lt * .05, 540, 900);
     drawRoom({ t });
-    drawMikka(540, 960, 1.0, { t, eyes: 'determined', mouth: t > 8.2 && t < 10.15 && talk(t) && t > 9.3 ? 'open' : 'smirk', look: -.3 });
+    drawNanuka(540, 960, 1.0, { t, eyes: 'determined', mouth: t > 8.2 && t < 10.15 && talk(t) && t > 9.3 ? 'open' : 'smirk', look: -.3 });
     drawDesk({ t, paws: true, knob: .3 });
     ctx.restore();
     // dramatischer Schatten von oben
@@ -600,7 +600,7 @@ function scene3(t) {   // 8–13 s: Power-up
       for (let b = 0; b < 2; b++) { let px = 540 + (r() - .5) * 900, py = 600; ctx.beginPath(); ctx.moveTo(px, py); for (let k = 0; k < 6; k++) { px += (r() - .5) * 140; py += 110; ctx.lineTo(px, py); } ctx.stroke(); }
       ctx.shadowBlur = 0;
     }
-    drawMikka(540, 1060, 1.25, { t, eyes: 'glow', mouth: t > 11.3 ? 'scream' : 'smirk', furUp: easeOut(prog(t, 11, 11.8)), armL: [-260, 120], armR: [260, 120] });
+    drawNanuka(540, 1060, 1.25, { t, eyes: 'glow', mouth: t > 11.3 ? 'scream' : 'smirk', furUp: easeOut(prog(t, 11, 11.8)), armL: [-260, 120], armR: [260, 120] });
     ctx.restore();
     // Bass-Meter
     const fill = easeIn(prog(t, 11.1, 12.6)) * 1.45;
@@ -625,7 +625,7 @@ function scene4(t) {   // 13–18 s: DER DROP
     speedlines(540, 1050, 110, t, f ? 'rgba(0,0,0,.9)' : 'rgba(255,255,255,.9)', 300, 8);
     ctx.filter = f ? 'grayscale(1) contrast(12) brightness(.2)' : 'grayscale(1) contrast(12) invert(1) brightness(3)';
     const [dx, dy] = shakeXY(30, t);
-    drawMikka(540 + dx, 1080 + dy, 1.35, { t, eyes: 'glow', mouth: 'scream', furUp: 1, armL: [-260, 120], armR: [260, 120] });
+    drawNanuka(540 + dx, 1080 + dy, 1.35, { t, eyes: 'glow', mouth: 'scream', furUp: 1, armL: [-260, 120], armR: [260, 120] });
     ctx.filter = 'none';
     ctx.restore();
     const p = prog(t, 13, 13.15);
@@ -646,7 +646,7 @@ function scene4(t) {   // 13–18 s: DER DROP
     ctx.strokeStyle = k % 2 ? PINK : '#3ff0ff'; ctx.beginPath(); ell(540, 1250, rr, rr * .55); ctx.stroke(); ctx.restore();
   }
   const noticed = t > 16.5;
-  drawMikka(540, 960, 1.0, {
+  drawNanuka(540, 960, 1.0, {
     t, eyes: noticed ? 'shock' : 'closed', mouth: noticed ? 'o' : 'open', furUp: noticed ? .6 : .25,
     rot: noticed ? 0 : Math.sin(t * Math.PI * 4) * .14, sweat: noticed, look: noticed ? 1 : 0
   });
@@ -704,7 +704,7 @@ function scene5(t) {   // 18–24 s: Oma Hildegard
     const [dx, dy] = shakeXY(t < 18.5 ? 30 : 6, t);
     ctx.save(); cam(1.05, 700, 900, dx, dy);
     drawRoom({ t, broken: true, cracks: 1, hole: lerp(120, 340, q) });
-    drawMikka(540, 960, 1.0, { t, eyes: 'shock', mouth: 'scream', sweat: true, furUp: 1, look: 1 });
+    drawNanuka(540, 960, 1.0, { t, eyes: 'shock', mouth: 'scream', sweat: true, furUp: 1, look: 1 });
     drawDesk({ t, paws: true, knob: 1.1, mugGone: true });
     drawDentures(680, 1340, 1.3, 0);
     smoke(t, 930, 820, 16, 18.05, 9, 1.2);
@@ -768,7 +768,7 @@ function scene6(t) {   // 24–31 s: Bass-Duell
     drawOma(720, 1330, 1.0, { t, mouth: 'smirk', glint: (t * .7) % 1.6 });
     ctx.restore();
     ctx.save(); ctx.beginPath(); ctx.moveTo(-50, 0); ctx.lineTo(W + 50, 0); ctx.lineTo(W + 50, 760); ctx.lineTo(-50, 1180); ctx.closePath(); ctx.clip();
-    drawMikka(330, 650, 1.0, { t, eyes: 'determined', mouth: t > 24.2 && talk(t) ? 'scream' : 'smirk', furUp: .5, armR: [240, 60] });
+    drawNanuka(330, 650, 1.0, { t, eyes: 'determined', mouth: t > 24.2 && talk(t) ? 'scream' : 'smirk', furUp: .5, armR: [240, 60] });
     ctx.restore();
     path(() => { ctx.moveTo(-50, 1180); ctx.lineTo(W + 50, 760); }, null, '#fff', 22);
     ctx.restore();
@@ -815,7 +815,7 @@ function scene6(t) {   // 24–31 s: Bass-Duell
     for (let i = 0; i < 24; i++) { const a = r() * Math.PI * 2, d = 80 + r() * 260; path(() => circ(clashX + Math.cos(a) * d, 1000 + Math.sin(a) * d, 6 + r() * 6), '#fff6b0', null); }
     ctx.restore();
   }
-  drawMikka(200, 1020, .62, { t, eyes: 'glow', mouth: 'scream', furUp: 1, armR: [300, -20], armL: [280, 30] });
+  drawNanuka(200, 1020, .62, { t, eyes: 'glow', mouth: 'scream', furUp: 1, armR: [300, -20], armL: [280, 30] });
   drawBoombox(860, 980, .55, p, 0);
   drawOma(900, 1180, .62, { t, mouth: 'shout', glassesDown: 1, armL: [-200, -230], armR: [-120, -200] });
   ctx.restore();
@@ -878,7 +878,7 @@ function scene8(t) {   // 36–40 s: High-Five + CTA
   drawRoom({ t, broken: true, cracks: 1, hole: 340 });
   smoke(t, 930, 820, 6, 35.5, 12, .7);
   const happy = t > hf + .1;
-  drawMikka(330, 900, .9, { t, eyes: happy ? 'closed' : 'sparkle', blush: true, mouth: t > 36.9 && t < 37.95 && talk(t) ? 'open' : 'smile', armR: [lerp(185, 245, q), lerp(380, -150, q)] });
+  drawNanuka(330, 900, .9, { t, eyes: happy ? 'closed' : 'sparkle', blush: true, mouth: t > 36.9 && t < 37.95 && talk(t) ? 'open' : 'smile', armR: [lerp(185, 245, q), lerp(380, -150, q)] });
   drawBoombox(900, 1180, .5, pulse(t), 0);
   drawOma(760, 930, .9, { t, mouth: t > 38 && t < 39 && talk(t) ? 'open' : 'grin', glassesDown: 1, armL: [lerp(-195, -255, q), lerp(390, -150, q)] });
   drawDesk({ t, noLaptop: false, knob: 1.1, mugGone: true });
@@ -907,7 +907,7 @@ function scene8(t) {   // 36–40 s: High-Five + CTA
 
 // ============================================================ UNTERTITEL
 const SPEAKER = {
-  mikka: { name: 'MIKKA', col: YEL },
+  mikka: { name: 'NANUKA', col: YEL },
   oma: { name: 'OMA HILDEGARD', col: LILA },
   blorp: { name: 'BLORP', col: GREEN },
 };
@@ -957,7 +957,7 @@ function tag(t) {
   if (t < 3) return;
   ctx.save(); ctx.globalAlpha = .9;
   ctx.font = `800 30px ${FONT}`;
-  const s = 'BASS-KATER MIKKA · Folge 1';
+  const s = 'BASS-KATER NANUKA · Folge 1';
   const w = ctx.measureText(s).width + 36;
   path(() => ctx.roundRect(40, 175, w, 52, 26), 'rgba(18,10,31,.65)', PINK, 4);
   txt(s, 58, 202, 30, { align: 'left', fill: '#fff', stroke: null, weight: 800 });
