@@ -14,6 +14,13 @@ const path = require('path');
     : Array.from({ length: total }, (_, i) => ({ t: i / fps, name: `f_${String(i).padStart(5, '0')}.jpg` }));
   fs.mkdirSync(outDir, { recursive: true });
 
+  // Figurenbilder als data-URLs übergeben (lokale Dateien würden den Canvas für den Export sperren)
+  const figData = {};
+  for (const n of ['nanuka', 'oma-hildegard', 'blorp']) {
+    const f = path.join(__dirname, 'figuren', n + '.png');
+    if (fs.existsSync(f)) figData[n] = 'data:image/png;base64,' + fs.readFileSync(f).toString('base64');
+  }
+
   const browser = await chromium.launch();
   const WORKERS = 4;
   let next = 0, done = 0;
@@ -21,9 +28,10 @@ const path = require('path');
   await Promise.all(Array.from({ length: WORKERS }, async () => {
     const page = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
     page.on('pageerror', e => { console.error('PAGE ERROR', e.message); process.exitCode = 1; });
-    await page.addInitScript(t => { window.__RENDER__ = true; window.TIMELINE = t; }, tl);
+    await page.addInitScript(([t, figs]) => { window.__RENDER__ = true; window.TIMELINE = t; window.FIG_DATA = figs; }, [tl, figData]);
     await page.goto(url);
     await page.evaluate(() => document.fonts.ready);
+    await page.evaluate(() => window.__imagesReady);
     while (next < jobs.length) {
       const job = jobs[next++];
       const data = await page.evaluate(t => { renderFrame(t); return document.getElementById('c').toDataURL('image/jpeg', 0.94); }, job.t);

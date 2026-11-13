@@ -3,6 +3,8 @@
 Ein lustiger TikTok-Anime (40 s, 9:16, deutsch untertitelt).
 Fertiges Video: [`out/bass-kater-nanuka.mp4`](out/bass-kater-nanuka.mp4) · Cover: [`out/cover.png`](out/cover.png)
 
+Figurenbilder (mit Canva KI erzeugt, im Video als Auftritte eingebaut): [`figuren/nanuka.png`](figuren/nanuka.png) · [`figuren/oma-hildegard.png`](figuren/oma-hildegard.png) · [`figuren/blorp.png`](figuren/blorp.png)
+
 ## Die Figuren
 | Figur | Look | Persönlichkeit |
 |---|---|---|

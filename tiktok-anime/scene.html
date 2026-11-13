@@ -117,6 +117,28 @@ function smoke(t, x, y, n, t0, seed = 9, scale = 1) {
   }
 }
 
+// ============================================================ CANVA-FIGURENKARTEN
+const IMG = {};
+window.__imagesReady = Promise.all(['nanuka', 'oma-hildegard', 'blorp'].map(n => new Promise(res => {
+  const im = new Image();
+  im.onload = () => { IMG[n] = im; res(); };
+  im.onerror = () => res();
+  im.src = (window.FIG_DATA && window.FIG_DATA[n]) || ('figuren/' + n + '.png');
+})));
+// Vollbild-Figurenkarte mit "Slam"-Einstieg und langsamem Zoom. Gibt false zurück, wenn das Bild fehlt.
+function card(name, t0, t, dur, zEnd = 1.08) {
+  const im = IMG[name]; if (!im) return false;
+  const slam = 1 + .22 * (1 - backOut(prog(t, t0, t0 + .35)));
+  const z = slam * lerp(1, zEnd, prog(t, t0, t0 + dur)) * (1 + pulse(t) * .012);
+  ctx.save(); ctx.translate(540, 960); ctx.scale(z, z); ctx.drawImage(im, -540, -960, 1080, 1920); ctx.restore();
+  return true;
+}
+function bottomShade(y0 = 1100) {
+  const g = ctx.createLinearGradient(0, y0, 0, 1700);
+  g.addColorStop(0, 'rgba(18,10,31,0)'); g.addColorStop(.45, 'rgba(18,10,31,.72)'); g.addColorStop(1, 'rgba(18,10,31,.85)');
+  ctx.fillStyle = g; ctx.fillRect(0, y0, W, H - y0);
+}
+
 // ============================================================ FIGUREN
 // ---- Nanuka: schwarzer Kater, Riesenaugen, neonpinke Kopfhörer, gelber Hoodie
 function drawNanuka(x, y, s, o = {}) {
@@ -521,6 +543,15 @@ function drawKnobCloseup(t, ang) {
 
 // ============================================================ SZENEN
 function scene1(t) {   // HOOK 0–3 s
+  if (card('nanuka', 0, t, 3, 1.07)) {
+    bottomShade(1050);
+    popTxt('POV:', 540, 1190, 70, .15, t);
+    popTxt('Dein Drop ist', 540, 1290, 92, .45, t);
+    const [sx, sy] = shakeXY(t > 1 ? 8 + pulse(t) * 10 : 0, t);
+    popTxt('ZU HART!!', 540 + sx, 1430 + sy, 160, .9, t, { fill: '#ffe600', lw: 32, rot: -.06 });
+    flash(prog(t, 2.85, 3) * .8);
+    return;
+  }
   sunburst(540, 1150, 18, t * .25, '#ff4fa3', '#ff74b8');
   radialBg(540, 1150, 'rgba(255,255,255,0)', 'rgba(91,26,138,.85)', 1300);
   const r = rng(77);
@@ -714,6 +745,19 @@ function scene5(t) {   // 18–24 s: Oma Hildegard
   }
   if (t < 20.7) {
     // Intro-Karte
+    if (card('oma-hildegard', 18.75, t, 1.95, 1.06)) {
+      flash(1 - prog(t, 18.75, 18.95));
+      const b2 = easeOut(prog(t, 19.0, 19.3)), b3 = easeOut(prog(t, 19.6, 19.85));
+      ctx.save(); ctx.translate(lerp(1100, 0, b2), 0); ctx.rotate(-.06);
+      path(() => ctx.rect(-50, 1330, 1200, 90), PINK, null);
+      txt('Rave-Königin 1994', 520, 1377, 62, { fill: '#fff', stroke: OUT, lw: 10 });
+      ctx.restore();
+      ctx.save(); ctx.translate(lerp(-1100, 0, b3), 0); ctx.rotate(-.06);
+      path(() => ctx.rect(-50, 1440, 1200, 72), '#fff', null);
+      txt('Status: Gebiss verloren', 520, 1477, 48, { fill: OUT, stroke: null });
+      ctx.restore();
+      return;
+    }
     const lt = t - 18.75;
     sunburst(540, 1050, 14, -t * .2, '#2b0d4f', '#3d1670');
     speedlines(540, 1050, 60, t, 'rgba(201,167,255,.45)', 520, 12);
@@ -837,6 +881,11 @@ function scene6(t) {   // 24–31 s: Bass-Duell
 }
 
 function scene7(t) {   // 31–36 s: Im Weltall
+  if (t < 33.35 && card('blorp', 31, t, 2.35, 1.1)) {
+    flash(1 - prog(t, 31, 31.35));
+    flash(prog(t, 33.15, 33.35) * .9);
+    return;
+  }
   const p = pulse(t);
   const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#05010f'); g.addColorStop(1, '#1a0a3a');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
@@ -868,6 +917,7 @@ function scene7(t) {   // 31–36 s: Im Weltall
   drawAlien(600, 590 - p * 25, .95, { t, rot: bob, hpLift: lift, tears: prog(t, 33.9, 34.6), mouth: t > 33.6 && t < 35.8 && talk(t, 7) ? 'open' : (lift > .5 ? 'smile' : 'flat') });
   ctx.restore();
   flash(1 - prog(t, 31, 31.35));
+  flash(1 - prog(t, 33.35, 33.6));
 }
 
 function scene8(t) {   // 36–40 s: High-Five + CTA
@@ -954,7 +1004,7 @@ function vignette() {
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 }
 function tag(t) {
-  if (t < 3) return;
+  if (t < 3 || (t >= 18.75 && t < 20.7) || (t >= 31 && t < 33.35)) return;
   ctx.save(); ctx.globalAlpha = .9;
   ctx.font = `800 30px ${FONT}`;
   const s = 'BASS-KATER NANUKA · Folge 1';
