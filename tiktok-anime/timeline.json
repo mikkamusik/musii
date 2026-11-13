@@ -1,0 +1,20 @@
+{
+  "duration": 40,
+  "fps": 30,
+  "bpm": 120,
+  "lines": [
+    {"who": "title",   "t0": 0.15, "t1": 2.95, "text": "POV: Dein Drop ist ZU HART"},
+    {"who": "mikka",   "t0": 3.2,  "t1": 5.6,  "text": "Heute baue ich den perfektesten Drop aller Zeiten!"},
+    {"who": "oma",     "t0": 5.95, "t1": 7.85, "text": "LEISER DA DRÜBEN!!", "label": "Nachbarin (durch die Wand)"},
+    {"who": "mikka",   "t0": 8.2,  "t1": 10.15,"text": "Leiser? ... Ich glaube, sie meint LAUTER."},
+    {"who": "mikka",   "t0": 11.3, "t1": 12.7, "text": "AAAAAAHHHH!!!"},
+    {"who": "sfx",     "t0": 15.4, "t1": 17.9, "text": "*Ein Gebiss fliegt durch die Wand*"},
+    {"who": "oma",     "t0": 20.8, "t1": 23.8, "text": "Du nennst DAS einen Drop, Kätzchen?"},
+    {"who": "mikka",   "t0": 24.2, "t1": 26.0, "text": "Oma ... das heißt BASS-DUELL!"},
+    {"who": "oma",     "t0": 26.15,"t1": 28.0, "text": "Ich hab schon geravt, da warst du noch ein Wollknäuel!"},
+    {"who": "sfx",     "t0": 31.3, "t1": 33.4, "text": "Unterdessen, 384.400 km entfernt ..."},
+    {"who": "blorp",   "t0": 33.6, "t1": 35.85,"text": "Endlich mal ein guter Beat."},
+    {"who": "mikka",   "t0": 36.9, "t1": 37.95,"text": "Gleiche Zeit nächste Woche?"},
+    {"who": "oma",     "t0": 38.0, "t1": 39.0, "text": "Bring Kekse mit."}
+  ]
+}
