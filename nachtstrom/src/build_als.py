@@ -274,7 +274,6 @@ def master_track(n_scenes):
         + routing("AudioOutputRouting", "AudioOut/External/S0", "Ext. Out", "1/2")
         + routing("MidiOutputRouting", "MidiOut/None", "None", "")
         + mixer(1.0, 0.0, master=True)
-        + "<FreezeSequencer>" + v("LomId", 0) + "</FreezeSequencer>"
         + "<DeviceChain><Devices /><SignalModulations /></DeviceChain>"
         + "</DeviceChain></MasterTrack>"
     )
