@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lucky Musii Casino</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&family=Limelight&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#lobby">Lucky <span>Musii</span></a>
+    <div class="wallet" id="wallet" title="Dein Spielgeld"><span class="coin" aria-hidden="true"></span><span id="balance">10.000</span></div>
+    <button class="chip-btn" id="bonusBtn" type="button">Bonus</button>
+    <button class="icon-btn" id="soundBtn" type="button" aria-label="Ton an oder aus">🔊</button>
+  </div>
+</header>
+
+<main>
+  <section id="lobby" class="wrap">
+    <div class="hero">
+      <h1>Fünf Slots. <em>Ein Glücksabend.</em></h1>
+      <p>Buch-Abenteuer in Ägypten, Angeln auf Geld-Fische, süße Kaskaden mit Bomben, Hold &amp; Spin unter dem Vollmond und heiße Siebenen. Du spielst mit Gratis-Münzen, ganz ohne Echtgeld.</p>
+      <div class="marquee-lights" aria-hidden="true"></div>
+    </div>
+    <div class="games" id="gameGrid"></div>
+  </section>
+
+  <section id="game" class="wrap game" hidden>
+    <div class="game-head">
+      <button class="ghost-btn" id="backBtn" type="button">← Lobby</button>
+      <h1 id="gameTitle">Slot</h1>
+      <button class="ghost-btn" id="infoBtn" type="button">Info</button>
+    </div>
+    <div class="machine" id="machine">
+      <div class="featurebar" id="featureBar"></div>
+      <div class="reels-wrap" id="reelsWrap">
+        <div class="reels" id="reels"></div>
+        <svg class="lines" id="lines" aria-hidden="true"></svg>
+      </div>
+      <div class="winbar" aria-live="polite"><span id="winMsg">Viel Glück!</span><span id="winAmt"></span></div>
+    </div>
+    <div class="controls">
+      <div class="bet">
+        <button class="round-btn" id="betMinus" type="button" aria-label="Einsatz verringern">−</button>
+        <div class="val"><small>Einsatz</small><b id="betVal">100</b></div>
+        <button class="round-btn" id="betPlus" type="button" aria-label="Einsatz erhöhen">+</button>
+      </div>
+      <button class="spin" id="spinBtn" type="button">DREHEN</button>
+      <div class="side">
+        <button class="pill-btn" id="autoBtn" type="button">Auto</button>
+        <button class="pill-btn" id="turboBtn" type="button">Turbo</button>
+        <button class="pill-btn gamble" id="gambleBtn" type="button" disabled>Risiko</button>
+      </div>
+    </div>
+    <div class="auto-menu" id="autoMenu" hidden>
+      <button class="pill-btn" type="button" data-auto="10">10 Spins</button>
+      <button class="pill-btn" type="button" data-auto="25">25 Spins</button>
+      <button class="pill-btn" type="button" data-auto="50">50 Spins</button>
+      <button class="pill-btn" type="button" data-auto="100">100 Spins</button>
+      <button class="pill-btn" type="button" data-auto="Infinity">Endlos</button>
+    </div>
+    <p class="hint">Leertaste dreht · Freispiele laufen automatisch</p>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>Nur Spielgeld.</strong> Lucky Musii ist ein Unterhaltungsspiel mit virtuellen Münzen. Münzen haben keinen Geldwert, können nicht gekauft und nicht ausgezahlt werden. Alle Slots sind Eigenentwicklungen mit simulierter Auszahlungsquote von etwa 96 %.</p>
+    <p>Echtes Glücksspiel kann süchtig machen. Hilfe und Beratung: <a href="https://www.check-dein-spiel.de" target="_blank" rel="noopener">check-dein-spiel.de</a> oder telefonisch 0800 1 37 27 00 (kostenlos).</p>
+  </div>
+</footer>
+
+<div class="overlay" id="overlay" hidden></div>
+
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
