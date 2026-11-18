@@ -18,6 +18,7 @@ import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.webkit.JavascriptInterface
 import android.webkit.PermissionRequest
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -25,7 +26,12 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
+import android.graphics.Color
+import android.view.Gravity
 import java.io.File
 import java.io.FileOutputStream
 
@@ -55,7 +61,13 @@ class MainActivity : Activity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         WebView.setWebContentsDebuggingEnabled(true)
 
-        webView = WebView(this)
+        // Some devices have the Android System WebView disabled or mid-update; show a helpful screen instead of crashing.
+        try {
+            webView = WebView(this)
+        } catch (e: Throwable) {
+            showWebViewMissing(e)
+            return
+        }
         setContentView(webView)
         goImmersive()
 
@@ -89,6 +101,12 @@ class MainActivity : Activity() {
                 } catch (e: Exception) {
                     WebResourceResponse("text/plain", "utf-8", 404, "Not Found", null, null)
                 }
+            }
+
+            override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                // The web renderer crashed or was killed to free memory: rebuild instead of taking the app down.
+                recreate()
+                return true
             }
 
             override fun onPageFinished(view: WebView, url: String) {
@@ -148,7 +166,7 @@ class MainActivity : Activity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        handleIntent(intent)
+        if (::webView.isInitialized) handleIntent(intent)
     }
 
     private fun handleIntent(intent: Intent?) {
@@ -205,6 +223,7 @@ class MainActivity : Activity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
+        if (!::webView.isInitialized) { @Suppress("DEPRECATION") super.onBackPressed(); return }
         webView.evaluateJavascript("window.MusiiApp ? MusiiApp.onBack() : false") { result ->
             if (result != "true") {
                 @Suppress("DEPRECATION")
@@ -215,17 +234,43 @@ class MainActivity : Activity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        webView.saveState(outState)
+        if (::webView.isInitialized) webView.saveState(outState)
     }
 
     override fun onPause() {
         super.onPause()
-        webView.evaluateJavascript("window.MusiiApp && MusiiApp.autosave();", null)
+        if (::webView.isInitialized) webView.evaluateJavascript("window.MusiiApp && MusiiApp.autosave();", null)
+    }
+
+    private fun showWebViewMissing(e: Throwable) {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setBackgroundColor(Color.rgb(22, 24, 29))
+            setPadding(48, 48, 48, 48)
+        }
+        layout.addView(TextView(this).apply {
+            text = "Musii braucht „Android System WebView“.\n\nBitte im Play Store aktualisieren bzw. in den Einstellungen unter Apps aktivieren und Musii neu starten.\n\n(${e.javaClass.simpleName})"
+            setTextColor(Color.WHITE)
+            textSize = 16f
+            gravity = Gravity.CENTER
+        })
+        layout.addView(Button(this).apply {
+            text = "Im Play Store öffnen"
+            setOnClickListener {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.google.android.webview")))
+                } catch (x: Exception) {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.google.android.webview")))
+                }
+            }
+        })
+        setContentView(layout)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) goImmersive()
+        if (hasFocus && ::webView.isInitialized) goImmersive()
     }
 
     private fun goImmersive() {

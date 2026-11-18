@@ -344,9 +344,23 @@
   }
 
   /* ---------- startup ---------- */
+  function withTimeout(promise, ms) {
+    return Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(null), ms))]);
+  }
+
   async function init() {
+    try { await boot(); }
+    catch (e) {
+      console.error(e);
+      if (window.__bootFail) window.__bootFail((e && (e.stack || e.message)) || String(e));
+    }
+  }
+
+  async function boot() {
     const AC = window.AudioContext || window.webkitAudioContext;
-    const ctx = new AC({ latencyHint: 'interactive' });
+    if (!AC) throw new Error('Web Audio wird von dieser WebView nicht unterstützt. Bitte „Android System WebView“ aktualisieren.');
+    let ctx;
+    try { ctx = new AC({ latencyHint: 'interactive' }); } catch (e) { ctx = new AC(); }
     const engine = new M.Engine(ctx);
     T.init(ctx, engine);
 
@@ -392,10 +406,19 @@
     document.addEventListener('pointerdown', unlock, { capture: true });
 
     let p = null;
-    try { p = await M.Store.loadProject('__autosave__'); } catch (e) { p = null; }
-    M.setProject(p && p.tracks ? p : M.demoProject());
+    try { p = await withTimeout(M.Store.loadProject('__autosave__'), 2500); } catch (e) { p = null; }
+    try {
+      M.setProject(p && p.tracks ? p : M.demoProject());
+    } catch (e) {
+      // a broken autosave must never block the app: start with the demo instead
+      console.error(e);
+      M.setProject(M.demoProject());
+    }
     buildTopbar();
-    preloadSamples();
+    preloadSamples().catch(() => {});
+    window.__booted = true;
+    const bootEl = document.getElementById('boot');
+    if (bootEl) bootEl.remove();
     requestAnimationFrame(frame);
 
     document.addEventListener('keydown', (e) => {

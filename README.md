@@ -7,7 +7,7 @@ Bestehende Projekte im `.als`-Format lassen sich importieren.
 
 ## Installieren
 
-1. `releases/Musii-1.0.apk` auf das Android-Gerät laden (Android 8.0 oder neuer).
+1. `releases/Musii-1.1.apk` auf das Android-Gerät laden (Android 8.0 oder neuer).
 2. Öffnen und „Installation aus unbekannten Quellen“ für den Browser/Dateimanager erlauben.
 3. Musii starten – beim ersten Start wird ein Demo-Song geladen.
 
