@@ -1,4 +1,4 @@
-"""NACHTSTROM v7 – schlanker Kern + Abwechslung alle 8 Takte + gezielte Highlights.
+"""NACHTSTROM v9 – jede Section mit eigener Identitaet (Bass, Signatur-Sound, Percussion).
 
 Aus der Referenz (siehe ../REFERENZ_ANALYSE.md):
   147 BPM, lange Pitch-Sweep-Kick, Offbeat-Bass eine Quarte darueber,
@@ -102,17 +102,35 @@ def roll_hits():
 
 
 # ====================================================================== OFFBEAT-BASS
+def bass_pattern(bar):
+    if in_(bar, 48, 64):
+        return "roll"        # Main 1: rollende 16tel
+    if in_(bar, 80, 96) or in_(bar, 130, 146):
+        return "jump"        # Main 2 / Peak B: Oktav-Spruenge
+    if in_(bar, 114, 130):
+        return "sync"        # Peak: Offbeat + letzte 16tel
+    return "off"
+
+
 def bass_notes():
     notes = []
     for bar in range(BARS):
         if in_(bar, 40, 48) or in_(bar, 96, 114) or bar >= 174:
             continue
-        jump = in_(bar, 80, 96) or in_(bar, 130, 146)       # Variation: Oktav-Sprung
+        pat = bass_pattern(bar)
         for b in kick_beats(bar):
+            base = bar * 4 + b
             p = ROOT + 1 if (bar % 8 == 7 and b == 3) else ROOT
-            if jump and bar % 2 == 1 and b == 2:
-                p = ROOT + 12
-            notes.append(Note(bar * 4 + b + 0.5, 0.45, p, 1.0))
+            if pat == "roll":
+                for off, v in ((0.25, 0.65), (0.5, 1.0), (0.75, 0.8)):
+                    notes.append(Note(base + off, 0.2, p, v))
+            elif pat == "sync":
+                notes.append(Note(base + 0.5, 0.22, p, 1.0))
+                notes.append(Note(base + 0.75, 0.2, p + (12 if b % 2 else 0), 0.75))
+            else:
+                if pat == "jump" and bar % 2 == 1 and b == 2:
+                    p = ROOT + 12
+                notes.append(Note(base + 0.5, 0.45, p, 1.0))
     return notes
 
 
@@ -145,7 +163,11 @@ def hat_events():
         if in_(bar, 72, 78) or in_(bar, 122, 129):        # Variation: 16tel oeffnen sich fuer ein paar Takte
             for beat in range(4):
                 ev.append((bar * 4 + beat + 0.75, "e", 0.32))
-        if in_(bar, 114, 146):                            # Ride im Peak
+        if in_(bar, 48, 64) or in_(bar, 146, 162):         # Shaker-Identitaet
+            for st in range(16):
+                if st % 4 != 0:
+                    ev.append((sx(bar, st) + (0.01 if st % 2 else 0), "s", [0, 0.45, 0.7, 0.5][st % 4]))
+        if in_(bar, 114, 130):                            # Ride nur im Peak
             for beat in range(4):
                 ev.append((bar * 4 + beat + 0.5, "t", 0.45))
         if in_(bar, 111, 114):
@@ -166,19 +188,44 @@ def clap_events():
     return ev
 
 
+TOMS_T1 = ((6, "tl", 0.8), (7, "tm", 0.6), (14, "tl", 0.75))
+TOMS_T2 = ((3, "tm", 0.7), (6, "tl", 0.85), (10, "tm", 0.6), (11, "tl", 0.7), (14, "tm", 0.8))
+TOMS_HALF = ((0, "tl", 0.9), (3, "tm", 0.6), (6, "tl", 0.8), (10, "tm", 0.7), (12, "tl", 0.75))
+
+
 def perc_events():
     ev = []
     for bar in range(BARS):
         if bar in (63, 78, 79, 121, 129, 145):
             continue
-        if in_(bar, 64, 96):
-            pat = ((3, 0.8), (11, 0.65))
-        elif in_(bar, 114, 146):
-            pat = ((3, 0.8), (6, 0.55), (11, 0.65), (14, 0.5))
-        else:
-            continue
-        for st, v in pat:
-            ev.append((sx(bar, st), "rim", v))
+        pats = []
+        if in_(bar, 16, 32) or in_(bar, 114, 130):
+            pats.append(TOMS_T1)
+        if in_(bar, 130, 146):
+            pats.append(TOMS_T2)
+        if in_(bar, 40, 46):
+            pats.append(TOMS_HALF)                    # Break 1: Tribal in Halbtempo
+        if in_(bar, 80, 96) or in_(bar, 130, 146):
+            pats.append(((2, "cga", 0.8), (9, "cga", 0.6), (12, "cga", 0.7)))
+        if in_(bar, 64, 96) or in_(bar, 146, 166):
+            pats.append(((3, "rim", 0.8), (11, "rim", 0.65)))
+        if in_(bar, 114, 130):
+            pats.append(((3, "rim", 0.8), (6, "rim", 0.55), (11, "rim", 0.65), (14, "rim", 0.5)))
+        for pat in pats:
+            for st, kind, v in pat:
+                ev.append((sx(bar, st), kind, v))
+        # metallischer 3/16-Loop (Polymeter) in Main 1B und Main 3
+        if in_(bar, 64, 78) or in_(bar, 146, 162):
+            for st in range(16):
+                g = bar * 16 + st
+                if g % 3 == 0:
+                    ev.append((sx(bar, st), ["mt1", "mt2", "mt1", "mt3"][(g // 3) % 4], 0.7))
+    # Tom-Roll als Aufbau in Break 1 (8tel -> 16tel)
+    for bar, div in ((46, 2), (47, 4)):
+        n = 4 * div if bar == 46 else 3 * div
+        for k in range(n):
+            prog = ((bar - 46) * 4 + k / div) / 7.0
+            ev.append((bar * 4 + k / div, "tl" if k % 2 == 0 else "tm", 0.45 + 0.5 * prog))
     return ev
 
 
@@ -189,7 +236,7 @@ WALL_C = [49, 49, 49, 61]                  # Main 1B / Peak: Oktav-Sprung auf Be
 
 
 def wall_active(bar):
-    return in_(bar, 32, 40) or in_(bar, 48, 162)
+    return in_(bar, 32, 40) or in_(bar, 48, 64) or in_(bar, 80, 130) or in_(bar, 146, 162)
 
 
 def wall_variant(bar):
@@ -233,8 +280,18 @@ STAB_A = [(0, 49, 1), (3, 49, 0), (6, 61, 1), (8, 49, 0), (10, 50, 0), (13, 56, 
 STAB_B = [(0, 49, 1), (2, 61, 0), (3, 49, 0), (6, 52, 1), (9, 49, 0), (11, 56, 1), (12, 49, 0), (14, 50, 0)]
 
 
+STAB_PEAK = [(0, 49, 1), (3, 49, 0), (6, 56, 1), (10, 49, 0), (13, 52, 1)]
+
+
 def stab_notes():
-    return []      # v6 minimal: kein Stab
+    notes = []
+    for bar in range(114, 130):
+        if bar in (121, 129):
+            continue
+        pat = STAB_PEAK if bar % 4 != 3 else STAB_PEAK[:3] + [(12, 59, 1), (14, 56, 0)]
+        for st, p, acc in pat:
+            notes.append(Note(sx(bar, st), 0.3 if acc else 0.18, p, 1.0 if acc else 0.7, bool(acc)))
+    return notes
 
 
 # ====================================================================== ATMOS (Drone mit Pitch-Riser)

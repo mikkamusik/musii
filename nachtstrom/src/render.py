@@ -1,4 +1,4 @@
-"""NACHTSTROM v7 – Renderer: schlanker Kern + Abwechslung + Highlights.
+"""NACHTSTROM v9 – Renderer: Sections mit eigener Identitaet + Highlights + Vocals.
 
 Alle Sounds selbst synthetisiert. Klangbalance per Match-EQ (Regelkreis) an
 die vermessene Referenz angeglichen – vom Referenz-Audio landet nichts im Track.
@@ -168,7 +168,8 @@ def render_bass():
         # wie Referenz: fast reiner Sinus (kaum Low-Mid-Obertoene)
         osc = np.sin(2 * np.pi * f0 * t) + 0.12 * np.sin(4 * np.pi * f0 * t)
         y = osc
-        amp = np.minimum(t / 0.035, 1) * np.where(t < dur, 1.0, np.exp(-(t - dur) / 0.004))
+        att = min(0.035, dur * 0.25)
+        amp = np.minimum(t / att, 1) * np.where(t < dur, 1.0, np.exp(-(t - dur) / 0.004))
         add(out, y * amp, nt.start, nt.vel)
     out = tube_os(out * 1.1, 1.3, 0.1)
     out = svf(out, np.full(N, 400.0), 0.0, 0)
@@ -186,6 +187,11 @@ def metal(n, scale=1.0):
 
 
 def hat_one(kind):
+    if kind == "s":
+        n = int(0.07 * SR)
+        x = hp(bp(noise(n), 5500, 0.25), 3500)
+        tt = np.arange(n) / SR
+        return x * np.minimum(tt / 0.005, 1) * np.exp(-tt / 0.02)
     decay = {"o1": 0.028, "o2": 0.07, "o3": 0.16, "e": 0.012}
     if kind in decay:
         n = int((decay[kind] * 6 + 0.02) * SR)
@@ -200,10 +206,10 @@ def hat_one(kind):
 
 def render_hats():
     out = np.zeros((2, N))
-    kinds = ("o1", "o2", "o3", "e", "t")
+    kinds = ("o1", "o2", "o3", "e", "t", "s")
     bank = {k: [hat_one(k) for _ in range(4)] for k in kinds}
-    pans = {"o1": 0.1, "o2": 0.1, "o3": 0.1, "e": -0.3, "t": 0.35}
-    gains = {"o1": 1.0, "o2": 1.0, "o3": 0.9, "e": 0.35, "t": 0.3}
+    pans = {"o1": 0.1, "o2": 0.1, "o3": 0.1, "e": -0.3, "t": 0.35, "s": 0.45}
+    gains = {"o1": 1.0, "o2": 1.0, "o3": 0.9, "e": 0.35, "t": 0.3, "s": 0.3}
     for i, (b, kind, v) in enumerate(C.hat_events()):
         p = pans[kind]
         if kind.startswith("o"):
@@ -254,14 +260,34 @@ def rim():
     return tube(x, 1.6, 0.0) * env_exp(n, 0.011)
 
 
+def metal_hit(m):
+    n = int(0.22 * SR)
+    t = np.arange(n) / SR
+    f0 = mtof(m)
+    x = np.sin(2 * np.pi * f0 * t + 1.6 * np.sin(2 * np.pi * f0 * 2.76 * t) * np.exp(-t / 0.02))
+    return x * np.exp(-t / 0.045) * np.minimum(t / 0.001, 1)
+
+
 def render_perc():
-    kit = {"rim": (rim(), 0.4), "tom": (tom(138.6, 0.16), -0.35), "cga": (tom(207.7, 0.08, 0.3), 0.55)}
+    kit = {"rim": (rim(), 0.4), "tl": (tom(110.0, 0.2), -0.35), "tm": (tom(138.6, 0.16), 0.3),
+           "cga": (tom(207.7, 0.08, 0.3), 0.55)}
+    metals = {"mt1": metal_hit(73), "mt2": metal_hit(74), "mt3": metal_hit(71)}
     dry = np.zeros((2, N))
+    met = np.zeros(N)
     for b, kind, v in C.perc_events():
+        if kind in metals:
+            add(met, metals[kind], b, v)
+            continue
         s_, p = kit[kind]
         add(dry, pan(s_, p), b, v * (0.6 if kind == "rim" else 0.75))
-    wet = reverb(dry[0] + dry[1], size=0.75, damp=0.5, predelay_ms=15)
-    return np.array([hp(dry[0], 90), hp(dry[1], 90)]) + wet * 0.1
+    met = hp(met, 500)
+    ph = 0.6 * np.sin(2 * np.pi * BEAT_AT / 5.0)          # Metall wandert durchs Stereobild
+    a = (ph + 1) * np.pi / 4
+    mst = np.array([met * np.cos(a), met * np.sin(a)]) * np.sqrt(2)
+    ml, mr = tape(mst[0], mst[1], 0.5, 2.0, 0.4, 0.45, 0.5, 1.3, 1.0)
+    wet = reverb(dry[0] + dry[1], size=0.8, damp=0.5, predelay_ms=15)
+    rv_amt = window([(40, 48, 0.5)], SR // 2) + 0.1        # Break 1: Toms im grossen Raum
+    return np.array([hp(dry[0], 70), hp(dry[1], 70)]) + wet * rv_amt + mst * 0.5 + np.array([ml, mr]) * 0.3
 
 
 # ====================================================================== WALL (verzerrte chromatische Stereo-Wand)
@@ -706,13 +732,13 @@ def apply_fir(x, taps):
 TARGET = {
     "01 KICK": -9.0, "02 RUMBLE": -23.0, "03 BASS": -12.0, "04 HATS": -21.0,
     "05 CLAP": -21.0, "06 PERC": -25.0, "07 WALL": -21.5, "08 DUB STAB": -24.0,
-    "09 ATMOS": -27.0, "10 FX": -31.0, "11 RISER": -24.0,
+    "09 ATMOS": -27.0, "10 FX": -31.0, "11 RISER": -24.0, "13 STAB": -22.5,
 }
-REGION = {"08 DUB STAB": (130, 146), "09 ATMOS": (96, 114), "10 FX": (0, 178), "11 RISER": (112, 114)}
+REGION = {"08 DUB STAB": (130, 146), "09 ATMOS": (96, 114), "10 FX": (0, 178), "11 RISER": (112, 114), "13 STAB": (114, 130)}
 CREST = {"04 HATS": 12.0, "05 CLAP": 14.0, "06 PERC": 13.0, "07 WALL": 11.0, "08 DUB STAB": 14.0,
-         "10 FX": 16.0, "11 RISER": 10.0}
-SC = {"07 WALL": 0.6, "08 DUB STAB": 0.4, "09 ATMOS": 0.5, "04 HATS": 0.1, "06 PERC": 0.15}
-EDITED = ["01 KICK", "02 RUMBLE", "03 BASS", "04 HATS", "05 CLAP", "06 PERC", "07 WALL", "08 DUB STAB"]
+         "10 FX": 16.0, "11 RISER": 10.0, "13 STAB": 12.0}
+SC = {"07 WALL": 0.6, "08 DUB STAB": 0.4, "09 ATMOS": 0.5, "04 HATS": 0.1, "06 PERC": 0.15, "13 STAB": 0.45}
+EDITED = ["01 KICK", "02 RUMBLE", "03 BASS", "04 HATS", "05 CLAP", "06 PERC", "07 WALL", "08 DUB STAB", "13 STAB"]
 
 
 def rms_db(x, b0, b1):
@@ -775,6 +801,7 @@ def main(ref_path):
     stems["10 FX"] = fx
     stems["11 RISER"] = ris
     stems["12 VOCAL"] = render_vocal()
+    stems["13 STAB"] = render_stab()
     print("synths/fx/vocal", round(time.time() - t0), flush=True)
 
     scs = {d: sidechain(d) for d in set(SC.values())}

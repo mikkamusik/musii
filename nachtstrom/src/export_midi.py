@@ -7,8 +7,8 @@ import compose as C
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PPQ = 480
 
-DRUM_MAP = {"kick": 36, "rim": 37, "clap": 39, "e": 42, "tom": 45, "o1": 46, "o2": 46, "o3": 46,
-            "t": 51, "cga": 63}
+DRUM_MAP = {"kick": 36, "rim": 37, "clap": 39, "e": 42, "tl": 41, "tm": 45, "o1": 46, "o2": 46, "o3": 46,
+            "t": 51, "cga": 63, "s": 70, "mt1": 76, "mt2": 77, "mt3": 75}
 
 
 def vlq(v):
@@ -72,6 +72,7 @@ def drums():
 
 PARTS = {
     "WALL": lambda: part(C.wall_notes()),
+    "STAB": lambda: part(C.stab_notes()),
     "DUB": lambda: part(C.dub_notes()),
     "BASS": lambda: part(C.bass_notes()),
     "DRUMS": drums,

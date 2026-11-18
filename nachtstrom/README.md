@@ -1,13 +1,30 @@
-# NACHTSTROM v8 – 147 BPM · Cis-Phrygisch · schlanker Kern + Abwechslung + Highlights + Vocal-Shots
+# NACHTSTROM v9 – 147 BPM · Cis-Phrygisch · jede Section mit eigener Identität + Highlights + Vocals
 
 Gebaut nach dem vermessenen Bauplan deiner Referenz, die Details stehen in `REFERENZ_ANALYSE.md`.
-Der Groove bleibt schlank wie in v6, also kein Durcheinander. Neu sind Abwechslung alle 8 Takte und gezielt gesetzte Highlights.
+Neu in v9: Jede Section hat ihre eigene Identität. Bassmuster, Signatur-Sound und Percussion wechseln von Teil zu Teil.
+Damit es kein Durcheinander wird, laufen trotzdem nie mehr als 5–7 Elemente gleichzeitig.
+
+| Takte | Section | eigene Identität |
+|---|---|---|
+| 1–16 | Intro | Kick, Offbeat-Bass, kurzer Hat |
+| 17–32 | Groove | + Clap, Tick, **Tribal-Toms** |
+| 33–40 | Drive | + **Wand** |
+| 41–48 | Break 1 | **rhythmischer Break**: Toms in Halbtempo im großen Raum, „Tiefer“, Tom-Roll als Aufbau |
+| 49–64 | Main 1 | **rollender 16tel-Bass**, **Shaker**, Wand |
+| 65–78 | Main 1B | Wand raus, dafür ein **metallischer 3/16-Loop**, Rim, 16tel-Hats |
+| 79–80 | Stopp | Wand-Sweep, „Weiter“ |
+| 81–96 | Main 2 | Wand mit Tritonus, **Congas**, Bass mit Oktav-Sprüngen |
+| 97–114 | Breakdown | **atmosphärisch und melodisch**: Kick-Stottern, lange Töne, Drone, Dub-Stabs, „Lass dich fallen“, dann Aufbau mit Riser, Beat-Cut und „Tiefer“ |
+| 115–130 | Peak | **synkopierter Bass**, **Stab-Hook** nur hier, Ride, Toms, Rim |
+| 131–146 | Peak B | Wand raus, **Tribal-Peak** mit Toms und Congas, Dub-Stabs, „Nacht“-Chops |
+| 147–162 | Main 3 | Shaker und Metall-Loop kehren zurück, die Wand schließt sich |
+| 163–178 | Outro | Elemente gehen schrittweise, „Nachtstrom“ als Abschied |
 Sounds, Noten und Patterns sind eigen und selbst synthetisiert.
 
 ## In Ableton öffnen
-1. `NACHTSTROM_v8.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v8/`.
-2. `NACHTSTROM_v8/NACHTSTROM.als` öffnen.
-3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v8` → **Los** → **Sichern**, dann **Cmd+S**.
+1. `NACHTSTROM_v9.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v9/`.
+2. `NACHTSTROM_v9/NACHTSTROM.als` öffnen.
+3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v9` → **Los** → **Sichern**, dann **Cmd+S**.
 4. A/B-Vergleich: **00 REFERENZ** und **00 MASTER BOUNCE** abwechselnd solo hören.
 
 ## Highlights (Takt-Nummern wie in Ableton)
