@@ -62,13 +62,12 @@ SILENT = set(range(104, 110))
 
 # Kick-Rolls (Spannungsboegen): (Takt, Unterteilung pro Beat, Beats)
 ROLLS = [
-    (46, 2, (0, 4)),          # 8tel
-    (47, 4, (0, 2)),          # 16tel
-    (47, 8, (2, 3)),          # 32tel
+    (46, 1, (0, 4)),          # Viertel
+    (47, 2, (0, 3)),          # 8tel
     (110, 1, (0, 4)),         # Viertel
-    (111, 2, (0, 4)),         # 8tel
-    (112, 4, (0, 4)),         # 16tel
-    (113, 8, (0, 2)),         # 32tel
+    (111, 1, (0, 4)),
+    (112, 2, (0, 4)),         # 8tel
+    (113, 4, (0, 2)),         # 16tel
 ]
 PICKUPS = [47 * 4 + 3]        # einzelne volle Kick vor dem Drop (wie Referenz)
 
@@ -102,7 +101,7 @@ def roll_hits():
             for k in range(n):
                 beat = bar * 4 + b0 + k / div
                 prog = (beat - start) / (end - start)
-                out.append((beat, 0.45 + 0.55 * prog, prog))
+                out.append((beat, 0.4 + 0.45 * prog, prog))
     return out
 
 
@@ -119,34 +118,41 @@ def bass_notes():
 
 
 # ====================================================================== HATS / CLAP / PERC
+def hat_kind(bar):
+    """Offbeat-Hat waechst wie in der Referenz: kurz (Intro) -> mittel (Groove/Main) -> offen (Peak)."""
+    if bar < 16:
+        return "o1"
+    if in_(bar, 114, 146):
+        return "o3"
+    return "o2"
+
+
 def hat_events():
     ev = []
     for bar in range(BARS):
         quiet = in_(bar, 46, 48) or in_(bar, 104, 111)
         if not quiet:
-            lvl = 0.5 if bar < 8 else (0.62 if bar < 16 else 0.85)
+            lvl = 0.6 if bar < 8 else (0.75 if bar < 16 else 0.9)
             if in_(bar, 40, 46):
                 lvl = 0.55
             for beat in range(4):
                 if in_(bar, 113, 114) and beat >= 2:
                     continue
-                ev.append((bar * 4 + beat + 0.5, "o", lvl))
-        sixteen = (in_(bar, 12, 40) or in_(bar, 48, 96) or in_(bar, 114, 170))
-        if sixteen:
-            for st in range(16):
-                if st % 4 == 2:
-                    continue
-                v = [0.42, 0.2, 0.0, 0.3][st % 4] * (0.6 if bar < 16 else 1.0)
-                ev.append((sx(bar, st) + (0.012 if st % 2 else 0), "c", v))
-        if in_(bar, 64, 78) or in_(bar, 114, 146):
+                ev.append((bar * 4 + beat + 0.5, hat_kind(bar), lvl))
+        # leiser Tick auf der 2. 16tel jedes Beats (Referenz Main/Peak), kein 16tel-Teppich
+        if in_(bar, 16, 40) or in_(bar, 48, 96) or in_(bar, 114, 166):
+            v = 0.35 if bar < 48 else 0.5
+            for beat in range(4):
+                ev.append((bar * 4 + beat + 0.25, "e", v * (1.0 if beat % 2 == 0 else 0.8)))
+        if in_(bar, 114, 146):
             for st in (2, 6, 10, 14):
-                ev.append((sx(bar, st), "t", 0.8))
+                ev.append((sx(bar, st), "t", 0.5))
         # Hat-Roll im Aufbau 2 (111-113): 8tel -> 16tel
         if in_(bar, 111, 114):
             div = 2 if bar == 111 else 4
             nb = 4 if bar < 113 else 2
             for k in range(nb * div):
-                ev.append((bar * 4 + k / div, "c", 0.3 + 0.5 * ((bar - 111) * 4 + k / div) / 10))
+                ev.append((bar * 4 + k / div, "e", 0.3 + 0.5 * ((bar - 111) * 4 + k / div) / 10))
     return ev
 
 

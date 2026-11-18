@@ -1,13 +1,19 @@
-# NACHTSTROM v4 – 147 BPM · Cis-Phrygisch · Referenz-Sound + Spannungsbögen
+# NACHTSTROM v5 – 147 BPM · Cis-Phrygisch · weicher, tiefer, näher an der Referenz
 
 Gebaut nach dem vermessenen Bauplan deiner Referenz, die Details stehen in `REFERENZ_ANALYSE.md`.
-Neu in v4: eine Kick wie in der Referenz, eine verzerrte Stereo-Wand in den Mitten, ein komplettes FX-System und zwei große Spannungsbögen.
+Neu in v5:
+- Ich habe den Verlauf der Referenz innerhalb jedes Beats und jedes Takts vermessen, nicht mehr nur die Bandpegel.
+- **Kick:** Ihre Parameter sind per Fit an die Hüllkurven der Referenz bestimmt. Sie ist tief und rund, mit langer Sub-Fahne und kaum Klick.
+- **Bass:** fast reiner Sinus.
+- **Groove:** Intro und Main 1 sind luftig. Ein Offbeat-Hat und ein leiser Tick auf der zweiten 16tel, kein 16tel-Teppich. Dicht wird es erst im Peak, wie in der Referenz.
+- **Sättigung:** Alle Verzerrungen laufen mit 2x-Oversampling und gehen deutlich sanfter zu Werke. Dadurch gibt es keinen digitalen Klirr mehr.
+- **Spannungsbögen:** Sie bleiben, sind aber dezenter. Kick-Rolls gibt es nur noch bis zu 8teln bzw. 16teln.
 Sounds, Noten und Patterns sind eigen und selbst synthetisiert.
 
 ## In Ableton öffnen
-1. `NACHTSTROM_v4.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v4/`.
-2. `NACHTSTROM_v4/NACHTSTROM.als` öffnen.
-3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v4` → **Los** → **Sichern**, dann **Cmd+S**.
+1. `NACHTSTROM_v5.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v5/`.
+2. `NACHTSTROM_v5/NACHTSTROM.als` öffnen.
+3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v5` → **Los** → **Sichern**, dann **Cmd+S**.
 4. A/B-Vergleich: Spur **00 REFERENZ** einschalten und im Wechsel mit **00 MASTER BOUNCE** solo hören.
 
 ## Spannungsbögen
@@ -17,7 +23,7 @@ Sounds, Noten und Patterns sind eigen und selbst synthetisiert.
 3. Aufbau ab Takt 45:
    - Industrial-Riser mit Gate, das von 16teln auf 32tel beschleunigt.
    - Drone steigt um 5 Halbtöne.
-   - Kick-Roll 8tel → 16tel → 32tel, der lauter und dünner wird.
+   - Kick-Roll von Vierteln auf 8tel, der lauter und dünner wird.
    - Crescendo.
 4. Eine volle Pickup-Kick, Reverse-Crash, dann der Drop mit Impact.
 
@@ -25,7 +31,7 @@ Sounds, Noten und Patterns sind eigen und selbst synthetisiert.
 1. Kick-Stottern mit Dub-Delay, die Wand schließt den Filter.
 2. Leiser, dunkler Drone-Teil mit tiefen Booms.
 3. Aufbau ab Takt 111:
-   - Kick-Roll Viertel → 8tel → 16tel → 32tel.
+   - Kick-Roll von Vierteln über 8tel bis 16tel.
    - Hat-Roll.
    - Riser, Drone +12 Halbtöne, Crescendo.
 4. Höhen-Loch, Reverse-Crash, dann der Drop mit Impact.

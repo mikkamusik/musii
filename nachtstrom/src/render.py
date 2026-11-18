@@ -69,6 +69,12 @@ def tube(x, drive=2.0, bias=0.15):
     return y / np.tanh(drive)
 
 
+def tube_os(x, drive=2.0, bias=0.15):
+    """Saettigung mit 2x-Oversampling -> kein Aliasing-Klirr."""
+    up = resample_poly(x, 2, 1, axis=-1)
+    return resample_poly(tube(up, drive, bias), 1, 2, axis=-1)[..., : x.shape[-1]]
+
+
 def tape(l, r, beats, wow_ms, rate, fb, damp=0.45, drive=1.5, cross=1.0):
     base = beats * C.SPB * SR
     depth = np.full(l.shape[0], wow_ms * SR / 1000.0)
@@ -90,19 +96,19 @@ def gate_window(phase, a0, a1, r0, r1):
 
 # ====================================================================== KICK
 def kick_one():
-    """Hard-Techno-Kick wie Referenz: langer Sweep ~300 -> 55 Hz ueber ~150 ms."""
-    n = int(0.40 * SR)
+    """Wie Referenz: Sweep in ~70 ms auf den Grundton, dann lange Sub-Fahne bis ~½ Beat.
+    Wenig Klick, milde Saettigung (2. Teilton ~ -20 dB)."""
+    n = int(0.42 * SR)
     t = np.arange(n) / SR
-    f = C.KICK_HZ + 230 * np.exp(-t / 0.030) + 25 * np.exp(-t / 0.10) + 900 * np.exp(-t / 0.002)
+    # Parameter per Fit an die Referenz-Huellkurven (Sub/Low/Low-Mid) bestimmt
+    f = C.KICK_HZ + 200 * np.exp(-t / 0.030) + 150 * np.exp(-t / 0.012) - 9.0 * np.clip((t - 0.12) / 0.2, 0, 1)  # Tail sinkt Richtung 43 Hz (Referenz hat Energie um 40 Hz)
     body = np.sin(2 * np.pi * np.cumsum(f) / SR)
-    amp = np.where(t < 0.13, 1.0, np.exp(-(t - 0.13) / 0.08))
-    amp[:20] *= np.linspace(0, 1, 20)
+    amp = np.where(t < 0.16, 1.0, np.exp(-(t - 0.16) / 0.05))
+    amp[:12] *= np.linspace(0, 1, 12)
     amp[-600:] *= np.linspace(1, 0, 600)
-    tok = bp(noise(n), 1600, 0.4) * np.exp(-t / 0.006) * 0.35
-    click = hp(noise(n), 4000) * np.exp(-t / 0.0018) * 0.4
+    click = hp(noise(n), 5000) * np.exp(-t / 0.0010) * 0.06
     dry = body * amp
-    k = tube(dry * 1.2 + tok + click, 3.4, 0.1)
-    k = np.tanh(1.7 * k)
+    k = tube_os(dry + click, 1.5, 0.04)
     return k / np.max(np.abs(k)), dry
 
 
@@ -121,7 +127,7 @@ def render_kick():
     for b, v, prog in C.roll_hits():
         add(roll, k, b, v)
         s = smp(b)
-        hpc[s:s + smp(0.5)] = np.maximum(hpc[s:s + smp(0.5)], 90 * (9.0 ** prog))
+        hpc[s:s + smp(0.5)] = np.maximum(hpc[s:s + smp(0.5)], 70 * (5.0 ** prog))
     roll = svf(roll, smooth(hpc, 200), 0.3, 2)
     out = main + roll
     for b in C.PICKUPS:
@@ -146,7 +152,7 @@ def render_rumble(ghost):
     r = svf(r, np.full(N, 140.0), 0.35, 0)
     r = tube(r * 9.0, 3.2, 0.2)
     r = svf(r, np.full(N, 190.0), 0.15, 0)
-    r = hp(r, 45)
+    r = hp(r, 70)
     ph = BEAT_AT % 1.0
     win = gate_window(ph, 0.42, 0.6, 0.93, 0.995) * (0.75 + 0.25 * ph)
     return r * win * offbeat_mask()
@@ -159,13 +165,13 @@ def render_bass():
         n = int((dur + 0.012) * SR)
         t = np.arange(n) / SR
         f0 = mtof(nt.pitch)
-        osc = (np.sin(2 * np.pi * f0 * t) + 0.4 * saw(np.full(n, f0), 0.0)
-               + 0.3 * np.sin(2 * np.pi * f0 * 4 / 3 * t))
-        y = svf(osc, 260 * (1 + 0.8 * np.exp(-t / 0.05)), 0.3, 0)
+        # wie Referenz: fast reiner Sinus (kaum Low-Mid-Obertoene)
+        osc = np.sin(2 * np.pi * f0 * t) + 0.12 * np.sin(4 * np.pi * f0 * t)
+        y = osc
         amp = np.minimum(t / 0.035, 1) * np.where(t < dur, 1.0, np.exp(-(t - dur) / 0.004))
         add(out, y * amp, nt.start, nt.vel)
-    out = tube(out * 2.2, 3.0, 0.25)
-    out = svf(out, np.full(N, 700.0), 0.1, 0)
+    out = tube_os(out * 1.1, 1.3, 0.1)
+    out = svf(out, np.full(N, 400.0), 0.0, 0)
     return hp(out, 30)
 
 
@@ -180,28 +186,28 @@ def metal(n, scale=1.0):
 
 
 def hat_one(kind):
-    if kind == "o":
-        n = int(0.22 * SR)
-        x = noise(n) * 0.8 + metal(n) * 0.5
-        return tube(hp(bp(x, 9500, 0.25), 5000), 1.5, 0.0) * env_exp(n, 0.055, 0.004)
-    if kind == "c":
-        n = int(0.06 * SR)
-        return hp(noise(n) * 0.8 + metal(n, 1.05) * 0.3, 7500) * env_exp(n, 0.012)
+    decay = {"o1": 0.028, "o2": 0.07, "o3": 0.16, "e": 0.012}
+    if kind in decay:
+        n = int((decay[kind] * 6 + 0.02) * SR)
+        x = noise(n) * 0.85 + metal(n) * 0.35
+        x = hp(bp(x, 9000, 0.2), 6000 if kind != "e" else 9000)
+        return x * env_exp(n, decay[kind], 0.002)
     n = int(0.5 * SR)
     t = np.arange(n) / SR
     x = metal(n, 2.4) * 0.7 + hp(noise(n), 6000) * 0.5
-    return hp(x, 3500) * env_exp(n, 0.16, 0.004) + np.sin(2 * np.pi * 3720 * t) * 0.15 * np.exp(-t / 0.04)
+    return hp(x, 3500) * env_exp(n, 0.16, 0.004) + np.sin(2 * np.pi * 3720 * t) * 0.12 * np.exp(-t / 0.04)
 
 
 def render_hats():
     out = np.zeros((2, N))
-    bank = {k: [hat_one(k) for _ in range(4)] for k in "oct"}
-    pans = {"o": 0.15, "c": -0.3, "t": 0.35}
-    gains = {"o": 1.0, "c": 0.7, "t": 0.45}
+    kinds = ("o1", "o2", "o3", "e", "t")
+    bank = {k: [hat_one(k) for _ in range(4)] for k in kinds}
+    pans = {"o1": 0.1, "o2": 0.1, "o3": 0.1, "e": -0.3, "t": 0.35}
+    gains = {"o1": 1.0, "o2": 1.0, "o3": 0.9, "e": 0.35, "t": 0.3}
     for i, (b, kind, v) in enumerate(C.hat_events()):
         add(out, pan(bank[kind][i % 4], pans[kind]), b, v * gains[kind])
     h = C.hats_tone(BEAT_AT)
-    return np.array([svf(out[0], h, 0.15, 2), svf(out[1], h, 0.15, 2)])
+    return np.array([svf(out[0], h, 0.1, 2), svf(out[1], h, 0.1, 2)])
 
 
 def clap_one():
@@ -215,7 +221,7 @@ def clap_one():
     e[s:] += 0.6 * np.exp(-t[: n - s] / 0.1)
     x = bp(noise(n), 1250, 0.3) * 1.5 + hp(noise(n), 3000) * 0.35
     body = np.sin(2 * np.pi * 210 * t) * np.exp(-t / 0.03) * 0.5
-    return tube(hp(x * e, 280) + body, 2.0, 0.05)
+    return tube_os(hp(x * e, 280) + body, 1.4, 0.03)
 
 
 def render_clap():
@@ -282,20 +288,23 @@ def render_wall():
     lf = lf[np.maximum.accumulate(idx)]          # Ton halten bis zum naechsten
     lf = onepole_lp(lf, 12.0)
     freq = 2.0 ** lf
-    ph = BEAT_AT % 1.0
-    pluck = 0.5 + 0.5 * np.exp(-ph / 0.22)
+    ph = (BEAT_AT - 0.45) % 1.0          # Puls auf dem Offbeat (wie Referenz-Mitten), Platz nach der Kick
+    pluck = 0.35 + 0.65 * np.exp(-ph / 0.25)
     cut = C.wall_cutoff(BEAT_AT) * (1 + 0.9 * pluck + 0.4 * acc)
     g = smooth(gate, 400)
+    # Dichte wie Referenz: Main 1 luftig, Peak dicht
+    sect = window([(24, 40, 0.45), (48, 64, 0.5), (64, 80, 0.7), (80, 96, 0.8), (96, 104, 0.6),
+                   (114, 146, 1.0), (146, 170, 0.6)], SR // 2)
     chans = []
     for ch, dets in enumerate(((-12, 0, 9), (-8, 0, 13))):
         x = np.zeros(N)
         for d in dets:
             x += saw(freq * 2 ** (d / 1200), RNG.uniform())
         x += 0.35 * pulse(freq / 2, 0.5, 0.25)
-        y = svf(x * 0.5, cut, 0.45, 0)
-        y = tube(y * 1.6, 3.5, 0.1)
-        y = svf(y, np.full(N, 7000.0), 0.0, 0)
-        chans.append(hp(y, 160) * g * pluck)
+        y = svf(x * 0.5, cut, 0.35, 0)
+        y = tube_os(y * 1.2, 1.8, 0.05)
+        y = svf(y, np.full(N, 5500.0), 0.0, 0)
+        chans.append(hp(y, 420) * g * pluck * sect)
     hz = int(0.008 * SR)
     chans[1] = np.concatenate([np.zeros(hz), chans[1][:-hz]])
     st = np.array(chans)
@@ -329,7 +338,7 @@ def render_stab():
                 tau = 0.14 if nt.accent else 0.07
                 amp = np.where(t < dur, np.exp(-t / tau), np.exp(-dur / tau) * np.exp(-(t - dur) / 0.01))
                 amp[:30] *= np.linspace(0, 1, 30)
-            chans.append(tube(y * amp * 0.9, 2.6, 0.12))
+            chans.append(tube_os(y * amp * 0.8, 1.8, 0.08))
         add(dry, np.array(chans), nt.start, nt.vel)
     dry = np.array([hp(dry[0], 120), hp(dry[1], 120)])
     hz = int(0.011 * SR)
@@ -380,7 +389,7 @@ def fx_zap():
     f = 70 + 3500 * np.exp(-t / 0.03)
     ph = 2 * np.pi * np.cumsum(f) / SR
     x = np.sin(ph + 2.5 * np.sin(1.5 * ph) * np.exp(-t / 0.05))
-    return tube(x * env_exp(n, 0.1), 2.5, 0.1)
+    return lp(tube_os(x * env_exp(n, 0.1), 1.6, 0.05), 4000)
 
 
 def fx_crash(dur=2.0):
@@ -419,7 +428,7 @@ def fx_riser(b0, b1):
     chans = []
     for ch in range(2):
         x = svf(noise(n), fc * (1 + 0.05 * ch), 0.75, 1)
-        x = tube(x * 2.0, 2.5, 0.0)
+        x = tube_os(x * 1.5, 1.6, 0.0)
         f = mtof(49) * 2 ** (2 * t ** 1.6) * (1 + 0.004 * ch)
         y = svf(saw(f) + saw(f * 1.5), 300 + 7000 * t ** 2, 0.4, 0)
         chans.append(svf((0.8 * x + 0.35 * y) * gate * t ** 2.2, np.full(n, 7000.0), 0.0, 0))
@@ -477,7 +486,7 @@ def render_fx(kick):
     bm = lp(tube(booms + 0.5 * (bw[0] + bw[1]), 2.0, 0.1), 250)
     out += stereo(hp(bm, 70)) * 0.5
     zl, zr = tape(zaps[0], zaps[1], 0.75, 3.0, 0.5, 0.55, 0.4, 1.5, 1.0)
-    out += zaps + np.array([zl, zr]) * 0.6
+    out += (zaps + np.array([zl, zr]) * 0.6) * 0.5
     # Dub-Delay auf die Kick im Kick-Stotter-Teil (97-104)
     kw = window([(96, 104, 1.0)], 200)
     kl, kr = tape(kick * kw * 0.5, kick * kw * 0.5, 0.75, 2.0, 0.4, 0.6, 0.5, 1.8, 1.0)
@@ -488,7 +497,7 @@ def render_fx(kick):
 
 # ====================================================================== WIDE
 def render_wide():
-    g = window([(0, 8, 0.35), (8, 16, 0.5), (16, 40, 0.8), (48, 78, 0.9), (80, 96, 1.0), (114, 162, 1.0), (162, 176, 0.8)], SR // 4)
+    g = window([(80, 96, 0.7), (114, 146, 0.8)], SR // 4)   # nur in den dichten Teilen (wie Referenz)
     ph = (BEAT_AT * 4) % 1.0
     puls = 0.55 + 0.45 * np.exp(-ph / 0.35)
     fc = 1800 * 2.0 ** (0.8 * np.sin(2 * np.pi * BEAT_AT / 32.0))
@@ -588,11 +597,11 @@ def apply_fir(x, taps):
 
 # ====================================================================== MIX & MASTER
 TARGET = {
-    "01 KICK": -10.5, "02 RUMBLE": -15.0, "03 BASS": -11.0, "04 HATS": -21.0,
-    "05 CLAP": -21.5, "06 PERC": -23.5, "07 WALL": -19.5, "08 STAB": -23.0,
-    "09 ATMOS": -26.0, "10 FX": -30.0, "11 RISER": -20.0, "12 WIDE": -26.0,
+    "01 KICK": -9.0, "02 RUMBLE": -23.0, "03 BASS": -12.0, "04 HATS": -21.0,
+    "05 CLAP": -21.0, "06 PERC": -25.0, "07 WALL": -21.5, "08 STAB": -24.0,
+    "09 ATMOS": -26.0, "10 FX": -31.0, "11 RISER": -21.0, "12 WIDE": -29.0,
 }
-REGION = {"09 ATMOS": (96, 114), "10 FX": (0, 178), "11 RISER": (112, 114), "08 STAB": (114, 130)}
+REGION = {"09 ATMOS": (96, 114), "10 FX": (0, 178), "11 RISER": (112, 114), "08 STAB": (114, 130), "12 WIDE": (114, 146)}
 CREST = {"04 HATS": 12.0, "05 CLAP": 14.0, "06 PERC": 13.0, "07 WALL": 11.0, "08 STAB": 12.0,
          "10 FX": 16.0, "11 RISER": 10.0, "12 WIDE": 11.0}
 SC = {"07 WALL": 0.6, "08 STAB": 0.45, "09 ATMOS": 0.5, "04 HATS": 0.1, "06 PERC": 0.15, "12 WIDE": 0.6}
@@ -704,7 +713,7 @@ def main(ref_path):
             mx += v if v.ndim == 2 else stereo(v)
         return st, mx
 
-    def master_to(mx, target=-7.2):
+    def master_to(mx, target=-7.4):
         g, m, L = 17.0, None, 0
         for _ in range(8):
             m = master_chain(mx, g)

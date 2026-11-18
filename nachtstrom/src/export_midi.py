@@ -7,7 +7,7 @@ import compose as C
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PPQ = 480
 
-DRUM_MAP = {"kick": 36, "rim": 37, "clap": 39, "c": 42, "tom": 45, "o": 46,
+DRUM_MAP = {"kick": 36, "rim": 37, "clap": 39, "e": 42, "tom": 45, "o1": 46, "o2": 46, "o3": 46,
             "t": 51, "cga": 63}
 
 
