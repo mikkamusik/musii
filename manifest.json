@@ -1,0 +1,10 @@
+{
+  "name": "Musii",
+  "short_name": "Musii",
+  "description": "Kostenloser Musik-Player mit Millionen freier Songs",
+  "start_url": "./#/home",
+  "display": "standalone",
+  "background_color": "#0d0b14",
+  "theme_color": "#0d0b14",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
