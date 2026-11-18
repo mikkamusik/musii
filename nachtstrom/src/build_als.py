@@ -17,6 +17,8 @@ import compose as C
 import export_midi as M
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Wahrscheinlichster Ort nach dem Entpacken der Chat-ZIP (Fallback: relativer Pfad)
+ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v2")
 
 
 class Ids:
@@ -280,25 +282,25 @@ def master_track(n_scenes):
 
 
 AUDIO = [  # Stem, Farbe, Volume, Pan, Info
-    ("01 KICK", 14, 1.0, 0, "Synth-Kick 43,65 Hz (F1). Pitch-Env 270->44 Hz, Click 1,9 kHz, Tanh-Sattigung."),
-    ("02 RUMBLE", 14, 1.0, 0, "Kick -> Hall 90 % -> LP 170 Hz -> Distortion -> Offbeat-Gate mit 16tel-Puls."),
-    ("03 BASS", 12, 1.0, 0, "Rolling 16tel (2-3-4), Saw+Sub, LP mit Env, Sidechain 75 %."),
-    ("04 CLAP", 26, 1.0, 0, "4 Noise-Bursts, BP 1,15 kHz, Room-Hall."),
-    ("05 HATS", 26, 1.0, 0, "Metallische Square-Hats + Shaker + Offbeat-Open, 10 % Swing, atmender HP."),
-    ("06 RIDE", 26, 1.0, 0, "Ride auf 8teln, Peak & Drop 3."),
-    ("07 PERC", 22, 1.0, 0, "Tribal-Toms (C3/F3/Bb3) + Rim, 2-Takt-Pattern, Fills alle 8 Takte."),
-    ("08 HOOK", 5, 1.0, 0, "DER Hook: 2x Saw + Sub-Pulse, SVF Res 0,62, Filterbogen + Ping-Pong 3/16."),
-    ("09 ACID", 9, 1.0, 0, "303-Style: Saw -> 4-Pol-Ladder, Accent/Slide, lange Cutoff-Sweeps."),
-    ("10 FM STABS", 41, 1.0, 0, "FM 1:2 + 1:3,51, Akkorde Fm-Db-Eb-C (Dominante = Spannung)."),
-    ("11 FX", 1, 1.0, 0, "Riser, Snare-Roll, Pitch-Riser, Impacts, Crashes, Downlifter."),
+    ("01 KICK", 14, 1.0, 0, "Runde, verzerrte Kick auf 44 Hz (F1), Roehren-Saettigung statt Click."),
+    ("02 RUMBLE", 14, 1.0, 0, "Kick -> dunkler Hall -> Roehre -> LP (LFO) -> rollendes 16tel-Gate, wechselt alle 8 Takte."),
+    ("03 DIRTY BASS", 12, 1.0, 0, "Square + Sinus-Sub, Filter zu (380 Hz), asymmetrische Saettigung, Shuffle, Sidechain 70 %."),
+    ("04 HATS", 26, 1.0, 0, "Raue Noise-Hats mit Bitcrush, Offbeat-Open, Shaker-Triolen, Phaser in den Hypno-Parts."),
+    ("05 RIDE", 26, 1.0, 0, "Ride auf den Offbeats in MAIN 2 und FINAL."),
+    ("06 CLAP", 26, 1.0, 0, "Clap mit grossem dunklem Raum."),
+    ("07 PERC", 22, 1.0, 0, "Euklidische Tribal-Perc (Toms, Congas, Rims), rotiert alle 8 Takte, Rims im Dub-Tape-Delay."),
+    ("08 HYPNO SEQ", 5, 1.0, 0, "7/16-Polymeter gegen 4/4, Wavefolder + Resonanzfilter, nicht taktsynchrone LFOs, Tape-Delay mit Wow."),
+    ("09 METAL 3-16", 41, 1.0, 0, "Metallische FM-Ringmod-Perc im 3/16-Raster, Auto-Pan, Ping-Pong."),
+    ("10 VOICE", 9, 1.0, 0, "Synthetische Formant-Stimme (a-o-i-u-e Morph), Chops + Chants im Tape-Delay."),
+    ("11 TEXTURE", 1, 1.0, 0, "Wandernder resonanter Rausch-Nebel in Intro und Trips (kein Riser)."),
 ]
 
 MIDI = [  # Name, Datei-Key, Farbe, Info
-    ("12 HOOK MIDI", "HOOK", 5, "Zieh Wavetable/Analog drauf: 2 Osc Saw detuned, Filter LP24 Res 60 %, Env->Cutoff."),
-    ("13 ACID MIDI", "ACID", 9, "Zieh Analog/Drift oder TB-303-Plugin drauf. Glide 35 ms, Res hoch."),
-    ("14 BASS MIDI", "BASS", 12, "Operator/Analog: Saw + Sinus-Sub, kurze Env, Sidechain auf Kick."),
-    ("15 STABS MIDI", "FM_STABS", 41, "Operator: Algo 1, B=Ratio 2, Feedback leicht, viel Reverb/Delay."),
-    ("16 DRUMS MIDI", "DRUMS", 14, "Drum Rack Mapping: C1 Kick, D#1 Clap, F#1 HH, A#1 OH, D#2 Ride, C#1 Rim, F1/A1/C2 Toms, D1 Roll."),
+    ("12 SEQ MIDI", "HYPNO_SEQ", 5, "Eigener Synth: Wavetable/Drift, kurzer Pluck, LP mit hoher Resonanz, Filter per LFO frei laufen lassen."),
+    ("13 BASS MIDI", "DIRTY_BASS", 12, "Analog/Drift: Square + Sub, Filter 300-400 Hz, Saturator (Analog Clip), Sidechain."),
+    ("14 METAL MIDI", "METAL_3-16", 41, "Operator: Ratio 2.76, kurze Env, Auto Pan + Echo."),
+    ("15 VOICE MIDI", "VOICE", 9, "Saw -> Auto Filter (Formant/Vowel) oder Vocoder, viel Echo."),
+    ("16 DRUMS MIDI", "DRUMS", 14, "Drum Rack: C1 Kick, C#1 Rim, D#1 Clap, F1 Tom L, F#1 HH, A1 Tom M, A#1 OH, D#2 Ride, D3/D#3 Conga, A#3 Shaker."),
 ]
 
 
@@ -351,7 +353,7 @@ def main():
                 if s1 == C.BARS:
                     t1 = frames / 44100.0 / C.SPB  # Hall-Fahne mitnehmen
                 ev += audio_clip(cid, f"{name[3:]} | {section_name(s0)}", color,
-                                 f"Samples/Stems/{fn}", f"Samples/Stems/{fn}",
+                                 f"Samples/Stems/{fn}", f"{ABS_GUESS}/Samples/Stems/{fn}",
                                  t0, t1, frames, size)
                 cid += 1
         tracks.append(track("AudioTrack", tid, name, color, info, ev, n_scenes, vol, pan))
@@ -416,7 +418,7 @@ def main():
         + v("InKey", True) + v("SmpteFormat", 0)
         + "<TimeSelection>" + v("AnchorTime", 0) + v("OtherTime", 0) + "</TimeSelection>"
         + "<Locators><Locators>" + locs + "</Locators></Locators>"
-        + v("ViewData", "{}") + v("Annotation", "NACHTSTROM – 145 BPM – f-Moll. Komplett neu synthetisiert.")
+        + v("ViewData", "{}") + v("Annotation", "NACHTSTROM v2 – 145 BPM – F-Phrygisch. Raw / hypnotic / trippy. Komplett neu synthetisiert.")
         + "</LiveSet>"
     )
     xml = ('<?xml version="1.0" encoding="UTF-8"?>\n'

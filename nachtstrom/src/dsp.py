@@ -305,3 +305,127 @@ def sat(x, drive=1.0):
 
 def db(v):
     return 10.0 ** (v / 20.0)
+
+
+# ---------------------------------------------------------------- v2: Trippy-FX
+@njit(cache=True)
+def tape_delay(l, r, base, depth, rate_hz, fb, damp, drive, cross):
+    """Stereo-Tape-Delay mit eiernder Delay-Zeit (Wow) -> Pitch-Warble.
+    base/depth in Samples, cross 1 = Ping-Pong. Rueckgabe: Wet."""
+    n = l.shape[0]
+    size = int(base + depth.max() + 8)
+    bl = np.zeros(size)
+    br = np.zeros(size)
+    ol = np.empty(n)
+    orr = np.empty(n)
+    w = 0
+    zl = 0.0
+    zr = 0.0
+    for i in range(n):
+        mod = depth[i] * (0.5 + 0.5 * np.sin(2.0 * np.pi * rate_hz * i / SR))
+        d = base + mod
+        rp = w - d
+        while rp < 0:
+            rp += size
+        i0 = int(rp)
+        fr = rp - i0
+        i1 = i0 + 1
+        if i1 >= size:
+            i1 = 0
+        yl = bl[i0] * (1 - fr) + bl[i1] * fr
+        yr = br[i0] * (1 - fr) + br[i1] * fr
+        zl = yl * (1 - damp) + zl * damp
+        zr = yr * (1 - damp) + zr * damp
+        fl = np.tanh(drive * zl) / drive
+        frr = np.tanh(drive * zr) / drive
+        bl[w] = l[i] + fb * (cross * frr + (1 - cross) * fl)
+        br[w] = r[i] + fb * (cross * fl + (1 - cross) * frr)
+        ol[i] = yl
+        orr[i] = yr
+        w += 1
+        if w >= size:
+            w = 0
+    return ol, orr
+
+
+@njit(cache=True)
+def phaser(x, rate_hz, fmin, fmax, fb, stages, phase0):
+    """Klassischer 1.-Ordnung-Allpass-Phaser mit LFO."""
+    n = x.shape[0]
+    out = np.empty(n)
+    st = np.zeros(stages)
+    last = 0.0
+    for i in range(n):
+        lfo = 0.5 + 0.5 * np.sin(2 * np.pi * rate_hz * i / SR + phase0)
+        fc = fmin * (fmax / fmin) ** lfo
+        t = np.tan(np.pi * fc / SR)
+        a = (t - 1) / (t + 1)
+        y = x[i] + fb * last
+        for s in range(stages):
+            o = a * y + st[s]
+            st[s] = y - a * o
+            y = o
+        last = y
+        out[i] = 0.5 * (x[i] + y)
+    return out
+
+
+def fold(x, amt):
+    """Wavefolder."""
+    return np.sin(x * amt * np.pi / 2)
+
+
+def smooth(x, n):
+    """Schneller gleitender Mittelwert (cumsum) – fuer weiche Automations-Uebergaenge."""
+    c = np.cumsum(np.concatenate([np.zeros(n), x, np.full(n, x[-1])]))
+    y = (c[n:] - c[:-n]) / n
+    off = n // 2
+    return y[off:off + x.shape[0]]
+
+
+@njit(cache=True)
+def limiter_fast(x, ceiling, look, rel_ms):
+    """Lookahead-Limiter in O(n) (monotone Deque fuer das gleitende Maximum)."""
+    n = x.shape[1]
+    peak = np.empty(n)
+    for i in range(n):
+        m = 0.0
+        for c in range(x.shape[0]):
+            a = abs(x[c, i])
+            if a > m:
+                m = a
+        peak[i] = m
+    # wmax[i] = max(peak[i : i+look])
+    wmax = np.empty(n)
+    dq = np.empty(n, dtype=np.int64)
+    head = 0
+    tail = 0
+    j = 0
+    for i in range(n):
+        lim = i + look
+        if lim > n:
+            lim = n
+        while j < lim:
+            while tail > head and peak[dq[tail - 1]] <= peak[j]:
+                tail -= 1
+            dq[tail] = j
+            tail += 1
+            j += 1
+        while dq[head] < i:
+            head += 1
+        wmax[i] = peak[dq[head]]
+    out = np.empty_like(x)
+    ar = np.exp(-1.0 / (SR * rel_ms / 1000.0))
+    aa = np.exp(-1.0 / (look / 4.0))
+    g = 1.0
+    for i in range(n):
+        need = 1.0
+        if wmax[i] > ceiling:
+            need = ceiling / wmax[i]
+        if need < g:
+            g = aa * g + (1.0 - aa) * need
+        else:
+            g = ar * g + (1.0 - ar) * need
+        for c in range(x.shape[0]):
+            out[c, i] = x[c, i] * g
+    return out

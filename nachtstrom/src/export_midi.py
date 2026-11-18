@@ -7,8 +7,8 @@ import compose as C
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PPQ = 480
 
-DRUM_MAP = {"kick": 36, "rim": 37, "roll": 38, "clap": 39, "tl": 41, "c": 42,
-            "tm": 45, "o": 46, "th": 48, "ride": 51, "s": 70}
+DRUM_MAP = {"kick": 36, "rim": 37, "clap": 39, "tl": 41, "c": 42, "tm": 45,
+            "o": 46, "ride": 51, "ch": 62, "cg": 63, "s": 70}
 
 
 def vlq(v):
@@ -66,15 +66,14 @@ def drums():
     ev += [(b, 0.1, DRUM_MAP[k], v) for b, k, v in C.hat_events()]
     ev += [(b, 0.1, DRUM_MAP["ride"], v) for b, v in C.ride_events()]
     ev += [(b, 0.1, DRUM_MAP[k], v) for b, k, v in C.perc_events()]
-    ev += [(b, 0.1, DRUM_MAP["roll"], min(1.0, v)) for b, v in C.roll_events()]
-    return ev
+    return [(max(0.0, b), d, p, v) for b, d, p, v in ev]
 
 
 PARTS = {
-    "HOOK": lambda: part(C.hook_notes()),
-    "ACID": lambda: part(C.acid_notes()),
-    "BASS": lambda: part(C.bass_notes()),
-    "FM_STABS": lambda: part(C.stab_notes()),
+    "HYPNO_SEQ": lambda: part(C.seq_notes()),
+    "DIRTY_BASS": lambda: part(C.bass_notes()),
+    "METAL_3-16": lambda: part(C.bleep_notes()),
+    "VOICE": lambda: part(C.voice_notes()),
     "DRUMS": drums,
 }
 
