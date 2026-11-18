@@ -1,4 +1,4 @@
-"""NACHTSTROM v9 – jede Section mit eigener Identitaet (Bass, Signatur-Sound, Percussion).
+"""NACHTSTROM v10 – Grundton-Wechsel, entwickelndes Riff, Klangfarbe je Section, Fill alle 8 Takte.
 
 Aus der Referenz (siehe ../REFERENZ_ANALYSE.md):
   147 BPM, lange Pitch-Sweep-Kick, Offbeat-Bass eine Quarte darueber,
@@ -68,10 +68,33 @@ ROLLS = [
 PICKUPS = [47 * 4 + 3]        # einzelne volle Kick vor dem Drop (wie Referenz)
 
 
+def root_offset(bar):
+    """Harmonischer Weg: Cis -> (Main 2) H -> Cis -> (Peak B) E -> Cis."""
+    if in_(bar, 80, 96):
+        return -2
+    if in_(bar, 130, 146):
+        return 3
+    return 0
+
+
+FILL_TYPES = ["toms", "kickskip", "hatroll", "revcym"]
+NO_FILL = set(range(40, 48)) | set(range(96, 114)) | {63, 78, 79, 121, 129, 145} | set(range(170, 178))
+
+
+def fill_type(bar):
+    """Am Ende jeder 8-Takt-Phrase ein anderer Fill (System, kein Zufall)."""
+    if bar % 8 != 7 or bar in NO_FILL or bar < 8:
+        return None
+    return FILL_TYPES[(bar // 8) % 4]
+
+
 def kick_beats(bar):
     if bar >= BARS or bar in SILENT:
         return []
-    return KICK_EXCEPT.get(bar, [0, 1, 2, 3])
+    beats = KICK_EXCEPT.get(bar, [0, 1, 2, 3])
+    if fill_type(bar) == "kickskip":
+        beats = [b for b in beats if b != 3]
+    return beats
 
 
 def kick_hits():
@@ -118,9 +141,10 @@ def bass_notes():
         if in_(bar, 40, 48) or in_(bar, 96, 114) or bar >= 174:
             continue
         pat = bass_pattern(bar)
+        r = ROOT + root_offset(bar)
         for b in kick_beats(bar):
             base = bar * 4 + b
-            p = ROOT + 1 if (bar % 8 == 7 and b == 3) else ROOT
+            p = r + 1 if (bar % 8 == 7 and b == 3) else r
             if pat == "roll":
                 for off, v in ((0.25, 0.65), (0.5, 1.0), (0.75, 0.8)):
                     notes.append(Note(base + off, 0.2, p, v))
@@ -129,7 +153,7 @@ def bass_notes():
                 notes.append(Note(base + 0.75, 0.2, p + (12 if b % 2 else 0), 0.75))
             else:
                 if pat == "jump" and bar % 2 == 1 and b == 2:
-                    p = ROOT + 12
+                    p = r + 12
                 notes.append(Note(base + 0.5, 0.45, p, 1.0))
     return notes
 
@@ -167,6 +191,9 @@ def hat_events():
             for st in range(16):
                 if st % 4 != 0:
                     ev.append((sx(bar, st) + (0.01 if st % 2 else 0), "s", [0, 0.45, 0.7, 0.5][st % 4]))
+        if fill_type(bar) == "hatroll":                    # Fill: 32tel-Roll auf Beat 4
+            for k in range(8):
+                ev.append((bar * 4 + 3 + k / 8, "e", 0.25 + 0.06 * k))
         if in_(bar, 114, 130):                            # Ride nur im Peak
             for beat in range(4):
                 ev.append((bar * 4 + beat + 0.5, "t", 0.45))
@@ -183,8 +210,10 @@ def clap_events():
         if not (in_(bar, 16, 40) or in_(bar, 48, 96) or in_(bar, 114, 170)):
             continue
         for b in (1, 3):
-            if b in kick_beats(bar):
+            if b in kick_beats(bar) or (b == 3 and fill_type(bar) == "kickskip"):
                 ev.append((bar * 4 + b, 1.0))
+        if fill_type(bar) == "kickskip":
+            ev.append((bar * 4 + 3.75, 0.55))
     return ev
 
 
@@ -220,6 +249,10 @@ def perc_events():
                 g = bar * 16 + st
                 if g % 3 == 0:
                     ev.append((sx(bar, st), ["mt1", "mt2", "mt1", "mt3"][(g // 3) % 4], 0.7))
+    for bar in range(BARS):
+        if fill_type(bar) == "toms":
+            for k, kind in enumerate(("tm", "tm", "tl", "tl")):
+                ev.append((bar * 4 + 3 + k / 4, kind, 0.65 + 0.08 * k))
     # Tom-Roll als Aufbau in Break 1 (8tel -> 16tel)
     for bar, div in ((46, 2), (47, 4)):
         n = 4 * div if bar == 46 else 3 * div
@@ -239,28 +272,40 @@ def wall_active(bar):
     return in_(bar, 32, 40) or in_(bar, 48, 64) or in_(bar, 80, 130) or in_(bar, 146, 162)
 
 
-def wall_variant(bar):
-    if in_(bar, 64, 78) or in_(bar, 114, 130):
-        return WALL_C
-    if in_(bar, 80, 96) or in_(bar, 130, 146):
-        return WALL_B
-    return WALL_A
+RIFF_A = [(0, 0, 1), (3, 0, 0), (6, 12, 1), (8, 0, 0), (11, 3, 0), (14, 0, 1)]            # Drive / Main 1 / Main 3
+RIFF_B = [(0, 0, 1), (2, 0, 0), (4, 7, 1), (7, 0, 0), (10, 10, 1), (12, 0, 0), (14, 7, 0)]  # Main 2 (auf H)
+RIFF_C = [(0, 0, 1), (3, 12, 0), (6, 0, 1), (9, 15, 0), (12, 0, 1), (14, 13, 0)]           # Peak
+RIFF_CALL = [(12, 7, 1), (13, 5, 0), (14, 3, 0), (15, 1, 1)]                              # Antwort im 4. Takt
+
+
+def riff_pattern(bar):
+    if in_(bar, 80, 96):
+        pat = RIFF_B
+    elif in_(bar, 114, 130):
+        pat = RIFF_C
+    else:
+        pat = RIFF_A
+    if bar % 4 == 3:
+        pat = [n for n in pat if n[0] < 12] + RIFF_CALL
+    if bar % 16 < 4 and not in_(bar, 32, 40):      # erste 4 Takte jeder Phrase: nur Akzente (Luft)
+        pat = [n for n in pat if n[2]]
+    return pat
 
 
 def wall_notes():
     notes = []
+    base = 49  # C#3
     for bar in range(BARS):
         if not wall_active(bar):
             continue
-        if in_(bar, 104, 110):                 # Breakdown-Highlight: lange Toene im grossen Raum
+        if in_(bar, 104, 110):                 # Breakdown: lange Toene im grossen Raum
             if bar % 2 == 0:
                 notes.append(Note(bar * 4, 4.0, 49, 0.9, True))
                 notes.append(Note(bar * 4 + 4, 4.0, 50 if bar % 4 == 0 else 47, 0.9, True))
             continue
-        seq = wall_variant(bar)
-        for b in range(4):
-            g = bar * 4 + b
-            notes.append(Note(g, 1.0, seq[b], 1.0, b == 0))
+        off = root_offset(bar)
+        for st, semi, acc in riff_pattern(bar):
+            notes.append(Note(sx(bar, st), 0.5 if acc else 0.25, base + off + semi, 1.0 if acc else 0.75, bool(acc)))
     return notes
 
 
@@ -272,7 +317,7 @@ def dub_events():
 
 
 def dub_notes():
-    return [Note(b, 0.35, p, 0.9, True) for b in dub_events() for p in (49, 56, 61)]
+    return [Note(b, 0.35, p + root_offset(int(b // 4)), 0.9, True) for b in dub_events() for p in (49, 56, 61)]
 
 
 # ====================================================================== STAB (Calls)
@@ -323,6 +368,9 @@ def fx_events():
     ev += [("down", 40 * 4 + 2), ("down", 96 * 4)]
     ev += [("riser", 110 * 4, 113 * 4 + 3.5)]
     ev += [("boom", 104 * 4), ("boom", 107 * 4)]
+    for bar in range(BARS):
+        if fill_type(bar) == "revcym":
+            ev.append(("revcrash", bar * 4 + 3))
     return ev
 
 
@@ -409,3 +457,32 @@ def hats_tone(beat):
 
 def throw_beats():
     return [63 * 4 + 3, 95 * 4 + 2, 121 * 4 + 2, 161 * 4 + 2]   # Dub-Echo-Throws der Wand
+
+
+def color_lp(beat):
+    """Klangfarbe je Section (Tiefpass auf Hats/Perc/Riff/Stabs): dunkel -> offen -> warm -> hell -> zu."""
+    bar = beat / 4.0
+    c = np.full_like(beat, 16000.0)
+    c = np.where(bar < 8, 4500.0, c)
+    c = np.where((bar >= 8) & (bar < 16), exp_ramp(bar, 8, 16, 4500, 16000), c)
+    c = np.where((bar >= 48) & (bar < 64), 13000.0, c)
+    c = np.where((bar >= 64) & (bar < 80), 19000.0, c)
+    c = np.where((bar >= 80) & (bar < 96), 8000.0, c)
+    c = np.where((bar >= 114) & (bar < 130), 19500.0, c)
+    c = np.where((bar >= 130) & (bar < 146), 11000.0, c)
+    c = np.where((bar >= 146) & (bar < 162), exp_ramp(bar, 146, 162, 14000, 5000), c)
+    c = np.where(bar >= 162, exp_ramp(bar, 162, 178, 5000, 3000), c)
+    return c
+
+
+def bass_color(bar):
+    """(Saw-Anteil, Drive, Tiefpass) je Section – der Bass klingt nicht ueberall gleich."""
+    if in_(bar, 48, 64):
+        return 0.15, 1.6, 500.0
+    if in_(bar, 80, 96):
+        return 0.35, 1.5, 380.0
+    if in_(bar, 114, 130):
+        return 0.25, 2.0, 650.0
+    if in_(bar, 130, 146):
+        return 0.1, 1.4, 420.0
+    return 0.0, 1.3, 400.0

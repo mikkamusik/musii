@@ -1,4 +1,4 @@
-"""NACHTSTROM v9 – Renderer: Sections mit eigener Identitaet + Highlights + Vocals.
+"""NACHTSTROM v10 – Renderer: Grundton-Wechsel, Riff, Klangfarben, Fills, Highlights, Vocals.
 
 Alle Sounds selbst synthetisiert. Klangbalance per Match-EQ (Regelkreis) an
 die vermessene Referenz angeglichen – vom Referenz-Audio landet nichts im Track.
@@ -120,7 +120,9 @@ def render_kick():
         add(main, k, b, v)
         add(ghost, dry, b, v)
     brk = window([(40.5, 48, 1), (78.5, 80, 1), (96, 114, 1)])
-    main = svf(main, smooth(np.where(brk > 0, 170.0, 15.0), SR // 10), 0.1, 2)
+    kcut = np.where(brk > 0, 170.0, 15.0)
+    kcut = np.where(BAR_AT < 4, 110.0, kcut)                 # Intro: Kick erst duenn, ab Takt 5 voll
+    main = svf(main, smooth(kcut, SR // 10), 0.1, 2)
     # Kick-Rolls: werden lauter UND duenner (Hochpass steigt) -> Spannung
     roll = np.zeros(N)
     hpc = np.full(N, 15.0)
@@ -165,14 +167,16 @@ def render_bass():
         n = int((dur + 0.012) * SR)
         t = np.arange(n) / SR
         f0 = mtof(nt.pitch)
-        # wie Referenz: fast reiner Sinus (kaum Low-Mid-Obertoene)
+        sawamt, drive, lpf = C.bass_color(int(nt.start // 4))
         osc = np.sin(2 * np.pi * f0 * t) + 0.12 * np.sin(4 * np.pi * f0 * t)
-        y = osc
+        if sawamt > 0:
+            osc = osc + sawamt * saw(np.full(n, f0), 0.0)
+        y = svf(osc, np.full(n, lpf), 0.2, 0)
+        y = np.tanh(drive * y) / np.tanh(drive)
         att = min(0.035, dur * 0.25)
         amp = np.minimum(t / att, 1) * np.where(t < dur, 1.0, np.exp(-(t - dur) / 0.004))
         add(out, y * amp, nt.start, nt.vel)
-    out = tube_os(out * 1.1, 1.3, 0.1)
-    out = svf(out, np.full(N, 400.0), 0.0, 0)
+    out = svf(out, np.full(N, 1200.0), 0.0, 0)
     return hp(out, 30)
 
 
@@ -310,6 +314,14 @@ def render_wall():
         gate[s:e] = 1.0
         if nt.accent:
             acc[s:e] = 1.0
+    nenv = np.zeros(N)
+    for nt in notes:
+        s, e = smp(nt.start), smp(nt.start + nt.dur)
+        tt = np.arange(e - s) / SR
+        if nt.dur > 1.0:
+            nenv[s:e] = 0.8
+        else:
+            nenv[s:e] = 0.25 + 0.75 * np.exp(-tt / (0.16 if nt.accent else 0.09))
     act = np.nonzero(gate)[0]
     out = np.zeros((2, N))
     if len(act) == 0:
@@ -320,14 +332,11 @@ def render_wall():
     lf = lf[np.maximum.accumulate(idx)]          # Ton halten bis zum naechsten
     lf = onepole_lp(lf, 12.0)
     freq = 2.0 ** lf
-    ph = (BEAT_AT - 0.45) % 1.0          # Puls auf dem Offbeat (wie Referenz-Mitten), Platz nach der Kick
-    pluck = 0.35 + 0.65 * np.exp(-ph / 0.25)
-    pluck = np.where((BAR_AT >= 104) & (BAR_AT < 110), 0.8, pluck)     # lange Toene ohne Puls
-    cut = C.wall_cutoff(BEAT_AT) * (1 + 0.9 * pluck + 0.4 * acc)
-    g = smooth(gate, 400)
-    # Dichte wie Referenz: Main 1 luftig, Peak dicht
-    sect = window([(24, 40, 0.45), (48, 64, 0.5), (64, 80, 0.7), (80, 96, 0.8), (96, 104, 0.6),
-                   (114, 146, 1.0), (146, 170, 0.6)], SR // 2)
+    pluck = smooth(nenv, 60)                                   # Huellkurve pro Riff-Note
+    cut = C.wall_cutoff(BEAT_AT) * (1 + 1.2 * pluck + 0.3 * acc)
+    g = smooth(gate, 200)
+    sect = window([(32, 40, 0.5), (48, 64, 0.7), (80, 96, 0.8), (96, 104, 0.6), (104, 110, 0.4), (110, 114, 0.6),
+                   (114, 130, 1.0), (146, 162, 0.7)], SR // 2)
     chans = []
     for ch, dets in enumerate(((-12, 0, 9), (-8, 0, 13))):
         x = np.zeros(N)
@@ -337,7 +346,7 @@ def render_wall():
         y = svf(x * 0.5, cut, 0.35, 0)
         y = tube_os(y * 1.2, 1.8, 0.05)
         y = svf(y, np.full(N, 5500.0), 0.0, 0)
-        chans.append(hp(y, 420) * g * pluck * sect)
+        chans.append(hp(y, 180) * g * pluck * sect)
     hz = int(0.008 * SR)
     chans[1] = np.concatenate([np.zeros(hz), chans[1][:-hz]])
     st = np.array(chans)
@@ -731,14 +740,14 @@ def apply_fir(x, taps):
 # ====================================================================== MIX & MASTER
 TARGET = {
     "01 KICK": -9.0, "02 RUMBLE": -23.0, "03 BASS": -12.0, "04 HATS": -21.0,
-    "05 CLAP": -21.0, "06 PERC": -25.0, "07 WALL": -21.5, "08 DUB STAB": -24.0,
+    "05 CLAP": -21.0, "06 PERC": -25.0, "07 RIFF": -21.5, "08 DUB STAB": -24.0,
     "09 ATMOS": -27.0, "10 FX": -31.0, "11 RISER": -24.0, "13 STAB": -22.5,
 }
 REGION = {"08 DUB STAB": (130, 146), "09 ATMOS": (96, 114), "10 FX": (0, 178), "11 RISER": (112, 114), "13 STAB": (114, 130)}
-CREST = {"04 HATS": 12.0, "05 CLAP": 14.0, "06 PERC": 13.0, "07 WALL": 11.0, "08 DUB STAB": 14.0,
+CREST = {"04 HATS": 12.0, "05 CLAP": 14.0, "06 PERC": 13.0, "07 RIFF": 11.0, "08 DUB STAB": 14.0,
          "10 FX": 16.0, "11 RISER": 10.0, "13 STAB": 12.0}
-SC = {"07 WALL": 0.6, "08 DUB STAB": 0.4, "09 ATMOS": 0.5, "04 HATS": 0.1, "06 PERC": 0.15, "13 STAB": 0.45}
-EDITED = ["01 KICK", "02 RUMBLE", "03 BASS", "04 HATS", "05 CLAP", "06 PERC", "07 WALL", "08 DUB STAB", "13 STAB"]
+SC = {"07 RIFF": 0.6, "08 DUB STAB": 0.4, "09 ATMOS": 0.5, "04 HATS": 0.1, "06 PERC": 0.15, "13 STAB": 0.45}
+EDITED = ["01 KICK", "02 RUMBLE", "03 BASS", "04 HATS", "05 CLAP", "06 PERC", "07 RIFF", "08 DUB STAB", "13 STAB"]
 
 
 def rms_db(x, b0, b1):
@@ -794,10 +803,10 @@ def main(ref_path):
     stems["05 CLAP"] = render_clap()
     stems["06 PERC"] = render_perc()
     print("drums/low", round(time.time() - t0), flush=True)
-    stems["07 WALL"] = render_wall()
+    stems["07 RIFF"] = render_wall()
     stems["08 DUB STAB"] = render_dub()
     stems["09 ATMOS"] = render_atmos()
-    fx, ris = render_fx(kick, stems["07 WALL"])
+    fx, ris = render_fx(kick, stems["07 RIFF"])
     stems["10 FX"] = fx
     stems["11 RISER"] = ris
     stems["12 VOCAL"] = render_vocal()
@@ -812,6 +821,9 @@ def main(ref_path):
         stems[k] = stems[k] * db(tgt - rms_db(stems[k], a, b))
         if k in CREST:
             stems[k] = soft_clip(stems[k], db(tgt + CREST[k]))
+    col = C.color_lp(BEAT_AT)
+    for k in ("04 HATS", "06 PERC", "07 RIFF", "08 DUB STAB", "13 STAB"):
+        stems[k] = np.array([svf(c, col, 0.1, 0) for c in stems[k]])
     vp = np.max(np.abs(stems["12 VOCAL"]))
     if vp > 0:
         stems["12 VOCAL"] = stems["12 VOCAL"] * (np.max(np.abs(stems["01 KICK"])) * db(-5.0) / vp)

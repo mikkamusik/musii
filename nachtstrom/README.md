@@ -1,7 +1,15 @@
-# NACHTSTROM v9 – 147 BPM · Cis-Phrygisch · jede Section mit eigener Identität + Highlights + Vocals
+# NACHTSTROM v10 – 147 BPM · Cis-Phrygisch · Grundton-Wechsel, Riff, Klangfarben, Fills, Highlights, Vocals
 
 Gebaut nach dem vermessenen Bauplan deiner Referenz, die Details stehen in `REFERENZ_ANALYSE.md`.
-Neu in v9: Jede Section hat ihre eigene Identität. Bassmuster, Signatur-Sound und Percussion wechseln von Teil zu Teil.
+Neu in v10 gegen Monotonie:
+- **Harmonischer Weg:** Cis → **H** (Main 2) → Cis → **E** (Peak B) → Cis. Bass, Riff und Dub-Stabs gehen jeweils mit.
+- **Riff statt stehendem Ton:** ein hypnotisches 16tel-Riff mit den Varianten A, B und C. Jeder 4. Takt endet mit einer Antwort, und die ersten 4 Takte jeder Phrase bleiben luftig.
+- **Klangfarbe je Section:** Intro dunkel, Main 1B hell, Main 2 warm, Peak am hellsten, Main 3 schließt sich langsam.
+- **Bass-Sound je Section:** von reinem Sinus über einen warmen Saw-Anteil bis angezerrt im Peak.
+- **Fill am Ende jeder 8-Takt-Phrase,** im Wechsel: Tom-Fill, ausgelassene Kick, Hat-Roll, Reverse-Becken.
+- **Intro:** Die ersten 4 Takte startet die Kick dünn, ab Takt 5 kommt sie voll.
+
+Aus v9 bleiben die eigenen Identitäten der Sections: Bassmuster, Signatur-Sound und Percussion wechseln von Teil zu Teil.
 Damit es kein Durcheinander wird, laufen trotzdem nie mehr als 5–7 Elemente gleichzeitig.
 
 | Takte | Section | eigene Identität |
@@ -22,9 +30,9 @@ Damit es kein Durcheinander wird, laufen trotzdem nie mehr als 5–7 Elemente gl
 Sounds, Noten und Patterns sind eigen und selbst synthetisiert.
 
 ## In Ableton öffnen
-1. `NACHTSTROM_v9.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v9/`.
-2. `NACHTSTROM_v9/NACHTSTROM.als` öffnen.
-3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v9` → **Los** → **Sichern**, dann **Cmd+S**.
+1. `NACHTSTROM_v10.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v10/`.
+2. `NACHTSTROM_v10/NACHTSTROM.als` öffnen.
+3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v10` → **Los** → **Sichern**, dann **Cmd+S**.
 4. A/B-Vergleich: **00 REFERENZ** und **00 MASTER BOUNCE** abwechselnd solo hören.
 
 ## Highlights (Takt-Nummern wie in Ableton)

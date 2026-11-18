@@ -18,7 +18,7 @@ import export_midi as M
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Wahrscheinlichster Ort nach dem Entpacken der Chat-ZIP (Fallback: relativer Pfad)
-ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v9")
+ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v10")
 
 
 class Ids:
@@ -285,11 +285,11 @@ def master_track(n_scenes):
 AUDIO = [  # Stem, Farbe, Volume, Pan, Info
     ("01 KICK", 14, 1.0, 0, "Tiefe, runde Kick (Fit an Referenz), lange Sub-Fahne."),
     ("02 RUMBLE", 14, 1.0, 0, "Leiser Kick-Hall-Rumble im Offbeat-Fenster."),
-    ("03 BASS", 12, 1.0, 0, "Bass je Section: Offbeat / rollende 16tel (Main 1) / Oktav-Spruenge (Main 2, Peak B) / synkopiert (Peak)."),
+    ("03 BASS", 12, 1.0, 0, "Bass je Section: Muster UND Klang wechseln; Grundton Cis -> H (Main 2) -> Cis -> E (Peak B) -> Cis."),
     ("04 HATS", 26, 1.0, 0, "Offbeat-Hat kurz->mittel->offen, Tick, Shaker (Main 1, Main 3), Ride (Peak)."),
     ("05 CLAP", 26, 1.0, 0, "Clap auf 2 & 4."),
     ("06 PERC", 22, 1.0, 0, "Identitaet je Section: Tribal-Toms, Halbtempo-Toms + Tom-Roll (Break 1), Congas, Rim, Metall-3/16-Loop."),
-    ("07 WALL", 5, 1.0, 0, "Hypnose-Wand im Wechsel an/aus, 4 Varianten."),
+    ("07 RIFF", 5, 1.0, 0, "Hypnotisches 16tel-Riff (A/B/C + Antwort alle 4 Takte), folgt dem Grundton-Wechsel."),
     ("08 DUB STAB", 9, 1.0, 0, "Dub-Stabs mit langem Echo (Takt 25, Breakdown, Peak B, Outro)."),
     ("09 ATMOS", 41, 1.0, 0, "Drone in Break 1 und Breakdown."),
     ("10 FX", 1, 1.0, 0, "Highlights: Reverse-Crashes, Crashes, Sub-Drops, Pings, Downlifter, Wand-Sweeps."),
@@ -299,7 +299,7 @@ AUDIO = [  # Stem, Farbe, Volume, Pan, Info
 ]
 
 MIDI = [  # Name, Datei-Key, Farbe, Info
-    ("14 WALL MIDI", "WALL", 5, "Eigener Synth: Wavetable/Analog, 3 Saws leicht verstimmt, LP, sanfte Saettigung, Sidechain."),
+    ("14 RIFF MIDI", "WALL", 5, "Riff-Synth: Wavetable/Analog, 3 Saws leicht verstimmt, LP mit Env, sanfte Saettigung, Sidechain, Echo-Throws."),
     ("15 STAB MIDI", "STAB", 3, "Analog: 2 Osc, LP 24, kurze Env, Echo 3/16."),
     ("16 DUB MIDI", "DUB", 9, "Kurzer Stab -> Echo 3/16 mit viel Feedback -> Reverb."),
     ("17 BASS MIDI", "BASS", 12, "Operator: reiner Sinus, kurzer Attack, leichte Saettigung."),
