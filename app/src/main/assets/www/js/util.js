@@ -278,6 +278,10 @@ window.M = window.M || {};
       if (!loc) M.toast('Speichern fehlgeschlagen');
       return loc;
     }
+    if (window.MUSII_WEB) {
+      M.toast('Export ist nur in der Android-App möglich', 3500);
+      return '';
+    }
     const blob = new Blob([arrayBuffer], { type: mime });
     const a = M.h('a', { href: URL.createObjectURL(blob), download: name });
     document.body.appendChild(a);
