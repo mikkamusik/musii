@@ -18,7 +18,7 @@ import export_midi as M
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Wahrscheinlichster Ort nach dem Entpacken der Chat-ZIP (Fallback: relativer Pfad)
-ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v5")
+ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v6")
 
 
 class Ids:
@@ -283,25 +283,22 @@ def master_track(n_scenes):
 
 
 AUDIO = [  # Stem, Farbe, Volume, Pan, Info
-    ("01 KICK", 14, 1.0, 0, "Hard-Techno-Kick wie Referenz: langer Sweep ~300->52 Hz (~150 ms), Tok + Click, Roehre. Kick-Rolls werden lauter und duenner."),
-    ("02 RUMBLE", 14, 1.0, 0, "Kick -> dunkler Hall -> Roehre -> LP 190 Hz, nur im Offbeat-Fenster."),
-    ("03 BASS", 12, 1.0, 0, "Dirty Offbeat-Bass C#2 + Quarte, Filter zu, Saettigung; Phrasenende D2."),
-    ("04 HATS", 26, 1.0, 0, "Offbeat-Hat, 16tel, Top-Layer, Hat-Roll im Aufbau 2."),
-    ("05 CLAP", 26, 1.0, 0, "Clap auf 2 & 4, Room."),
-    ("06 PERC", 22, 1.0, 0, "Rim/Tom/Conga in festen Patterns + Tom-Fill am Ende jeder 8er-Phrase."),
-    ("07 WALL", 5, 1.0, 0, "Verzerrte chromatische Stereo-Wand (wie Referenz-Mitten): 6-Beat-Zyklus gegen 4/4, Delay-Throws."),
-    ("08 STAB", 9, 1.0, 0, "Stab-Calls in MAIN 1B / PEAK / MAIN 3, lange Toene in den Breaks."),
-    ("09 ATMOS", 41, 1.0, 0, "Drone C#/G#: steigt im Aufbau +5 / +12 Halbtoene, Filter oeffnet, 16tel-Tremolo."),
-    ("10 FX", 1, 1.0, 0, "FX-System: Zap / Whoosh / Delay-Throw / Reverse-Crash im 4-Takt-Wechsel, Impacts, Washes, Booms, Kick-Dub-Delay."),
-    ("11 RISER", 1, 1.0, 0, "Industrial-Riser in Break 1 und Breakdown: verzerrtes Rauschen + steigender Saw-Stack, Gate 16tel->32tel."),
-    ("12 WIDE", 41, 1.0, 0, "Breiter 16tel-Textur-Layer fuer das Stereo-Feld."),
+    ("01 KICK", 14, 1.0, 0, "Tiefe, runde Kick (Fit an Referenz): Sweep ~400->52 Hz, lange Sub-Fahne, kaum Klick."),
+    ("02 RUMBLE", 14, 1.0, 0, "Leiser Kick-Hall-Rumble im Offbeat-Fenster."),
+    ("03 BASS", 12, 1.0, 0, "Offbeat-Bass C#2, fast reiner Sinus."),
+    ("04 HATS", 26, 1.0, 0, "Offbeat-Hat (kurz -> mittel -> offen) + leiser Tick auf der 2. 16tel."),
+    ("05 CLAP", 26, 1.0, 0, "Clap auf 2 & 4."),
+    ("06 PERC", 22, 1.0, 0, "Ein Rim, zwei Schlaege pro Takt (Main 1B, Main 2, Peak)."),
+    ("07 WALL", 5, 1.0, 0, "Das eine hypnotische Element: 3x Grundton + 1x b2 (bzw. Tritonus), Puls auf dem Offbeat, Filter oeffnet ueber 16 Takte."),
+    ("08 ATMOS", 9, 1.0, 0, "Drone nur in Break 1 und Breakdown, steigt im Aufbau."),
+    ("09 FX", 1, 1.0, 0, "Minimal: Reverse-Crash vor neuen Phrasen, Crash an den Drops, Downlifter, zwei Booms."),
+    ("10 RISER", 1, 1.0, 0, "Weicher Riser vor dem zweiten Drop."),
 ]
 
 MIDI = [  # Name, Datei-Key, Farbe, Info
-    ("13 WALL MIDI", "WALL", 5, "Wavetable: 3 Saws detuned + Sub-Square, LP 24, Roar/Saturator hart, Glide 12 ms."),
-    ("14 STAB MIDI", "STAB", 9, "Analog: 2 Osc, LP 24, kurze Env, Saturator, Echo 3/16."),
-    ("15 BASS MIDI", "BASS", 12, "Operator: Sinus + leiser Saw, Filter 260 Hz, Saturator, Attack 35 ms."),
-    ("16 DRUMS MIDI", "DRUMS", 14, "Drum Rack: C1 Kick, C#1 Rim, D#1 Clap, F#1 HH, A#1 Offbeat-Hat, D#2 Top, A1 Tom, D#3 Conga."),
+    ("11 WALL MIDI", "WALL", 5, "Eigener Synth: Wavetable/Analog, 3 Saws leicht verstimmt, LP, sanfte Saettigung, Sidechain."),
+    ("12 BASS MIDI", "BASS", 12, "Operator: reiner Sinus, kurzer Attack, leichte Saettigung."),
+    ("13 DRUMS MIDI", "DRUMS", 14, "Drum Rack: C1 Kick, C#1 Rim, D#1 Clap, F#1 Tick, A#1 Offbeat-Hat."),
 ]
 
 REF_T0 = 0.0245  # erster Downbeat der Referenz (gemessen)

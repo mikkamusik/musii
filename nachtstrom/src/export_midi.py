@@ -72,7 +72,6 @@ def drums():
 
 PARTS = {
     "WALL": lambda: part(C.wall_notes()),
-    "STAB": lambda: part(C.stab_notes()),
     "BASS": lambda: part(C.bass_notes()),
     "DRUMS": drums,
 }

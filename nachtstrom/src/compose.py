@@ -1,4 +1,4 @@
-"""NACHTSTROM v4 – Referenz-Bauplan + Spannungsboegen + FX-System.
+"""NACHTSTROM v6 – minimal: wenige Elemente, klare Rollen, Referenz-Bauplan.
 
 Aus der Referenz (siehe ../REFERENZ_ANALYSE.md):
   147 BPM, lange Pitch-Sweep-Kick, Offbeat-Bass eine Quarte darueber,
@@ -62,12 +62,8 @@ SILENT = set(range(104, 110))
 
 # Kick-Rolls (Spannungsboegen): (Takt, Unterteilung pro Beat, Beats)
 ROLLS = [
-    (46, 1, (0, 4)),          # Viertel
-    (47, 2, (0, 3)),          # 8tel
-    (110, 1, (0, 4)),         # Viertel
-    (111, 1, (0, 4)),
     (112, 2, (0, 4)),         # 8tel
-    (113, 4, (0, 2)),         # 16tel
+    (113, 2, (0, 2)),
 ]
 PICKUPS = [47 * 4 + 3]        # einzelne volle Kick vor dem Drop (wie Referenz)
 
@@ -139,20 +135,14 @@ def hat_events():
                 if in_(bar, 113, 114) and beat >= 2:
                     continue
                 ev.append((bar * 4 + beat + 0.5, hat_kind(bar), lvl))
-        # leiser Tick auf der 2. 16tel jedes Beats (Referenz Main/Peak), kein 16tel-Teppich
-        if in_(bar, 16, 40) or in_(bar, 48, 96) or in_(bar, 114, 166):
+        if in_(bar, 16, 40) or in_(bar, 48, 96) or in_(bar, 114, 162):
             v = 0.35 if bar < 48 else 0.5
             for beat in range(4):
                 ev.append((bar * 4 + beat + 0.25, "e", v * (1.0 if beat % 2 == 0 else 0.8)))
-        if in_(bar, 114, 146):
-            for st in (2, 6, 10, 14):
-                ev.append((sx(bar, st), "t", 0.5))
-        # Hat-Roll im Aufbau 2 (111-113): 8tel -> 16tel
-        if in_(bar, 111, 114):
-            div = 2 if bar == 111 else 4
+        if in_(bar, 111, 114):      # Hats kommen im Aufbau in 8teln zurueck
             nb = 4 if bar < 113 else 2
-            for k in range(nb * div):
-                ev.append((bar * 4 + k / div, "e", 0.3 + 0.5 * ((bar - 111) * 4 + k / div) / 10))
+            for k in range(nb * 2):
+                ev.append((bar * 4 + k / 2, "e", 0.3 + 0.4 * ((bar - 111) * 4 + k / 2) / 10))
     return ev
 
 
@@ -170,30 +160,21 @@ def clap_events():
 def perc_events():
     ev = []
     for bar in range(BARS):
-        if bar in (63, 78, 79, 121, 129, 145) or in_(bar, 40, 48) or in_(bar, 96, 114):
+        if bar in (63, 78, 79, 121, 129, 145):
             continue
-        if in_(bar, 4, 40) or in_(bar, 48, 96) or in_(bar, 114, 166):
-            for i, st in enumerate((3, 6, 11, 14)):
-                ev.append((sx(bar, st), "rim", [0.9, 0.7, 0.8, 0.65][i]))
-        if in_(bar, 24, 40) or in_(bar, 48, 96) or in_(bar, 114, 162):
-            for st in (7, 15):
-                ev.append((sx(bar, st), "tom", 0.85))
-        if in_(bar, 80, 96) or in_(bar, 114, 162):
-            for i, st in enumerate((2, 9, 12)):
-                ev.append((sx(bar, st), "cga", [0.8, 0.6, 0.7][i]))
-        if bar % 8 == 7 and (in_(bar, 16, 40) or in_(bar, 48, 96) or in_(bar, 114, 162)):
-            for k, st in enumerate((12, 13, 14, 15)):   # Tom-Fill zur naechsten Phrase
-                ev.append((sx(bar, st), "tom" if k % 2 == 0 else "cga", 0.7 + 0.1 * k))
+        if in_(bar, 64, 78) or in_(bar, 80, 96) or in_(bar, 114, 146):
+            for st, v in ((3, 0.8), (11, 0.65)):
+                ev.append((sx(bar, st), "rim", v))
     return ev
 
 
 # ====================================================================== WALL (chromatische Stereo-Wand)
-WALL_A = [49, 50, 49, 52, 50, 47]          # 6-Beat-Zyklus gegen 4/4 -> verschiebt sich hypnotisch
-WALL_B = [49, 50, 49, 55, 50, 47]          # Tritonus statt Terz (Main 2 / Peak B)
+WALL_A = [49, 49, 49, 50]                  # minimal: 3x Grundton, 1x b2
+WALL_B = [49, 49, 55, 49]                  # Main 2 / Peak B: Tritonus als Spannung
 
 
 def wall_active(bar):
-    return in_(bar, 24, 40) or in_(bar, 48, 96) or in_(bar, 114, 170) or in_(bar, 96, 104)
+    return in_(bar, 32, 40) or in_(bar, 48, 104) or in_(bar, 114, 162)
 
 
 def wall_notes():
@@ -204,10 +185,7 @@ def wall_notes():
         seq = WALL_B if (in_(bar, 80, 96) or in_(bar, 130, 146)) else WALL_A
         for b in range(4):
             g = bar * 4 + b
-            p = seq[g % 6]
-            if in_(bar, 114, 130) and g % 6 == 3:
-                p += 12
-            notes.append(Note(g, 1.0, p, 1.0, g % 6 == 0))
+            notes.append(Note(g, 1.0, seq[b], 1.0, b == 0))
     return notes
 
 
@@ -217,31 +195,11 @@ STAB_B = [(0, 49, 1), (2, 61, 0), (3, 49, 0), (6, 52, 1), (9, 49, 0), (11, 56, 1
 
 
 def stab_notes():
-    notes = []
-    for bar in range(BARS):
-        if bar in (63, 78, 79, 121, 129, 145):
-            continue
-        if in_(bar, 40, 46) and bar % 2 == 0:                 # Break: lange Toene
-            notes.append(Note(bar * 4, 3.0, 49 if bar % 4 == 0 else 50, 0.8, True))
-            continue
-        if in_(bar, 104, 110) and bar % 2 == 0:
-            notes.append(Note(bar * 4, 3.5, 49 if bar % 4 == 0 else 47, 0.8, True))
-            continue
-        kind = None
-        if in_(bar, 64, 78) or in_(bar, 114, 122):
-            kind = STAB_B
-        elif in_(bar, 32, 40) or in_(bar, 122, 130) or in_(bar, 146, 154):
-            kind = STAB_A
-        if kind is None:
-            continue
-        v = 0.55 if bar < 40 else 1.0
-        for st, p, acc in kind:
-            notes.append(Note(sx(bar, st), 0.3 if acc else 0.18, p, v * (1.0 if acc else 0.7), bool(acc)))
-    return notes
+    return []      # v6 minimal: kein Stab
 
 
 # ====================================================================== ATMOS (Drone mit Pitch-Riser)
-ATMOS_WINDOWS = [(40, 48, 1.0), (78, 80, 0.7), (96, 114, 1.0), (162, 178, 0.25)]
+ATMOS_WINDOWS = [(40, 48, 0.8), (96, 114, 1.0)]
 
 
 def atmos_semitones(beat):
@@ -249,7 +207,7 @@ def atmos_semitones(beat):
     bar = beat / 4.0
     st = np.zeros_like(beat)
     st = np.where((bar >= 44) & (bar < 48), 5.0 * np.clip((bar - 44) / 4, 0, 1) ** 1.6, st)
-    st = np.where((bar >= 110) & (bar < 114), 12.0 * np.clip((bar - 110) / 4, 0, 1) ** 1.8, st)
+    st = np.where((bar >= 110) & (bar < 114), 7.0 * np.clip((bar - 110) / 4, 0, 1) ** 1.8, st)
     return st
 
 
@@ -258,46 +216,23 @@ ACCENTS = ["zap", "whoosh", "throw", "revcrash"]
 
 
 def fx_events():
+    """Minimal: Reverse-Crash nur vor neuen 16er-Phrasen, Crash an den beiden Drops,
+    Downlifter am Break-Anfang, ein weicher Riser vor dem zweiten Drop, zwei tiefe Booms."""
     ev = []
-    special = set(range(40, 48)) | set(range(96, 114)) | {63, 78, 79, 121, 129, 145}
-    for bar in range(BARS):
-        if bar % 4 == 3 and bar not in special and bar < 174:
-            kind = ACCENTS[(bar // 4) % 4]
-            if bar % 16 == 15:
-                kind = "revcrash"                 # vor jeder 16er-Phrase immer gross
-            if kind == "throw" and not wall_active(bar):
-                kind = "whoosh"                   # ohne Wand kein Delay-Throw -> Whoosh
-            ev.append((kind, bar * 4 + (2.5 if kind == "zap" else 3)))
-    for b in (16, 32, 64, 80, 130, 146):
-        ev.append(("crash", b * 4))
-    for b in (48, 114):
-        ev.append(("impact", b * 4))
-    ev += [("riser", 44 * 4, 47 * 4 + 3), ("riser", 110 * 4, 113 * 4 + 3.5)]
-    ev += [("revcrash", 47 * 4 + 3), ("revcrash", 113 * 4 + 2), ("revcrash", 95 * 4 + 2)]
-    ev += [("down", 40 * 4 + 2), ("down", 96 * 4), ("down", 162 * 4)]
-    ev += [("wash", 63 * 4 + 3), ("wash", 78 * 4 + 1.5), ("wash", 121 * 4 + 2),
-           ("wash", 129 * 4 + 1.5), ("wash", 145 * 4 + 1.5), ("wash", 40 * 4 + 1.75)]
-    ev += [("boom", 104 * 4), ("boom", 105 * 4), ("boom", 107 * 4), ("boom", 109 * 4 + 3),
-           ("boom", 41 * 4), ("boom", 42 * 4 + 2)]
-    ev += [("zap", 44 * 4 + 1.5), ("zap", 45 * 4 + 3.5), ("throw", 99 * 4 + 2), ("throw", 101 * 4 + 3.5)]
+    for bar in (15, 31, 63, 79, 129, 145):
+        ev.append(("revcrash", bar * 4 + 3))
+    ev += [("revcrash", 47 * 4 + 3), ("revcrash", 113 * 4 + 2)]
+    ev += [("crash", 48 * 4), ("crash", 114 * 4)]
+    ev += [("down", 40 * 4 + 2), ("down", 96 * 4)]
+    ev += [("riser", 110 * 4, 113 * 4 + 3.5)]
+    ev += [("boom", 104 * 4), ("boom", 107 * 4)]
     return ev
 
 
 # ====================================================================== EDITS (auf alle Musik-Stems)
-EDITS = [
-    ("tapestop", 40 * 4 + 1.75, 1.25),
-    ("tapestop", 78 * 4 + 1.5, 1.5),
-    ("tapestop", 129 * 4 + 1.6, 1.4),
-    ("stutter", 23 * 4 + 3.0, 0.5, 0.125), ("stutter", 23 * 4 + 3.5, 0.5, 0.0625),
-    ("stutter", 59 * 4 + 3.0, 0.5, 0.125), ("stutter", 59 * 4 + 3.5, 0.5, 0.0625),
-    ("stutter", 91 * 4 + 2.0, 1.0, 0.25), ("stutter", 91 * 4 + 3.0, 0.5, 0.125),
-    ("stutter", 91 * 4 + 3.5, 0.5, 0.0625),
-    ("stutter", 137 * 4 + 3.0, 1.0, 0.0625),
-    ("hpsweep", 31 * 4, 32 * 4, 20.0, 900.0),
-    ("hpsweep", 95 * 4, 96 * 4, 20.0, 1200.0),
+EDITS = [   # nur die Filter-Loecher wie in der Referenz
     ("lpcut", 113 * 4 + 2, 114 * 4, 2500.0),
-    ("lpcut", 129 * 4 + 1.6, 130 * 4, 2000.0),
-    ("lpcut", 145 * 4 + 2, 146 * 4, 2000.0),
+    ("lpcut", 129 * 4 + 2, 130 * 4, 2000.0),
 ]
 
 
@@ -350,4 +285,4 @@ def hats_tone(beat):
 
 
 def throw_beats():
-    return [e[1] for e in fx_events() if e[0] == "throw"]
+    return []
