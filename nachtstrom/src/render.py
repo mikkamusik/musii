@@ -378,6 +378,54 @@ def render_dub():
     return dry + np.array([hp(dl, 300), hp(dr, 300)]) * 0.9 + rv * 0.3
 
 
+# ====================================================================== VOCAL-SHOTS
+def load_shot(name):
+    path = f"{ROOT}/Samples/Vocals/{name}.flac"
+    if not os.path.exists(path):
+        return None
+    x, sr_ = sf.read(path)
+    return x if x.ndim == 1 else x.mean(1)
+
+
+def pitch_down(x, semis):
+    """Tonhoehe runter per Resampling (wird dabei etwas laenger – gewollt, dunkler)."""
+    up, down = {2: (449, 400), 3: (238, 200)}[semis]
+    return resample_poly(x, up, down)
+
+
+def render_vocal():
+    out = np.zeros((2, N))
+    shots = {k: load_shot(k) for k in ("VOX_1_NACHTSTROM", "VOX_2_TIEFER", "VOX_3_LASS_DICH_FALLEN", "VOX_4_WEITER")}
+    if shots["VOX_1_NACHTSTROM"] is None:
+        return out
+    dly = np.zeros((2, N))
+    verb = np.zeros(N)
+    for name, b, g, style in C.VOCAL_EVENTS:
+        if style == "chop":
+            x = shots["VOX_1_NACHTSTROM"][: int(0.30 * SR)].copy()
+            x[-300:] *= np.linspace(1, 0, 300)
+            x = hp(x, 250)
+            send_d, send_r = 0.9, 0.25
+        elif style == "deep":
+            x = pitch_down(shots[name], 2)
+            x = tube_os(hp(x, 90), 1.4, 0.05)
+            send_d, send_r = 0.55, 0.35
+        else:
+            x = hp(shots[name], 180)
+            send_d, send_r = 0.7, 0.6
+        x = lp(x, 9000)
+        x = x / (np.max(np.abs(x)) + 1e-9) * g
+        dry = pan(x, 0.0)
+        add(out, dry, b, 1.0)
+        add(dly, dry * send_d, b, 1.0)
+        tmp = np.zeros(N)
+        add(tmp, x * send_r, b, 1.0)
+        verb += tmp
+    dl, dr = tape(dly[0], dly[1], 0.75, 2.0, 0.35, 0.5, 0.5, 1.3, 1.0)
+    rv = reverb(verb, size=0.9, damp=0.45, predelay_ms=30)
+    return out + np.array([hp(dl, 250), hp(dr, 250)]) * 0.7 + rv * 0.8
+
+
 # ====================================================================== ATMOS (Drone mit Pitch-Riser)
 def render_atmos():
     g = window(C.ATMOS_WINDOWS, SR)
@@ -726,7 +774,8 @@ def main(ref_path):
     fx, ris = render_fx(kick, stems["07 WALL"])
     stems["10 FX"] = fx
     stems["11 RISER"] = ris
-    print("synths/fx", round(time.time() - t0), flush=True)
+    stems["12 VOCAL"] = render_vocal()
+    print("synths/fx/vocal", round(time.time() - t0), flush=True)
 
     scs = {d: sidechain(d) for d in set(SC.values())}
     for k, d in SC.items():
@@ -736,6 +785,9 @@ def main(ref_path):
         stems[k] = stems[k] * db(tgt - rms_db(stems[k], a, b))
         if k in CREST:
             stems[k] = soft_clip(stems[k], db(tgt + CREST[k]))
+    vp = np.max(np.abs(stems["12 VOCAL"]))
+    if vp > 0:
+        stems["12 VOCAL"] = stems["12 VOCAL"] * (np.max(np.abs(stems["01 KICK"])) * db(-5.0) / vp)
     for k in EDITED:
         stems[k] = apply_edits(stems[k])
     # Spannungsbogen: Break leise & dunkel -> Crescendo im Aufbau -> Drop
@@ -747,7 +799,7 @@ def main(ref_path):
         bgdb = np.where((BAR_AT >= a) & (BAR_AT < b), -6.5 + 5.5 * u ** 1.5, bgdb)
     bg = smooth(10 ** (bgdb / 20), SR // 4)
     for k in stems:
-        if k not in ("11 RISER", "10 FX"):
+        if k not in ("11 RISER", "10 FX", "12 VOCAL"):
             stems[k] = stems[k] * bg
     print("edits", round(time.time() - t0), flush=True)
 

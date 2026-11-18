@@ -18,7 +18,7 @@ import export_midi as M
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Wahrscheinlichster Ort nach dem Entpacken der Chat-ZIP (Fallback: relativer Pfad)
-ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v7")
+ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v8")
 
 
 class Ids:
@@ -294,13 +294,14 @@ AUDIO = [  # Stem, Farbe, Volume, Pan, Info
     ("09 ATMOS", 41, 1.0, 0, "Drone in Break 1 und Breakdown, steigt im Aufbau."),
     ("10 FX", 1, 1.0, 0, "Highlights: Reverse-Crashes, Crashes, Sub-Drops, Pings, Downlifter, Wand-Resonanz-Sweeps in den Stopps."),
     ("11 RISER", 1, 1.0, 0, "Weicher Riser vor dem grossen Drop."),
+    ("12 VOCAL", 60, 1.0, 0, "Vocal-Shots (ElevenLabs, Stimme Vincent Crowe): Nachtstrom / Tiefer / Lass dich fallen / Weiter, mit Dub-Echo und Hall. Rohe Shots in Samples/Vocals."),
 ]
 
 MIDI = [  # Name, Datei-Key, Farbe, Info
-    ("12 WALL MIDI", "WALL", 5, "Eigener Synth: Wavetable/Analog, 3 Saws leicht verstimmt, LP, sanfte Saettigung, Sidechain."),
-    ("13 DUB MIDI", "DUB", 9, "Kurzer Stab (Saw/Pulse, LP) -> Echo 3/16 mit viel Feedback -> Reverb."),
-    ("14 BASS MIDI", "BASS", 12, "Operator: reiner Sinus, kurzer Attack, leichte Saettigung."),
-    ("15 DRUMS MIDI", "DRUMS", 14, "Drum Rack: C1 Kick, C#1 Rim, D#1 Clap, F#1 Tick, A#1 Offbeat-Hat, D#2 Ride."),
+    ("13 WALL MIDI", "WALL", 5, "Eigener Synth: Wavetable/Analog, 3 Saws leicht verstimmt, LP, sanfte Saettigung, Sidechain."),
+    ("14 DUB MIDI", "DUB", 9, "Kurzer Stab (Saw/Pulse, LP) -> Echo 3/16 mit viel Feedback -> Reverb."),
+    ("15 BASS MIDI", "BASS", 12, "Operator: reiner Sinus, kurzer Attack, leichte Saettigung."),
+    ("16 DRUMS MIDI", "DRUMS", 14, "Drum Rack: C1 Kick, C#1 Rim, D#1 Clap, F#1 Tick, A#1 Offbeat-Hat, D#2 Ride."),
 ]
 
 REF_T0 = 0.0245  # erster Downbeat der Referenz (gemessen)

@@ -269,6 +269,20 @@ def fx_events():
     return ev
 
 
+# Vocal-Shots (ElevenLabs, eigene Woerter) – (Shot, Beat, Pegel, Stil)
+VOCAL_EVENTS = [
+    ("VOX_1_NACHTSTROM", 28 * 4 + 1.0, 0.8, "whisper"),       # Vorbote vor dem Drive
+    ("VOX_2_TIEFER", 44 * 4 + 2.0, 0.9, "deep"),             # Break 1, zwischen den Kick-Teasern
+    ("VOX_4_WEITER", 79 * 4 + 0.9, 1.0, "deep"),             # im 2-Takt-Stopp, bevor die Kick zurueckkommt
+    ("VOX_3_LASS_DICH_FALLEN", 105 * 4 + 0.0, 0.9, "whisper"),  # Breakdown, grosser Raum
+    ("VOX_2_TIEFER", 113 * 4 + 2.2, 1.0, "deep"),            # ueber Hoehen-Loch + Beat-Cut direkt in den Drop
+    ("VOX_4_WEITER", 129 * 4 + 1.9, 0.9, "deep"),            # im Stopp bei Takt 130
+    ("CHOP", 137 * 4 + 2.5, 0.7, "chop"),                    # "Nacht"-Chop als Call im Peak B
+    ("CHOP", 141 * 4 + 2.5, 0.7, "chop"),
+    ("VOX_1_NACHTSTROM", 166 * 4 + 0.0, 0.75, "whisper"),     # Abschied im Outro
+]
+
+
 # Wand-Solo mit Resonanz-Sweep in den Stopps (Referenz: Wand liegt frei)
 WALL_SWEEPS = [(78 * 4 + 2, 80 * 4), (129 * 4 + 2, 130 * 4)]
 

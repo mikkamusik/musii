@@ -1,13 +1,13 @@
-# NACHTSTROM v7 – 147 BPM · Cis-Phrygisch · schlanker Kern + Abwechslung + Highlights
+# NACHTSTROM v8 – 147 BPM · Cis-Phrygisch · schlanker Kern + Abwechslung + Highlights + Vocal-Shots
 
 Gebaut nach dem vermessenen Bauplan deiner Referenz, die Details stehen in `REFERENZ_ANALYSE.md`.
 Der Groove bleibt schlank wie in v6, also kein Durcheinander. Neu sind Abwechslung alle 8 Takte und gezielt gesetzte Highlights.
 Sounds, Noten und Patterns sind eigen und selbst synthetisiert.
 
 ## In Ableton öffnen
-1. `NACHTSTROM_v7.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v7/`.
-2. `NACHTSTROM_v7/NACHTSTROM.als` öffnen.
-3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v7` → **Los** → **Sichern**, dann **Cmd+S**.
+1. `NACHTSTROM_v8.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v8/`.
+2. `NACHTSTROM_v8/NACHTSTROM.als` öffnen.
+3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v8` → **Los** → **Sichern**, dann **Cmd+S**.
 4. A/B-Vergleich: **00 REFERENZ** und **00 MASTER BOUNCE** abwechselnd solo hören.
 
 ## Highlights (Takt-Nummern wie in Ableton)
@@ -32,6 +32,21 @@ Sounds, Noten und Patterns sind eigen und selbst synthetisiert.
 | 131–146 | **Dub-Stabs** alle 2 Takte, Bass mit Oktav-Sprüngen |
 | 146 | Reverse-Crash und Crash |
 | 162 | Echo-Throw und letzter Dub-Stab ins Outro |
+
+## Vocal-Shots (neu in v8)
+Die Shots sind mit ElevenLabs erzeugt: Stimme „Vincent Crowe – Dark & Haunting Tales“, eigene Wörter, keine Samples aus der Referenz.
+Die rohen Shots liegen in `Samples/Vocals/`, die bearbeitete Fassung auf der Spur **12 VOCAL**. „Tiefer“ und „Weiter“ sind zwei Halbtöne tiefer gepitcht.
+
+| Takt | Shot |
+|---|---|
+| 29 | geflüstertes **„Nachtstrom“** mit Dub-Echo, Vorbote für den Drive |
+| 45 | **„Tiefer“** in Break 1 zwischen den Kick-Teasern |
+| 80 | **„Weiter“** im 2-Takt-Stopp, kurz bevor die Kick zurückkommt |
+| 106 | geflüstertes **„Lass dich fallen“** im großen Raum des Breakdowns |
+| 114 → 115 | **„Tiefer“** über Höhen-Loch und Beat-Cut, direkt in den großen Drop |
+| 130 | **„Weiter“** im Stopp |
+| 138, 142 | „Nacht“-Chop als Call im Peak B |
+| 167 | „Nachtstrom“ als Abschied im Outro |
 
 ## Abwechslung im Kern (alle 8 Takte genau eine Änderung)
 - **Wand** in vier Varianten: A (Grundton/b2), B (Tritonus), C (Oktav-Sprung), D (lange Töne).
