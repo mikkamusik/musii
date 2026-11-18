@@ -1,4 +1,4 @@
-"""NACHTSTROM v6 – minimal: wenige Elemente, klare Rollen, Referenz-Bauplan.
+"""NACHTSTROM v7 – schlanker Kern + Abwechslung alle 8 Takte + gezielte Highlights.
 
 Aus der Referenz (siehe ../REFERENZ_ANALYSE.md):
   147 BPM, lange Pitch-Sweep-Kick, Offbeat-Bass eine Quarte darueber,
@@ -107,8 +107,11 @@ def bass_notes():
     for bar in range(BARS):
         if in_(bar, 40, 48) or in_(bar, 96, 114) or bar >= 174:
             continue
+        jump = in_(bar, 80, 96) or in_(bar, 130, 146)       # Variation: Oktav-Sprung
         for b in kick_beats(bar):
             p = ROOT + 1 if (bar % 8 == 7 and b == 3) else ROOT
+            if jump and bar % 2 == 1 and b == 2:
+                p = ROOT + 12
             notes.append(Note(bar * 4 + b + 0.5, 0.45, p, 1.0))
     return notes
 
@@ -139,7 +142,13 @@ def hat_events():
             v = 0.35 if bar < 48 else 0.5
             for beat in range(4):
                 ev.append((bar * 4 + beat + 0.25, "e", v * (1.0 if beat % 2 == 0 else 0.8)))
-        if in_(bar, 111, 114):      # Hats kommen im Aufbau in 8teln zurueck
+        if in_(bar, 72, 78) or in_(bar, 122, 129):        # Variation: 16tel oeffnen sich fuer ein paar Takte
+            for beat in range(4):
+                ev.append((bar * 4 + beat + 0.75, "e", 0.32))
+        if in_(bar, 114, 146):                            # Ride im Peak
+            for beat in range(4):
+                ev.append((bar * 4 + beat + 0.5, "t", 0.45))
+        if in_(bar, 111, 114):
             nb = 4 if bar < 113 else 2
             for k in range(nb * 2):
                 ev.append((bar * 4 + k / 2, "e", 0.3 + 0.4 * ((bar - 111) * 4 + k / 2) / 10))
@@ -162,19 +171,33 @@ def perc_events():
     for bar in range(BARS):
         if bar in (63, 78, 79, 121, 129, 145):
             continue
-        if in_(bar, 64, 78) or in_(bar, 80, 96) or in_(bar, 114, 146):
-            for st, v in ((3, 0.8), (11, 0.65)):
-                ev.append((sx(bar, st), "rim", v))
+        if in_(bar, 64, 96):
+            pat = ((3, 0.8), (11, 0.65))
+        elif in_(bar, 114, 146):
+            pat = ((3, 0.8), (6, 0.55), (11, 0.65), (14, 0.5))
+        else:
+            continue
+        for st, v in pat:
+            ev.append((sx(bar, st), "rim", v))
     return ev
 
 
 # ====================================================================== WALL (chromatische Stereo-Wand)
 WALL_A = [49, 49, 49, 50]                  # minimal: 3x Grundton, 1x b2
 WALL_B = [49, 49, 55, 49]                  # Main 2 / Peak B: Tritonus als Spannung
+WALL_C = [49, 49, 49, 61]                  # Main 1B / Peak: Oktav-Sprung auf Beat 4
 
 
 def wall_active(bar):
-    return in_(bar, 32, 40) or in_(bar, 48, 104) or in_(bar, 114, 162)
+    return in_(bar, 32, 40) or in_(bar, 48, 162)
+
+
+def wall_variant(bar):
+    if in_(bar, 64, 78) or in_(bar, 114, 130):
+        return WALL_C
+    if in_(bar, 80, 96) or in_(bar, 130, 146):
+        return WALL_B
+    return WALL_A
 
 
 def wall_notes():
@@ -182,11 +205,27 @@ def wall_notes():
     for bar in range(BARS):
         if not wall_active(bar):
             continue
-        seq = WALL_B if (in_(bar, 80, 96) or in_(bar, 130, 146)) else WALL_A
+        if in_(bar, 104, 110):                 # Breakdown-Highlight: lange Toene im grossen Raum
+            if bar % 2 == 0:
+                notes.append(Note(bar * 4, 4.0, 49, 0.9, True))
+                notes.append(Note(bar * 4 + 4, 4.0, 50 if bar % 4 == 0 else 47, 0.9, True))
+            continue
+        seq = wall_variant(bar)
         for b in range(4):
             g = bar * 4 + b
             notes.append(Note(g, 1.0, seq[b], 1.0, b == 0))
     return notes
+
+
+# Dub-Stabs (Quint + Oktave, kein Akkordwechsel) mit langem Echo – Highlights
+def dub_events():
+    ev = [24 * 4 + 0.5, 106 * 4, 108 * 4 + 2, 162 * 4 + 0.5]
+    ev += [bar * 4 + 0.5 for bar in range(130, 146, 2)]
+    return ev
+
+
+def dub_notes():
+    return [Note(b, 0.35, p, 0.9, True) for b in dub_events() for p in (49, 56, 61)]
 
 
 # ====================================================================== STAB (Calls)
@@ -216,22 +255,33 @@ ACCENTS = ["zap", "whoosh", "throw", "revcrash"]
 
 
 def fx_events():
-    """Minimal: Reverse-Crash nur vor neuen 16er-Phrasen, Crash an den beiden Drops,
-    Downlifter am Break-Anfang, ein weicher Riser vor dem zweiten Drop, zwei tiefe Booms."""
+    """Kuratierte Highlights statt FX-Dauerfeuer."""
     ev = []
-    for bar in (15, 31, 63, 79, 129, 145):
+    for bar in (15, 31, 47, 63, 129, 145):
         ev.append(("revcrash", bar * 4 + 3))
-    ev += [("revcrash", 47 * 4 + 3), ("revcrash", 113 * 4 + 2)]
-    ev += [("crash", 48 * 4), ("crash", 114 * 4)]
+    ev += [("revcrash", 113 * 4 + 2)]
+    ev += [("crash", 16 * 4), ("crash", 48 * 4), ("crash", 80 * 4), ("crash", 114 * 4), ("crash", 146 * 4)]
+    ev += [("subdrop", 48 * 4), ("subdrop", 114 * 4)]
+    ev += [("ping", 64 * 4), ("ping", 130 * 4)]
     ev += [("down", 40 * 4 + 2), ("down", 96 * 4)]
     ev += [("riser", 110 * 4, 113 * 4 + 3.5)]
     ev += [("boom", 104 * 4), ("boom", 107 * 4)]
     return ev
 
 
+# Wand-Solo mit Resonanz-Sweep in den Stopps (Referenz: Wand liegt frei)
+WALL_SWEEPS = [(78 * 4 + 2, 80 * 4), (129 * 4 + 2, 130 * 4)]
+
+
 # ====================================================================== EDITS (auf alle Musik-Stems)
-EDITS = [   # nur die Filter-Loecher wie in der Referenz
-    ("lpcut", 113 * 4 + 2, 114 * 4, 2500.0),
+EDITS = [
+    ("lpdive", 15 * 4 + 1, 16 * 4, 18000.0, 350.0),      # Filter-Dive in den Groove (Clap kommt)
+    ("tapestop", 40 * 4 + 1.75, 1.25),                    # in Break 1
+    ("stutter", 55 * 4 + 3.0, 0.5, 0.125), ("stutter", 55 * 4 + 3.5, 0.5, 0.0625),
+    ("stutter", 125 * 4 + 3.0, 0.5, 0.125), ("stutter", 125 * 4 + 3.5, 0.5, 0.0625),
+    ("hpsweep", 95 * 4, 96 * 4, 20.0, 1200.0),            # Hochpass-Fahrt in den Breakdown
+    ("lpcut", 113 * 4 + 2, 113 * 4 + 3.5, 2500.0),
+    ("cut", 113 * 4 + 3.5, 114 * 4),                      # Beat-Cut vor dem grossen Drop
     ("lpcut", 129 * 4 + 2, 130 * 4, 2000.0),
 ]
 
@@ -254,6 +304,8 @@ def wall_cutoff(beat):
     c = np.where(bar < 40, exp_ramp(bar, 24, 40, 250, 1400), c)
     c = np.where((bar >= 48) & (bar < 96), 1100 * 2.0 ** (1.2 * phr), c)
     c = np.where((bar >= 96) & (bar < 104), exp_ramp(bar, 96, 104, 1500, 300), c)
+    c = np.where((bar >= 104) & (bar < 110), 650.0, c)
+    c = np.where((bar >= 110) & (bar < 114), exp_ramp(bar, 110, 114, 650, 3200), c)
     c = np.where((bar >= 114) & (bar < 162), 1500 * 2.0 ** (1.3 * phr), c)
     c = np.where(bar >= 162, exp_ramp(bar, 162, 170, 1500, 250), c)
     return c
@@ -285,4 +337,4 @@ def hats_tone(beat):
 
 
 def throw_beats():
-    return []
+    return [63 * 4 + 3, 95 * 4 + 2, 121 * 4 + 2, 161 * 4 + 2]   # Dub-Echo-Throws der Wand

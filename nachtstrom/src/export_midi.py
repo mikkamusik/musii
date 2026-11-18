@@ -72,6 +72,7 @@ def drums():
 
 PARTS = {
     "WALL": lambda: part(C.wall_notes()),
+    "DUB": lambda: part(C.dub_notes()),
     "BASS": lambda: part(C.bass_notes()),
     "DRUMS": drums,
 }

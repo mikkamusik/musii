@@ -1,4 +1,4 @@
-"""NACHTSTROM v6 – Renderer: minimal, wenige Elemente, wenig Hall.
+"""NACHTSTROM v7 – Renderer: schlanker Kern + Abwechslung + Highlights.
 
 Alle Sounds selbst synthetisiert. Klangbalance per Match-EQ (Regelkreis) an
 die vermessene Referenz angeglichen – vom Referenz-Audio landet nichts im Track.
@@ -296,6 +296,7 @@ def render_wall():
     freq = 2.0 ** lf
     ph = (BEAT_AT - 0.45) % 1.0          # Puls auf dem Offbeat (wie Referenz-Mitten), Platz nach der Kick
     pluck = 0.35 + 0.65 * np.exp(-ph / 0.25)
+    pluck = np.where((BAR_AT >= 104) & (BAR_AT < 110), 0.8, pluck)     # lange Toene ohne Puls
     cut = C.wall_cutoff(BEAT_AT) * (1 + 0.9 * pluck + 0.4 * acc)
     g = smooth(gate, 400)
     # Dichte wie Referenz: Main 1 luftig, Peak dicht
@@ -317,7 +318,8 @@ def render_wall():
     snd = throw_send()
     dl, dr = tape(st[0] * snd, st[1] * snd, 0.75, 2.0, 0.5, 0.68, 0.45, 1.6, 1.0)
     rv = reverb(st[0] + st[1], size=0.8, damp=0.5, predelay_ms=15)
-    return st + np.array([dl, dr]) * 0.8 + rv * 0.06
+    rv_amt = window([(104, 110, 0.45)], SR // 2) + 0.06
+    return st + np.array([dl, dr]) * 0.8 + rv * rv_amt
 
 
 # ====================================================================== STAB
@@ -354,6 +356,26 @@ def render_stab():
     rv = reverb(dry[0] + dry[1], size=0.88, damp=0.45, predelay_ms=20)
     big = window([(40, 48, 0.75), (96, 114, 0.75)], SR // 2) + 0.2
     return dry + np.array([hp(dl, 300), hp(dr, 300)]) * 0.35 + rv * big
+
+
+# ====================================================================== DUB-STAB (Highlight)
+def render_dub():
+    dry = np.zeros((2, N))
+    for nt in C.dub_notes():
+        n = int(0.45 * SR)
+        t = np.arange(n) / SR
+        f0 = mtof(nt.pitch)
+        chans = []
+        for det in (-0.06, 0.06):
+            x = saw(np.full(n, f0 * 2 ** (det / 12)), 0.2) + 0.6 * pulse(np.full(n, f0), 0.4, 0.1)
+            y = svf(x, 1800 * (1 + 2.0 * np.exp(-t / 0.04)), 0.3, 0)
+            chans.append(y * np.exp(-t / 0.09) * np.minimum(t / 0.003, 1))
+        add(dry, np.array(chans), nt.start, nt.vel / 3)
+    dry = np.array([hp(c, 200) for c in dry])
+    dry = tube_os(dry * 1.2, 1.4, 0.05)
+    dl, dr = tape(dry[0], dry[1], 0.75, 2.5, 0.35, 0.66, 0.55, 1.4, 1.0)   # langes Dub-Echo
+    rv = reverb(dry[0] + dry[1], size=0.9, damp=0.45, predelay_ms=25)
+    return dry + np.array([hp(dl, 300), hp(dr, 300)]) * 0.9 + rv * 0.3
 
 
 # ====================================================================== ATMOS (Drone mit Pitch-Riser)
@@ -461,7 +483,7 @@ def fx_whoosh():
     return np.array([svf(noise(n), fc, 0.5, 1), svf(noise(n), fc * 0.9, 0.5, 1)]) * np.sin(np.pi * t) * 0.6
 
 
-def render_fx(kick):
+def render_fx(kick, wall):
     out = np.zeros((2, N))
     zaps = np.zeros((2, N))
     risers = np.zeros((2, N))
@@ -488,11 +510,32 @@ def render_fx(kick):
             add(out, fx_whoosh(), b, 0.8)
         elif kind == "boom":
             add(booms, dry, b, 1.0)
+        elif kind == "subdrop":
+            n = int(1.6 * SR)
+            t = np.arange(n) / SR
+            f = 32 + 60 * np.exp(-t / 0.12)
+            sd_ = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / 0.5) * np.minimum(t / 0.004, 1)
+            add(out, stereo(sd_), b, 0.9)
+        elif kind == "ping":
+            n = int(0.8 * SR)
+            t = np.arange(n) / SR
+            fp = mtof(85)
+            x = np.sin(2 * np.pi * fp * t + 1.8 * np.sin(2 * np.pi * fp * 2.76 * t) * np.exp(-t / 0.15))
+            pg = x * np.exp(-t / 0.35) * np.minimum(t / 0.002, 1)
+            pl, pr = tape(pg, pg * 0.8, 0.75, 1.5, 0.3, 0.55, 0.5, 1.2, 1.0)
+            add(out, np.array([pg + 0.7 * pl, pg + 0.7 * pr]) * 0.6, b, 1.0)
     bw = reverb(booms, size=0.95, damp=0.6)
     bm = lp(tube(booms + 0.5 * (bw[0] + bw[1]), 2.0, 0.1), 250)
     out += stereo(hp(bm, 70)) * 0.5
     zl, zr = tape(zaps[0], zaps[1], 0.75, 3.0, 0.5, 0.55, 0.4, 1.5, 1.0)
     out += (zaps + np.array([zl, zr]) * 0.6) * 0.5
+    # Wand-Solo mit Resonanz-Sweep in den Stopps
+    for b0, b1 in C.WALL_SWEEPS:
+        s0, s1 = smp(b0), smp(b1)
+        u = np.linspace(0, 1, s1 - s0)
+        fc = 300 * (6000 / 300) ** u
+        seg = np.array([svf(wall[c, s0:s1], fc, 0.85, 1) for c in range(2)]) * (0.4 + 0.6 * u)
+        out[:, s0:s1] += seg * 1.5
     rv = reverb(out[0] + out[1], size=0.85, damp=0.5)
     return out + rv * 0.15, risers
 
@@ -557,6 +600,20 @@ def apply_edits(x):
         elif kind == "lpcut":
             b0, b1, f = e[1:]
             lpc[smp(b0):smp(b1)] = f
+        elif kind == "lpdive":
+            b0, b1, f0, f1 = e[1:]
+            s0, s1 = smp(b0), smp(b1)
+            u = np.linspace(0, 1, s1 - s0)
+            lpc[s0:s1] = f0 * (f1 / f0) ** (u ** 0.7)
+        elif kind == "cut":
+            b0, b1 = e[1:]
+            s0, s1 = smp(b0), smp(b1)
+            f = min(150, (s1 - s0) // 4)
+            y[..., s0:s1] = 0.0
+            if y.ndim == 1:
+                y[s0 - f:s0] *= np.linspace(1, 0, f)
+            else:
+                y[:, s0 - f:s0] *= np.linspace(1, 0, f)
     hpc = smooth(hpc, 300)
     lpc = smooth(lpc, 600)
     if y.ndim == 1:
@@ -600,13 +657,14 @@ def apply_fir(x, taps):
 # ====================================================================== MIX & MASTER
 TARGET = {
     "01 KICK": -9.0, "02 RUMBLE": -23.0, "03 BASS": -12.0, "04 HATS": -21.0,
-    "05 CLAP": -21.0, "06 PERC": -26.0, "07 WALL": -21.5,
-    "08 ATMOS": -27.0, "09 FX": -33.0, "10 RISER": -24.0,
+    "05 CLAP": -21.0, "06 PERC": -25.0, "07 WALL": -21.5, "08 DUB STAB": -24.0,
+    "09 ATMOS": -27.0, "10 FX": -31.0, "11 RISER": -24.0,
 }
-REGION = {"08 ATMOS": (96, 114), "09 FX": (0, 178), "10 RISER": (112, 114)}
-CREST = {"04 HATS": 12.0, "05 CLAP": 14.0, "06 PERC": 13.0, "07 WALL": 11.0, "09 FX": 16.0, "10 RISER": 10.0}
-SC = {"07 WALL": 0.6, "08 ATMOS": 0.5, "04 HATS": 0.1, "06 PERC": 0.15}
-EDITED = ["01 KICK", "02 RUMBLE", "03 BASS", "04 HATS", "05 CLAP", "06 PERC", "07 WALL"]
+REGION = {"08 DUB STAB": (130, 146), "09 ATMOS": (96, 114), "10 FX": (0, 178), "11 RISER": (112, 114)}
+CREST = {"04 HATS": 12.0, "05 CLAP": 14.0, "06 PERC": 13.0, "07 WALL": 11.0, "08 DUB STAB": 14.0,
+         "10 FX": 16.0, "11 RISER": 10.0}
+SC = {"07 WALL": 0.6, "08 DUB STAB": 0.4, "09 ATMOS": 0.5, "04 HATS": 0.1, "06 PERC": 0.15}
+EDITED = ["01 KICK", "02 RUMBLE", "03 BASS", "04 HATS", "05 CLAP", "06 PERC", "07 WALL", "08 DUB STAB"]
 
 
 def rms_db(x, b0, b1):
@@ -663,10 +721,11 @@ def main(ref_path):
     stems["06 PERC"] = render_perc()
     print("drums/low", round(time.time() - t0), flush=True)
     stems["07 WALL"] = render_wall()
-    stems["08 ATMOS"] = render_atmos()
-    fx, ris = render_fx(kick)
-    stems["09 FX"] = fx
-    stems["10 RISER"] = ris
+    stems["08 DUB STAB"] = render_dub()
+    stems["09 ATMOS"] = render_atmos()
+    fx, ris = render_fx(kick, stems["07 WALL"])
+    stems["10 FX"] = fx
+    stems["11 RISER"] = ris
     print("synths/fx", round(time.time() - t0), flush=True)
 
     scs = {d: sidechain(d) for d in set(SC.values())}
@@ -688,7 +747,7 @@ def main(ref_path):
         bgdb = np.where((BAR_AT >= a) & (BAR_AT < b), -6.5 + 5.5 * u ** 1.5, bgdb)
     bg = smooth(10 ** (bgdb / 20), SR // 4)
     for k in stems:
-        if k not in ("10 RISER", "09 FX"):
+        if k not in ("11 RISER", "10 FX"):
             stems[k] = stems[k] * bg
     print("edits", round(time.time() - t0), flush=True)
 
