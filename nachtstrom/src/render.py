@@ -1,8 +1,7 @@
-"""NACHTSTROM v3 – Renderer nach Referenz-Bauplan.
+"""NACHTSTROM v4 – Renderer: Referenz-Sound + FX-System + Spannungsboegen.
 
-Alle Sounds selbst synthetisiert. Der Mix wird per Match-EQ an die
-gemessene Klangbalance der Referenz angeglichen (nur Spektrum, kein Audio
-der Referenz landet im Track).
+Alle Sounds selbst synthetisiert. Klangbalance per Match-EQ (Regelkreis) an
+die vermessene Referenz angeglichen – vom Referenz-Audio landet nichts im Track.
 
 python3 render.py [pfad/zur/referenz.mp3]
 """
@@ -17,7 +16,7 @@ from scipy.signal import resample_poly, firwin2, oaconvolve
 
 import compose as C
 from dsp import (SR, saw, pulse, svf, lp, hp, bp, reverb, compressor, db,
-                 tape_delay, phaser, smooth, limiter_fast)
+                 tape_delay, phaser, smooth, limiter_fast, onepole_lp)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RNG = np.random.default_rng(147)
@@ -25,7 +24,7 @@ TAIL = 4.0
 N = int((C.BEATS * C.SPB + TAIL) * SR)
 BEAT_AT = np.arange(N) / SR / C.SPB
 BAR_AT = BEAT_AT / 4.0
-REF_T0 = 0.0245  # erster Downbeat in der Referenz (gemessen)
+REF_T0 = 0.0245
 
 
 def smp(beat):
@@ -76,49 +75,67 @@ def tape(l, r, beats, wow_ms, rate, fb, damp=0.45, drive=1.5, cross=1.0):
     return tape_delay(l, r, base, depth, rate, fb, damp, drive, cross)
 
 
+def window(pairs, smooth_n=0):
+    g = np.zeros(N)
+    for a, b, lvl in pairs:
+        g = np.where((BAR_AT >= a) & (BAR_AT < b), lvl, g)
+    return smooth(g, smooth_n) if smooth_n else g
+
+
 def gate_window(phase, a0, a1, r0, r1):
-    """weiches Fenster innerhalb eines Beats: auf zwischen a0..a1, zu zwischen r0..r1."""
     up = np.clip((phase - a0) / (a1 - a0), 0, 1)
     down = 1 - np.clip((phase - r0) / (r1 - r0), 0, 1)
     return (up * up * (3 - 2 * up)) * down
 
 
-# ====================================================================== KICK (Hard Techno)
+# ====================================================================== KICK
 def kick_one():
+    """Hard-Techno-Kick wie Referenz: langer Sweep ~300 -> 55 Hz ueber ~150 ms."""
     n = int(0.40 * SR)
     t = np.arange(n) / SR
-    f = C.KICK_HZ + 180 * np.exp(-t / 0.045) + 700 * np.exp(-t / 0.0025)
+    f = C.KICK_HZ + 230 * np.exp(-t / 0.030) + 25 * np.exp(-t / 0.10) + 900 * np.exp(-t / 0.002)
     body = np.sin(2 * np.pi * np.cumsum(f) / SR)
-    amp = np.where(t < 0.11, 1.0, np.exp(-(t - 0.11) / 0.07))
+    amp = np.where(t < 0.13, 1.0, np.exp(-(t - 0.13) / 0.08))
     amp[:20] *= np.linspace(0, 1, 20)
     amp[-600:] *= np.linspace(1, 0, 600)
-    click = hp(noise(n), 3000) * np.exp(-t / 0.0022) * 0.45
+    tok = bp(noise(n), 1600, 0.4) * np.exp(-t / 0.006) * 0.35
+    click = hp(noise(n), 4000) * np.exp(-t / 0.0018) * 0.4
     dry = body * amp
-    k = tube(dry * 1.15 + click, 3.2, 0.1)
-    k = np.tanh(1.6 * k)
+    k = tube(dry * 1.2 + tok + click, 3.4, 0.1)
+    k = np.tanh(1.7 * k)
     return k / np.max(np.abs(k)), dry
 
 
 def render_kick():
     k, dry = kick_one()
-    out = np.zeros(N)
+    main = np.zeros(N)
     ghost = np.zeros(N)
     for b, v in C.kick_hits():
-        add(out, k, b, v)
+        add(main, k, b, v)
         add(ghost, dry, b, v)
-    brk = ((BAR_AT >= 40.5) & (BAR_AT < 48)) | ((BAR_AT >= 78.5) & (BAR_AT < 80)) | ((BAR_AT >= 96) & (BAR_AT < 114))
-    hpc = smooth(np.where(brk, 180.0, 15.0), SR // 8)
-    out = svf(out, hpc, 0.1, 2)
+    brk = window([(40.5, 48, 1), (78.5, 80, 1), (96, 114, 1)])
+    main = svf(main, smooth(np.where(brk > 0, 170.0, 15.0), SR // 10), 0.1, 2)
+    # Kick-Rolls: werden lauter UND duenner (Hochpass steigt) -> Spannung
+    roll = np.zeros(N)
+    hpc = np.full(N, 15.0)
+    for b, v, prog in C.roll_hits():
+        add(roll, k, b, v)
+        s = smp(b)
+        hpc[s:s + smp(0.5)] = np.maximum(hpc[s:s + smp(0.5)], 90 * (9.0 ** prog))
+    roll = svf(roll, smooth(hpc, 200), 0.3, 2)
+    out = main + roll
+    for b in C.PICKUPS:
+        add(out, k, b, 1.0)
+        add(ghost, dry, b, 1.0)
     return out, ghost
 
 
-# ====================================================================== RUMBLE + OFFBEAT-BASS
+# ====================================================================== RUMBLE + BASS
 def offbeat_mask():
-    """1 auf jedem Beat, auf dem eine Kick spielt (Bass/Rumble folgen der Kick)."""
     m = np.zeros(N)
     L = smp(1) - smp(0)
-    for b, v in C.kick_hits():
-        s = smp(b)
+    for nt in C.bass_notes():
+        s = smp(nt.start - 0.5)
         m[s:s + L] = 1.0
     return m
 
@@ -142,19 +159,17 @@ def render_bass():
         n = int((dur + 0.012) * SR)
         t = np.arange(n) / SR
         f0 = mtof(nt.pitch)
-        f = np.full(n, f0)
-        osc = (np.sin(2 * np.pi * f0 * t) + 0.45 * saw(f, 0.0)
+        osc = (np.sin(2 * np.pi * f0 * t) + 0.4 * saw(np.full(n, f0), 0.0)
                + 0.3 * np.sin(2 * np.pi * f0 * 4 / 3 * t))
-        fc = 260 * (1 + 0.8 * np.exp(-t / 0.05))
-        y = svf(osc, fc, 0.3, 0)
+        y = svf(osc, 260 * (1 + 0.8 * np.exp(-t / 0.05)), 0.3, 0)
         amp = np.minimum(t / 0.035, 1) * np.where(t < dur, 1.0, np.exp(-(t - dur) / 0.004))
         add(out, y * amp, nt.start, nt.vel)
-    out = tube(out * 2.2, 3.0, 0.25)       # dreckig, aber geschlossen
+    out = tube(out * 2.2, 3.0, 0.25)
     out = svf(out, np.full(N, 700.0), 0.1, 0)
     return hp(out, 30)
 
 
-# ====================================================================== HATS / CLAP / PERC
+# ====================================================================== DRUMS
 def metal(n, scale=1.0):
     t = np.arange(n) / SR
     fr = np.array([205.3, 304.4, 369.6, 522.7, 540.0, 800.0]) * 2.0 * scale
@@ -168,17 +183,14 @@ def hat_one(kind):
     if kind == "o":
         n = int(0.22 * SR)
         x = noise(n) * 0.8 + metal(n) * 0.5
-        x = tube(hp(bp(x, 9500, 0.25), 5000), 1.5, 0.0)
-        return x * env_exp(n, 0.055, 0.004)
+        return tube(hp(bp(x, 9500, 0.25), 5000), 1.5, 0.0) * env_exp(n, 0.055, 0.004)
     if kind == "c":
         n = int(0.06 * SR)
-        x = hp(noise(n) * 0.8 + metal(n, 1.05) * 0.3, 7500)
-        return x * env_exp(n, 0.012)
-    n = int(0.5 * SR)  # Top/Ride
+        return hp(noise(n) * 0.8 + metal(n, 1.05) * 0.3, 7500) * env_exp(n, 0.012)
+    n = int(0.5 * SR)
     t = np.arange(n) / SR
     x = metal(n, 2.4) * 0.7 + hp(noise(n), 6000) * 0.5
-    bell = np.sin(2 * np.pi * 3720 * t) * 0.15 * np.exp(-t / 0.04)
-    return hp(x, 3500) * env_exp(n, 0.16, 0.004) + bell
+    return hp(x, 3500) * env_exp(n, 0.16, 0.004) + np.sin(2 * np.pi * 3720 * t) * 0.15 * np.exp(-t / 0.04)
 
 
 def render_hats():
@@ -186,11 +198,8 @@ def render_hats():
     bank = {k: [hat_one(k) for _ in range(4)] for k in "oct"}
     pans = {"o": 0.15, "c": -0.3, "t": 0.35}
     gains = {"o": 1.0, "c": 0.7, "t": 0.45}
-    cnt = 0
-    for b, kind, v in C.hat_events():
-        cnt += 1
-        s_ = bank[kind][cnt % 4]
-        add(out, pan(s_, pans[kind]), b, v * gains[kind])
+    for i, (b, kind, v) in enumerate(C.hat_events()):
+        add(out, pan(bank[kind][i % 4], pans[kind]), b, v * gains[kind])
     h = C.hats_tone(BEAT_AT)
     return np.array([svf(out[0], h, 0.15, 2), svf(out[1], h, 0.15, 2)])
 
@@ -229,8 +238,7 @@ def tom(f, tau, bend=0.5):
 def rim():
     n = int(0.07 * SR)
     t = np.arange(n) / SR
-    x = (np.sin(2 * np.pi * 1700 * t) * 0.6 + np.sin(2 * np.pi * 470 * t) * 0.6
-         + bp(noise(n), 2700, 0.5))
+    x = np.sin(2 * np.pi * 1700 * t) * 0.6 + np.sin(2 * np.pi * 470 * t) * 0.6 + bp(noise(n), 2700, 0.5)
     return tube(x, 1.6, 0.0) * env_exp(n, 0.011)
 
 
@@ -244,7 +252,60 @@ def render_perc():
     return np.array([hp(dry[0], 90), hp(dry[1], 90)]) + wet * 0.2
 
 
-# ====================================================================== HAUPT-STAB
+# ====================================================================== WALL (verzerrte chromatische Stereo-Wand)
+def throw_send():
+    g = np.zeros(N)
+    for b in C.throw_beats():
+        s, e = smp(b), smp(b + 0.5)
+        g[s:e] = 1.0
+    return smooth(g, 300)
+
+
+def render_wall():
+    notes = C.wall_notes()
+    lf = np.zeros(N)
+    gate = np.zeros(N)
+    acc = np.zeros(N)
+    for nt in notes:
+        s, e = smp(nt.start), smp(nt.start + nt.dur)
+        lf[s:e] = np.log2(mtof(nt.pitch))
+        gate[s:e] = 1.0
+        if nt.accent:
+            acc[s:e] = 1.0
+    act = np.nonzero(gate)[0]
+    out = np.zeros((2, N))
+    if len(act) == 0:
+        return out
+    # Portamento in log-Frequenz
+    lf[: act[0]] = lf[act[0]]
+    idx = np.where(lf != 0, np.arange(N), 0)
+    lf = lf[np.maximum.accumulate(idx)]          # Ton halten bis zum naechsten
+    lf = onepole_lp(lf, 12.0)
+    freq = 2.0 ** lf
+    ph = BEAT_AT % 1.0
+    pluck = 0.5 + 0.5 * np.exp(-ph / 0.22)
+    cut = C.wall_cutoff(BEAT_AT) * (1 + 0.9 * pluck + 0.4 * acc)
+    g = smooth(gate, 400)
+    chans = []
+    for ch, dets in enumerate(((-12, 0, 9), (-8, 0, 13))):
+        x = np.zeros(N)
+        for d in dets:
+            x += saw(freq * 2 ** (d / 1200), RNG.uniform())
+        x += 0.35 * pulse(freq / 2, 0.5, 0.25)
+        y = svf(x * 0.5, cut, 0.45, 0)
+        y = tube(y * 1.6, 3.5, 0.1)
+        y = svf(y, np.full(N, 7000.0), 0.0, 0)
+        chans.append(hp(y, 160) * g * pluck)
+    hz = int(0.008 * SR)
+    chans[1] = np.concatenate([np.zeros(hz), chans[1][:-hz]])
+    st = np.array(chans)
+    snd = throw_send()
+    dl, dr = tape(st[0] * snd, st[1] * snd, 0.75, 2.0, 0.5, 0.68, 0.45, 1.6, 1.0)
+    rv = reverb(st[0] + st[1], size=0.8, damp=0.5, predelay_ms=15)
+    return st + np.array([dl, dr]) * 0.8 + rv * 0.12
+
+
+# ====================================================================== STAB
 def render_stab():
     dry = np.zeros((2, N))
     cut = C.stab_cutoff(BEAT_AT)
@@ -257,9 +318,9 @@ def render_stab():
         i0 = min(N - 1, smp(nt.start))
         chans = []
         for det in (-0.08, 0.08):
-            fa = np.full(n, f0 * 2 ** (det / 12))
-            osc = saw(fa, 0.1) + 0.7 * pulse(np.full(n, f0 * 2 ** (-det / 12)), 0.35, 0.3) \
-                + 0.5 * np.sin(2 * np.pi * f0 / 2 * t)
+            osc = (saw(np.full(n, f0 * 2 ** (det / 12)), 0.1)
+                   + 0.7 * pulse(np.full(n, f0 * 2 ** (-det / 12)), 0.35, 0.3)
+                   + 0.5 * np.sin(2 * np.pi * f0 / 2 * t))
             fc = cut[i0] * (1 + (1.8 if nt.accent else 1.0) * np.exp(-t / (0.35 if long else 0.06)))
             y = svf(osc, fc, 0.5, 0)
             if long:
@@ -271,21 +332,18 @@ def render_stab():
             chans.append(tube(y * amp * 0.9, 2.6, 0.12))
         add(dry, np.array(chans), nt.start, nt.vel)
     dry = np.array([hp(dry[0], 120), hp(dry[1], 120)])
-    haas = int(0.011 * SR)
-    dry[1] = np.concatenate([np.zeros(haas), dry[1][:-haas]]) * 0.9 + dry[1] * 0.35
-    dl, dr = tape(dry[0], dry[1], 0.75, 1.0, 0.4, 0.42, 0.5, 1.5, 1.0)
+    hz = int(0.011 * SR)
+    dry[1] = np.concatenate([np.zeros(hz), dry[1][:-hz]]) * 0.9 + dry[1] * 0.35
+    snd = 0.25 + 0.75 * throw_send()
+    dl, dr = tape(dry[0] * snd, dry[1] * snd, 0.75, 1.5, 0.4, 0.55, 0.5, 1.5, 1.0)
     rv = reverb(dry[0] + dry[1], size=0.88, damp=0.45, predelay_ms=20)
-    big = ((BAR_AT >= 40) & (BAR_AT < 48)) | ((BAR_AT >= 96) & (BAR_AT < 114))
-    rv_amt = smooth(np.where(big, 0.75, 0.22), SR // 2)
-    return dry + np.array([hp(dl, 300), hp(dr, 300)]) * 0.3 + rv * rv_amt
+    big = window([(40, 48, 0.75), (96, 114, 0.75)], SR // 2) + 0.2
+    return dry + np.array([hp(dl, 300), hp(dr, 300)]) * 0.35 + rv * big
 
 
-# ====================================================================== ATMOSPHAERE (nur Breaks)
+# ====================================================================== ATMOS (Drone mit Pitch-Riser)
 def render_atmos():
-    g = np.zeros(N)
-    for a, b, lvl in C.ATMOS_WINDOWS:
-        g = np.where((BAR_AT >= a) & (BAR_AT < b), lvl, g)
-    g = smooth(g, SR)
+    g = window(C.ATMOS_WINDOWS, SR)
     act = np.nonzero(g > 1e-4)[0]
     out = np.zeros((2, N))
     if len(act) == 0:
@@ -293,18 +351,20 @@ def render_atmos():
     s0, s1 = act[0], act[-1] + 1
     n = s1 - s0
     t = np.arange(n) / SR
+    semi = C.atmos_semitones(BEAT_AT[s0:s1])
+    bar = BAR_AT[s0:s1]
+    openf = 1.0 + 3.0 * np.clip(semi / 12.0, 0, 1)
     chans = []
     for ch, det in enumerate((-0.07, 0.07)):
         x = np.zeros(n)
-        for m, a in ((49, 1.0), (56, 0.7), (61, 0.5), (68, 0.25)):   # C#3 G#3 C#4 G#4
-            f = np.full(n, mtof(m) * 2 ** (det / 12))
-            x += a * saw(f, RNG.uniform())
+        for m, a in ((49, 1.0), (56, 0.7), (61, 0.5), (68, 0.25)):
+            x += a * saw(mtof(m) * 2 ** ((det + semi) / 12) * np.ones(n), RNG.uniform())
         x += 0.25 * noise(n)
-        fc = 600 * 2.0 ** (1.2 * np.sin(2 * np.pi * t / (16 * C.SPB) + ch))
+        fc = 600 * openf * 2.0 ** (1.2 * np.sin(2 * np.pi * t / (16 * C.SPB) + ch))
         y = svf(x, fc, 0.6, 0)
         y = phaser(y, 0.06, 300, 4000, 0.5, 6, ch * 1.7)
-        y = tube(y * 0.7, 1.8, 0.05)
-        chans.append(y)
+        trem = 1.0 - 0.35 * ((bar >= 44) & (bar < 48) | (bar >= 110) & (bar < 114)) * (0.5 + 0.5 * np.sign(np.sin(2 * np.pi * 4 * BEAT_AT[s0:s1])))
+        chans.append(tube(y * 0.7, 1.8, 0.05) * trem)
     seg = np.array(chans) * g[s0:s1]
     hz = int(0.013 * SR)
     seg[1] = np.concatenate([np.zeros(hz), seg[1][:-hz]])
@@ -313,13 +373,122 @@ def render_atmos():
     return out
 
 
-# ====================================================================== WIDE-Textur (Stereo-Feld)
+# ====================================================================== FX
+def fx_zap():
+    n = int(0.35 * SR)
+    t = np.arange(n) / SR
+    f = 70 + 3500 * np.exp(-t / 0.03)
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    x = np.sin(ph + 2.5 * np.sin(1.5 * ph) * np.exp(-t / 0.05))
+    return tube(x * env_exp(n, 0.1), 2.5, 0.1)
+
+
+def fx_crash(dur=2.0):
+    n = int(dur * SR)
+    t = np.arange(n) / SR
+    return np.array([hp(metal(n, 3.0) * 0.6 + noise(n), 4500) * np.exp(-t / 0.55) for _ in range(2)]) * 0.5
+
+
+def fx_revcrash(beats):
+    n = smp(beats)
+    c = fx_crash(max(1.0, beats * C.SPB + 0.2))[:, :n][:, ::-1]
+    t = np.linspace(0, 1, n)
+    return c[:, :n] * t ** 1.5
+
+
+def fx_impact():
+    n = int(2.0 * SR)
+    t = np.arange(n) / SR
+    f = 33 + 75 * np.exp(-t / 0.09)
+    boom = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / 0.55)
+    burst = lp(noise(n), 2500) * np.exp(-t / 0.12) * 0.6
+    x = tube(boom + burst, 2.0, 0.05)
+    return stereo(x) + fx_crash(2.0) * 0.8
+
+
+def fx_riser(b0, b1):
+    """Industrial-Riser: verzerrtes Rauschen durch resonanten Sweep, Gate beschleunigt 16tel -> 32tel,
+    dazu ein steigender Saw-Stack (2 Oktaven)."""
+    n = smp(b1) - smp(b0)
+    t = np.linspace(0, 1, n)
+    beats = np.linspace(0, b1 - b0, n)
+    fc = 250 * (9000 / 250) ** (t ** 1.4)
+    rate = np.where(t < 0.6, 4.0, np.where(t < 0.85, 8.0, 16.0))
+    gate = 0.35 + 0.65 * (np.sin(2 * np.pi * np.cumsum(rate) / n * (b1 - b0)) > -0.2)
+    gate = smooth(gate.astype(float), 60)
+    chans = []
+    for ch in range(2):
+        x = svf(noise(n), fc * (1 + 0.05 * ch), 0.75, 1)
+        x = tube(x * 2.0, 2.5, 0.0)
+        f = mtof(49) * 2 ** (2 * t ** 1.6) * (1 + 0.004 * ch)
+        y = svf(saw(f) + saw(f * 1.5), 300 + 7000 * t ** 2, 0.4, 0)
+        chans.append(svf((0.8 * x + 0.35 * y) * gate * t ** 2.2, np.full(n, 7000.0), 0.0, 0))
+    return np.array(chans)
+
+
+def fx_down(beats=2.0):
+    n = smp(beats)
+    t = np.linspace(0, 1, n)
+    fc = 8000 * (200 / 8000) ** t
+    return np.array([svf(noise(n), fc, 0.55, 1), svf(noise(n), fc * 1.1, 0.55, 1)]) * (1 - t) ** 1.3 * 0.7
+
+
+def fx_wash():
+    n = int(2.5 * SR)
+    t = np.arange(n) / SR
+    return np.array([bp(noise(n), 1800, 0.3), bp(noise(n), 1600, 0.3)]) * np.exp(-t / 0.6) * 0.6
+
+
+def fx_whoosh():
+    n = smp(1.0)
+    t = np.linspace(0, 1, n)
+    fc = 600 * (9000 / 600) ** (np.sin(np.pi * t))
+    return np.array([svf(noise(n), fc, 0.5, 1), svf(noise(n), fc * 0.9, 0.5, 1)]) * np.sin(np.pi * t) * 0.6
+
+
+def render_fx(kick):
+    out = np.zeros((2, N))
+    zaps = np.zeros((2, N))
+    risers = np.zeros((2, N))
+    k, dry = kick_one()
+    booms = np.zeros(N)
+    for e in C.fx_events():
+        kind, b = e[0], e[1]
+        if kind == "zap":
+            add(zaps, pan(fx_zap(), 0.3 if int(b) % 8 else -0.3), b, 1.0)
+        elif kind == "revcrash":
+            beats = (np.floor(b / 4) + 1) * 4 - b
+            add(out, fx_revcrash(beats), b, 0.9)
+        elif kind == "crash":
+            add(out, fx_crash(), b, 0.7)
+        elif kind == "impact":
+            add(out, fx_impact(), b, 1.0)
+        elif kind == "riser":
+            add(risers, fx_riser(b, e[2]), b, 1.0)
+        elif kind == "down":
+            add(out, fx_down(), b, 1.0)
+        elif kind == "wash":
+            add(out, fx_wash(), b, 1.0)
+        elif kind == "whoosh":
+            add(out, fx_whoosh(), b, 0.8)
+        elif kind == "boom":
+            add(booms, dry, b, 1.0)
+    bw = reverb(booms, size=0.95, damp=0.6)
+    bm = lp(tube(booms + 0.5 * (bw[0] + bw[1]), 2.0, 0.1), 250)
+    out += stereo(hp(bm, 70)) * 0.5
+    zl, zr = tape(zaps[0], zaps[1], 0.75, 3.0, 0.5, 0.55, 0.4, 1.5, 1.0)
+    out += zaps + np.array([zl, zr]) * 0.6
+    # Dub-Delay auf die Kick im Kick-Stotter-Teil (97-104)
+    kw = window([(96, 104, 1.0)], 200)
+    kl, kr = tape(kick * kw * 0.5, kick * kw * 0.5, 0.75, 2.0, 0.4, 0.6, 0.5, 1.8, 1.0)
+    out += np.array([hp(kl, 150), hp(kr, 150)])
+    rv = reverb(out[0] + out[1], size=0.85, damp=0.5)
+    return out + rv * 0.25, risers
+
+
+# ====================================================================== WIDE
 def render_wide():
-    """Dekorrelierter, gefilterter Rausch-/Metall-Layer im 16tel-Puls – nur Seitensignal-Breite."""
-    g = np.zeros(N)
-    for a, b, lvl in ((8, 16, 0.5), (16, 40, 0.8), (48, 78, 0.9), (80, 96, 1.0), (114, 162, 1.0), (162, 178, 0.6)):
-        g = np.where((BAR_AT >= a) & (BAR_AT < b), lvl, g)
-    g = smooth(g, SR // 4)
+    g = window([(0, 8, 0.35), (8, 16, 0.5), (16, 40, 0.8), (48, 78, 0.9), (80, 96, 1.0), (114, 162, 1.0), (162, 176, 0.8)], SR // 4)
     ph = (BEAT_AT * 4) % 1.0
     puls = 0.55 + 0.45 * np.exp(-ph / 0.35)
     fc = 1800 * 2.0 ** (0.8 * np.sin(2 * np.pi * BEAT_AT / 32.0))
@@ -331,43 +500,57 @@ def render_wide():
     return np.array(chans) * g * puls
 
 
-# ====================================================================== FX-System
-def sweep():
-    n = smp(1)
-    t = np.linspace(0, 1, n)
-    fc = 9000 * (500 / 9000) ** t
-    return np.array([svf(noise(n), fc, 0.55, 1), svf(noise(n), fc * 1.1, 0.55, 1)]) * (1 - t) * 0.5
-
-
-def swell():
-    n = smp(1)
-    t = np.linspace(0, 1, n)
-    x = np.array([hp(noise(n), 2500), hp(noise(n), 2500)]) * t ** 3 * 0.45
-    return x
-
-
-def wash():
-    n = int(2.5 * SR)
-    t = np.arange(n) / SR
-    x = np.array([bp(noise(n), 1800, 0.3), bp(noise(n), 1600, 0.3)]) * np.exp(-t / 0.6)
-    return x * 0.6
-
-
-def render_fx(ghost):
-    out = np.zeros((2, N))
-    sw, se, wa = sweep(), swell(), wash()
-    for kind, b in C.fx_events():
-        add(out, {"sweep": sw, "swell": se, "wash": wa}[kind], b, 1.0)
-    # Booms im Breakdown
-    k, dry = kick_one()
-    booms = np.zeros(N)
-    for bar, beat in C.BOOMS:
-        add(booms, dry, bar * 4 + beat, 1.0)
-    bw = reverb(booms, size=0.95, damp=0.6)
-    bm = lp(tube(booms + 0.5 * (bw[0] + bw[1]), 2.0, 0.1), 250)
-    out += stereo(hp(bm, 70)) * 0.4
-    rv = reverb(out[0] + out[1], size=0.85, damp=0.5)
-    return out + rv * 0.25
+# ====================================================================== EDITS (Tape-Stop, Stutter, Filter-Fahrten)
+def apply_edits(x):
+    y = x.copy()
+    hpc = np.full(N, 10.0)
+    lpc = np.full(N, 20000.0)
+    for e in C.EDITS:
+        kind = e[0]
+        if kind == "tapestop":
+            b0, dur = e[1], e[2]
+            s0, L = smp(b0), smp(b0 + dur) - smp(b0)
+            u = np.arange(L) / L
+            speed = (1 - u) ** 1.4
+            r = s0 + np.cumsum(speed)
+            mute_end = smp((np.floor((b0 + dur) / 4 + 1e-9) + 1) * 4)
+            fade = np.ones(L)
+            fade[-200:] = np.linspace(1, 0, 200)
+            fin = np.linspace(0, 1, 260)          # sanfter Wiedereinstieg nach dem Stopp (kein Klick)
+            if y.ndim == 1:
+                y[s0:s0 + L] = np.interp(r, np.arange(N), x) * fade
+                y[s0 + L:mute_end] = 0
+                y[mute_end:mute_end + 260] *= fin
+            else:
+                for c in range(2):
+                    y[c, s0:s0 + L] = np.interp(r, np.arange(N), x[c]) * fade
+                y[:, s0 + L:mute_end] = 0
+                y[:, mute_end:mute_end + 260] *= fin
+        elif kind == "stutter":
+            b0, dur, sl = e[1], e[2], e[3]
+            s0, Ls = smp(b0), smp(b0 + sl) - smp(b0)
+            reps = int(round(dur / sl))
+            src = x[..., s0:s0 + Ls].copy()
+            f = min(60, Ls // 4)
+            env = np.ones(Ls)
+            env[:f] = np.linspace(0, 1, f)
+            env[-f:] = np.linspace(1, 0, f)
+            for k in range(reps):
+                a = s0 + k * Ls
+                y[..., a:a + Ls] = src * env
+        elif kind == "hpsweep":
+            b0, b1, f0, f1 = e[1:]
+            s0, s1 = smp(b0), smp(b1)
+            u = np.linspace(0, 1, s1 - s0)
+            hpc[s0:s1] = f0 * (f1 / f0) ** (u ** 2)
+        elif kind == "lpcut":
+            b0, b1, f = e[1:]
+            lpc[smp(b0):smp(b1)] = f
+    hpc = smooth(hpc, 300)
+    lpc = smooth(lpc, 600)
+    if y.ndim == 1:
+        return svf(svf(y, hpc, 0.2, 2), lpc, 0.2, 0)
+    return np.array([svf(svf(c, hpc, 0.2, 2), lpc, 0.2, 0) for c in y])
 
 
 # ====================================================================== Match-EQ zur Referenz
@@ -379,18 +562,13 @@ def band_levels(x, sr=SR):
     nfft = 2 ** 15
     win = np.hanning(nfft)
     P = np.zeros(nfft // 2 + 1)
-    hopn = nfft // 2
     cnt = 0
-    for i in range(0, len(x) - nfft, hopn):
+    for i in range(0, len(x) - nfft, nfft // 2):
         P += np.abs(np.fft.rfft(x[i:i + nfft] * win)) ** 2
         cnt += 1
     P /= max(cnt, 1)
     fr = np.fft.rfftfreq(nfft, 1 / sr)
-    out = []
-    for fc in THIRD:
-        k = (fr >= fc / 2 ** (1 / 6)) & (fr < fc * 2 ** (1 / 6))
-        out.append(10 * np.log10(P[k].sum() + 1e-20))
-    return np.array(out)
+    return np.array([10 * np.log10(P[(fr >= fc / 2 ** (1 / 6)) & (fr < fc * 2 ** (1 / 6))].sum() + 1e-20) for fc in THIRD])
 
 
 def ref_main_levels(ref_path):
@@ -401,42 +579,30 @@ def ref_main_levels(ref_path):
     return band_levels(m[a:b], sr)
 
 
-def match_eq_filter(ours, ref, max_db=8.0):
-    d = ref - ours
-    d -= np.median(d[8:22])              # Gesamtpegel egal – nur Balance zaehlt
-    d = np.clip(d, -max_db, max_db)
-    d = np.convolve(np.pad(d, 1, mode="edge"), np.ones(3) / 3, mode="valid")
-    freqs = np.concatenate([[0], THIRD, [SR / 2]])
-    gains = np.concatenate([[d[0]], d, [d[-1]]])
-    taps = firwin2(8191, freqs, 10 ** (gains / 20), fs=SR)
-    return taps, d
-
-
 def apply_fir(x, taps):
     d = (len(taps) - 1) // 2
     if x.ndim == 1:
-        y = oaconvolve(x, taps)[d:d + x.shape[0]]
-    else:
-        y = np.array([oaconvolve(c, taps)[d:d + x.shape[1]] for c in x])
-    return y
+        return oaconvolve(x, taps)[d:d + x.shape[0]]
+    return np.array([oaconvolve(c, taps)[d:d + x.shape[1]] for c in x])
 
 
 # ====================================================================== MIX & MASTER
-TARGET = {  # Start-Balance (RMS dB im PEAK-Teil), danach Match-EQ (geschlossener Regelkreis)
-    "01 KICK": -11.0, "02 RUMBLE": -15.0, "03 BASS": -11.0, "04 HATS": -21.0,
-    "05 CLAP": -21.5, "06 PERC": -23.0, "07 STAB": -19.0, "08 ATMOS": -27.0, "09 FX": -28.0,
-    "10 WIDE": -24.0,
+TARGET = {
+    "01 KICK": -10.5, "02 RUMBLE": -15.0, "03 BASS": -11.0, "04 HATS": -21.0,
+    "05 CLAP": -21.5, "06 PERC": -23.5, "07 WALL": -19.5, "08 STAB": -23.0,
+    "09 ATMOS": -26.0, "10 FX": -30.0, "11 RISER": -20.0, "12 WIDE": -26.0,
 }
-REGION = {"08 ATMOS": (96, 114), "09 FX": (0, 178)}
-CREST = {"04 HATS": 12.0, "05 CLAP": 14.0, "06 PERC": 13.0, "07 STAB": 12.0, "09 FX": 14.0, "10 WIDE": 11.0}
-SC = {"07 STAB": 0.45, "08 ATMOS": 0.5, "04 HATS": 0.1, "06 PERC": 0.15, "10 WIDE": 0.6}
-BREAKS = [(40.6, 48.0), (78.6, 80.0), (96.6, 114.0)]  # Breaks ~4 dB leiser: Kontrast wie Referenz (LRA)
+REGION = {"09 ATMOS": (96, 114), "10 FX": (0, 178), "11 RISER": (112, 114), "08 STAB": (114, 130)}
+CREST = {"04 HATS": 12.0, "05 CLAP": 14.0, "06 PERC": 13.0, "07 WALL": 11.0, "08 STAB": 12.0,
+         "10 FX": 16.0, "11 RISER": 10.0, "12 WIDE": 11.0}
+SC = {"07 WALL": 0.6, "08 STAB": 0.45, "09 ATMOS": 0.5, "04 HATS": 0.1, "06 PERC": 0.15, "12 WIDE": 0.6}
+EDITED = ["01 KICK", "02 RUMBLE", "03 BASS", "04 HATS", "05 CLAP", "06 PERC", "07 WALL", "08 STAB", "12 WIDE"]
+BREAKS = [(40.6, 48.0), (78.6, 80.0), (96.6, 110.0)]
 
 
 def rms_db(x, b0, b1):
     s, e = smp(b0 * 4), smp(b1 * 4)
-    seg = x[..., s:e]
-    return 20 * np.log10(np.sqrt(np.mean(seg ** 2)) + 1e-12)
+    return 20 * np.log10(np.sqrt(np.mean(x[..., s:e] ** 2)) + 1e-12)
 
 
 def soft_clip(x, c):
@@ -486,12 +652,15 @@ def main(ref_path):
     stems["04 HATS"] = render_hats()
     stems["05 CLAP"] = render_clap()
     stems["06 PERC"] = render_perc()
-    print("drums/low", round(time.time() - t0))
-    stems["07 STAB"] = render_stab()
-    stems["08 ATMOS"] = render_atmos()
-    stems["09 FX"] = render_fx(ghost)
-    stems["10 WIDE"] = render_wide()
-    print("synths/fx", round(time.time() - t0))
+    print("drums/low", round(time.time() - t0), flush=True)
+    stems["07 WALL"] = render_wall()
+    stems["08 STAB"] = render_stab()
+    stems["09 ATMOS"] = render_atmos()
+    fx, ris = render_fx(kick)
+    stems["10 FX"] = fx
+    stems["11 RISER"] = ris
+    stems["12 WIDE"] = render_wide()
+    print("synths/fx", round(time.time() - t0), flush=True)
 
     scs = {d: sidechain(d) for d in set(SC.values())}
     for k, d in SC.items():
@@ -501,13 +670,20 @@ def main(ref_path):
         stems[k] = stems[k] * db(tgt - rms_db(stems[k], a, b))
         if k in CREST:
             stems[k] = soft_clip(stems[k], db(tgt + CREST[k]))
-    # Breaks leiser (Dynamik-Kontrast der Referenz: Breaks ~12 dB unter Main)
-    bg = np.ones(N)
-    for a, b in BREAKS:
-        bg = np.where((BAR_AT >= a) & (BAR_AT < b), db(-4.5), bg)
-    bg = smooth(bg, SR // 2)
+    for k in EDITED:
+        stems[k] = apply_edits(stems[k])
+    # Spannungsbogen: Break leise & dunkel -> Crescendo im Aufbau -> Drop
+    bgdb = np.zeros(N)
+    for a, b in ((40.6, 44.0), (78.6, 80.0), (96.6, 110.0)):
+        bgdb = np.where((BAR_AT >= a) & (BAR_AT < b), -6.5, bgdb)
+    for a, b in ((44.0, 48.0), (110.0, 114.0)):
+        u = np.clip((BAR_AT - a) / (b - a), 0, 1)
+        bgdb = np.where((BAR_AT >= a) & (BAR_AT < b), -6.5 + 5.5 * u ** 1.5, bgdb)
+    bg = smooth(10 ** (bgdb / 20), SR // 4)
     for k in stems:
-        stems[k] = stems[k] * bg
+        if k not in ("11 RISER", "10 FX"):
+            stems[k] = stems[k] * bg
+    print("edits", round(time.time() - t0), flush=True)
 
     ref = ref_main_levels(ref_path)
     raw = dict(stems)
@@ -516,22 +692,20 @@ def main(ref_path):
         freqs = np.concatenate([[0], THIRD, [SR / 2]])
         gains = np.concatenate([[curve[0]], curve, [curve[-1]]])
         taps = firwin2(8191, freqs, 10 ** (gains / 20), fs=SR)
-        st = {}
-        mx = np.zeros((2, N))
+        st, mx = {}, np.zeros((2, N))
         for k, v in raw.items():
             v = apply_fir(v, taps)
-            if v.ndim == 2:   # M/S pro Stem (linear -> Stem-Summe == Mix)
+            if v.ndim == 2:
                 mid, side = 0.5 * (v[0] + v[1]), 0.5 * (v[0] - v[1])
                 side = hp(side, 150)
-                side = side + (db(5.0) - 1) * hp(side, 400)   # Mitten/Hoehen breiter (Referenz: sehr weit)
+                side = side + (db(5.0) - 1) * hp(side, 400)
                 v = np.array([mid + side, mid - side])
             st[k] = v
             mx += v if v.ndim == 2 else stereo(v)
         return st, mx
 
-    def master_to(mx, target=-7.5):
-        g = 16.0
-        m = None
+    def master_to(mx, target=-7.2):
+        g, m, L = 17.0, None, 0
         for _ in range(8):
             m = master_chain(mx, g)
             L = lufs(m)
@@ -548,11 +722,10 @@ def main(ref_path):
         meas = band_levels(0.5 * (m[0] + m[1])[smp(114 * 4):smp(162 * 4)])
         resid = ref - meas
         resid -= np.mean(resid[6:26])
-        print(f"Iteration {it + 1}: {L:.2f} LUFS, max. Abweichung {np.max(np.abs(resid[2:27])):.1f} dB")
+        print(f"Iteration {it + 1}: {L:.2f} LUFS, max. Abweichung {np.max(np.abs(resid[2:27])):.1f} dB", flush=True)
         if it < 2:
             curve = np.clip(curve + 0.75 * np.clip(resid, -6, 6), -10, 10)
             curve = np.convolve(np.pad(curve, 1, mode="edge"), np.ones(3) / 3, mode="valid")
-    print("Match-EQ (dB):", " ".join(f"{int(f)}:{c:+.1f}" for f, c in zip(THIRD, curve)))
     stems = {k: v * head for k, v in st.items()}
 
     sd = f"{ROOT}/Samples/Stems"
@@ -569,7 +742,7 @@ def main(ref_path):
     sf.write(f"{ROOT}/bounce/NACHTSTROM_master.flac", m.T, SR, subtype="PCM_16")
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", f"{ROOT}/bounce/NACHTSTROM_master.flac",
                     "-b:a", "320k", f"{ROOT}/bounce/NACHTSTROM_master.mp3"], check=True)
-    print("fertig", round(time.time() - t0))
+    print("fertig", round(time.time() - t0), flush=True)
 
 
 if __name__ == "__main__":

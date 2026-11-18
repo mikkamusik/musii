@@ -65,10 +65,13 @@ def drums():
     ev += [(b, 0.1, DRUM_MAP["clap"], v) for b, v in C.clap_events()]
     ev += [(b, 0.1, DRUM_MAP[k], v) for b, k, v in C.hat_events()]
     ev += [(b, 0.1, DRUM_MAP[k], v) for b, k, v in C.perc_events()]
+    ev += [(b, 0.1, DRUM_MAP["kick"], v) for b, v, _ in C.roll_hits()]
+    ev += [(b, 0.1, DRUM_MAP["kick"], 1.0) for b in C.PICKUPS]
     return [(max(0.0, b), d, p, v) for b, d, p, v in ev]
 
 
 PARTS = {
+    "WALL": lambda: part(C.wall_notes()),
     "STAB": lambda: part(C.stab_notes()),
     "BASS": lambda: part(C.bass_notes()),
     "DRUMS": drums,
