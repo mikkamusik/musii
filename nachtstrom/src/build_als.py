@@ -18,7 +18,7 @@ import export_midi as M
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Wahrscheinlichster Ort nach dem Entpacken der Chat-ZIP (Fallback: relativer Pfad)
-ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v2")
+ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v3")
 
 
 class Ids:
@@ -62,7 +62,7 @@ def routing(tag, tgt, upper, lower=""):
             f"{v('FirstNoteChannel', 1)}{v('LastNoteChannel', 15)}</MpeSettings></{tag}>")
 
 
-def mixer(volume=1.0, pan=0.0, master=False):
+def mixer(volume=1.0, pan=0.0, master=False, speaker=True):
     extra = ""
     if master:
         extra = (param("Tempo", C.BPM, 60, 200) +
@@ -77,7 +77,7 @@ def mixer(volume=1.0, pan=0.0, master=False):
         + "<LastPresetRef><Value /></LastPresetRef><LockedScripts />"
         + v("IsFolded", False) + v("ShouldShowPresetName", False) + v("UserName", "")
         + v("Annotation", "") + "<SourceContext><Value /></SourceContext>"
-        + "<Sends />" + bparam("Speaker", True) + v("SoloSink", False) + v("PanMode", 0)
+        + "<Sends />" + bparam("Speaker", speaker) + v("SoloSink", False) + v("PanMode", 0)
         + param("Pan", pan, -1, 1) + param("SplitStereoPanL", -1, -1, 1)
         + param("SplitStereoPanR", 1, -1, 1)
         + param("Volume", volume, 0.0003162277571, 1.99526238) + v("ViewStateSesstionTrackWidth", 93)
@@ -117,9 +117,11 @@ def clip_common(name, color, t0, t1, loop_start, loop_end, rel):
     )
 
 
-def audio_clip(cid, name, color, rel_path, abs_path, t0, t1, frames, fsize):
+def audio_clip(cid, name, color, rel_path, abs_path, t0, t1, frames, fsize, markers=None):
     secs = frames / 44100.0
     beats = secs / C.SPB
+    if markers is None:
+        markers = [(0.0, 0.0), (secs, beats)]
     return (
         f'<AudioClip Id="{cid}" Time="{t0}">'
         + clip_common(name, color, t0, t1, t0, t1, 0)
@@ -139,8 +141,7 @@ def audio_clip(cid, name, color, rel_path, abs_path, t0, t1, frames, fsize):
         + v("FadeOutCurveSlope", 0) + v("IsDefaultFadeIn", True) + v("IsDefaultFadeOut", True)
         + "</Fades>" + v("PitchCoarse", 0) + v("PitchFine", 0) + v("SampleVolume", 1)
         + "<WarpMarkers>"
-        + '<WarpMarker Id="0" SecTime="0" BeatTime="0" />'
-        + f'<WarpMarker Id="1" SecTime="{secs:.10f}" BeatTime="{beats:.10f}" />'
+        + "".join(f'<WarpMarker Id="{i}" SecTime="{sc:.10f}" BeatTime="{bt:.10f}" />' for i, (sc, bt) in enumerate(markers))
         + "</WarpMarkers><SavedWarpMarkersForStretched />"
         + v("MarkersGenerated", False) + v("IsSongTempoMaster", False)
         + "</AudioClip>"
@@ -214,7 +215,7 @@ def sequencer(tag, events, n_scenes, audio):
     )
 
 
-def track(kind, tid, name, color, annotation, events, n_scenes, volume=1.0, pan=0.0):
+def track(kind, tid, name, color, annotation, events, n_scenes, volume=1.0, pan=0.0, speaker=True):
     audio = kind == "AudioTrack"
     in_route = (routing("AudioInputRouting", "AudioIn/External/S0", "Ext. In", "1/2")
                 + routing("MidiInputRouting", "MidiIn/External.All/-1", "Ext: All Ins"))
@@ -241,7 +242,7 @@ def track(kind, tid, name, color, annotation, events, n_scenes, volume=1.0, pan=
         + in_route
         + routing("AudioOutputRouting", "AudioOut/Main", "Main", "")
         + routing("MidiOutputRouting", "MidiOut/None", "None", "")
-        + mixer(volume, pan)
+        + mixer(volume, pan, speaker=speaker)
         + sequencer("MainSequencer", events, n_scenes, audio)
         + sequencer("FreezeSequencer", "", n_scenes, True)
         + "<DeviceChain><Devices /><SignalModulations /></DeviceChain>"
@@ -282,26 +283,25 @@ def master_track(n_scenes):
 
 
 AUDIO = [  # Stem, Farbe, Volume, Pan, Info
-    ("01 KICK", 14, 1.0, 0, "Runde, verzerrte Kick auf 44 Hz (F1), Roehren-Saettigung statt Click."),
-    ("02 RUMBLE", 14, 1.0, 0, "Kick -> dunkler Hall -> Roehre -> LP (LFO) -> rollendes 16tel-Gate, wechselt alle 8 Takte."),
-    ("03 DIRTY BASS", 12, 1.0, 0, "Square + Sinus-Sub, Filter zu (380 Hz), asymmetrische Saettigung, Shuffle, Sidechain 70 %."),
-    ("04 HATS", 26, 1.0, 0, "Raue Noise-Hats mit Bitcrush, Offbeat-Open, Shaker-Triolen, Phaser in den Hypno-Parts."),
-    ("05 RIDE", 26, 1.0, 0, "Ride auf den Offbeats in MAIN 2 und FINAL."),
-    ("06 CLAP", 26, 1.0, 0, "Clap mit grossem dunklem Raum."),
-    ("07 PERC", 22, 1.0, 0, "Euklidische Tribal-Perc (Toms, Congas, Rims), rotiert alle 8 Takte, Rims im Dub-Tape-Delay."),
-    ("08 HYPNO SEQ", 5, 1.0, 0, "7/16-Polymeter gegen 4/4, Wavefolder + Resonanzfilter, nicht taktsynchrone LFOs, Tape-Delay mit Wow."),
-    ("09 METAL 3-16", 41, 1.0, 0, "Metallische FM-Ringmod-Perc im 3/16-Raster, Auto-Pan, Ping-Pong."),
-    ("10 VOICE", 9, 1.0, 0, "Synthetische Formant-Stimme (a-o-i-u-e Morph), Chops + Chants im Tape-Delay."),
-    ("11 TEXTURE", 1, 1.0, 0, "Wandernder resonanter Rausch-Nebel in Intro und Trips (kein Riser)."),
+    ("01 KICK", 14, 1.0, 0, "Hard-Techno-Kick: Pitch-Sweep 930->52 Hz (G#1), Click, Roehre + Clip. In Breaks Hochpass (kein Sub) wie Referenz."),
+    ("02 RUMBLE", 14, 1.0, 0, "Kick -> dunkler Hall -> Roehre -> LP 190 Hz, nur im Offbeat-Fenster (0,5-0,95 Beat)."),
+    ("03 BASS", 12, 1.0, 0, "Dirty Offbeat-Bass C#2 (69 Hz) + Quarte, Filter zu, Saettigung. Am Phrasenende D2 (b2)."),
+    ("04 HATS", 26, 1.0, 0, "Offbeat-Hat (wie Referenz) + 16tel ab Takt 17 + Top-Layer in den hellen Teilen."),
+    ("05 CLAP", 26, 1.0, 0, "Clap auf 2 & 4 (wie Referenz), Room."),
+    ("06 PERC", 22, 1.0, 0, "Feste Patterns: Rim (3,6,11,14), Tom (7,15), Conga (2,9,12) - an Phrasen gebunden."),
+    ("07 STAB", 5, 1.0, 0, "Haupt-Stab Cis-phrygisch. Variante A/B/C je Phrase, Antwort im 8. Takt, Filter oeffnet ueber 16 Takte."),
+    ("08 ATMOS", 9, 1.0, 0, "Drone C#/G# nur in Breaks und Main 2: Saws -> Filter -> Phaser -> Hall, breit."),
+    ("09 FX", 1, 1.0, 0, "FX-System: Sweep alle 4 Takte, Swell vor jeder 8er-Phrase, Wash bei Kick-Stopps, Booms im Breakdown."),
+    ("10 WIDE", 41, 1.0, 0, "Breiter 16tel-Textur-Layer (Stereo-Feld wie Referenz), sidechained."),
 ]
 
 MIDI = [  # Name, Datei-Key, Farbe, Info
-    ("12 SEQ MIDI", "HYPNO_SEQ", 5, "Eigener Synth: Wavetable/Drift, kurzer Pluck, LP mit hoher Resonanz, Filter per LFO frei laufen lassen."),
-    ("13 BASS MIDI", "DIRTY_BASS", 12, "Analog/Drift: Square + Sub, Filter 300-400 Hz, Saturator (Analog Clip), Sidechain."),
-    ("14 METAL MIDI", "METAL_3-16", 41, "Operator: Ratio 2.76, kurze Env, Auto Pan + Echo."),
-    ("15 VOICE MIDI", "VOICE", 9, "Saw -> Auto Filter (Formant/Vowel) oder Vocoder, viel Echo."),
-    ("16 DRUMS MIDI", "DRUMS", 14, "Drum Rack: C1 Kick, C#1 Rim, D#1 Clap, F1 Tom L, F#1 HH, A1 Tom M, A#1 OH, D#2 Ride, D3/D#3 Conga, A#3 Shaker."),
+    ("11 STAB MIDI", "STAB", 5, "Eigener Synth: Wavetable/Analog, 2 Saws detuned + Pulse, LP 24 dB, kurze Env, Saturator, Reverb + Echo 3/16."),
+    ("12 BASS MIDI", "BASS", 12, "Operator/Drift: Sinus + leiser Saw, Filter ~260 Hz, Saturator kraeftig, Attack 35 ms (Offbeat-Bass)."),
+    ("13 DRUMS MIDI", "DRUMS", 14, "Drum Rack: C1 Kick, C#1 Rim, D#1 Clap, F#1 HH, A#1 Offbeat-Hat, D#2 Top, A1 Tom, D#3 Conga."),
 ]
+
+REF_T0 = 0.0245  # erster Downbeat der Referenz (gemessen)
 
 
 def regions(path):
@@ -339,6 +339,32 @@ def main():
     tracks = []
     tid = 10
     cid = 0
+    # 00a REFERENZ (aus) – zum A/B-Vergleich, taktgenau auf 147 BPM gewarpt
+    refp = f"{ROOT}/Samples/Referenz/REFERENZ.mp3"
+    if os.path.exists(refp):
+        info_ = sf.info(refp)
+        frames = int(info_.frames)
+        end_beat = C.BEATS
+        mk = [(REF_T0, 0.0), (REF_T0 + end_beat * C.SPB, float(end_beat))]
+        ev = audio_clip(cid, "REFERENZ", 3, "Samples/Referenz/REFERENZ.mp3",
+                        f"{ABS_GUESS}/Samples/Referenz/REFERENZ.mp3", 0, end_beat, frames,
+                        os.path.getsize(refp), markers=mk)
+        cid += 1
+        tracks.append(track("AudioTrack", tid, "00 REFERENZ (A/B)", 3,
+                            "Deine Referenz, taktgenau auf 147 BPM. Zum Vergleichen Spur einschalten und die anderen solo/aus.",
+                            ev, n_scenes, 1.0, 0.0, speaker=False))
+        tid += 1
+    bpath = f"{ROOT}/bounce/NACHTSTROM_master.flac"
+    if os.path.exists(bpath):
+        frames = sf.info(bpath).frames
+        ev = audio_clip(cid, "MASTER BOUNCE", 0, "bounce/NACHTSTROM_master.flac",
+                        f"{ABS_GUESS}/bounce/NACHTSTROM_master.flac", 0, frames / 44100.0 / C.SPB,
+                        frames, os.path.getsize(bpath))
+        cid += 1
+        tracks.append(track("AudioTrack", tid, "00 MASTER BOUNCE", 0,
+                            "Fertiger Master (Match-EQ, Clipper, Limiter). Zum Vergleich mit den Stems einschalten.",
+                            ev, n_scenes, 1.0, 0.0, speaker=False))
+        tid += 1
     for name, color, vol, pan, info in AUDIO:
         fn = name.replace(" ", "_") + ".flac"
         path = f"{ROOT}/Samples/Stems/{fn}"
@@ -418,7 +444,7 @@ def main():
         + v("InKey", True) + v("SmpteFormat", 0)
         + "<TimeSelection>" + v("AnchorTime", 0) + v("OtherTime", 0) + "</TimeSelection>"
         + "<Locators><Locators>" + locs + "</Locators></Locators>"
-        + v("ViewData", "{}") + v("Annotation", "NACHTSTROM v2 – 145 BPM – F-Phrygisch. Raw / hypnotic / trippy. Komplett neu synthetisiert.")
+        + v("ViewData", "{}") + v("Annotation", "NACHTSTROM v3 – 147 BPM – Cis-Phrygisch. Gebaut nach dem vermessenen Bauplan der Referenz.")
         + "</LiveSet>"
     )
     xml = ('<?xml version="1.0" encoding="UTF-8"?>\n'

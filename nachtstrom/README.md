@@ -1,42 +1,35 @@
-# NACHTSTROM v2 – 145 BPM · F-Phrygisch · raw / hypnotic / trippy
+# NACHTSTROM v3 – 147 BPM · Cis-Phrygisch · gebaut nach Referenz
 
-Hypnotic Groove Techno, angelehnt an Alarico, Chlär und Janamasté. Alle Sounds sind selbst synthetisiert: keine Samples, keine Presets, kein Acid.
-Bewusst nicht enthalten sind EDM-Elemente wie Snare-Rolls, Riser, Impacts, Crashes, Akkordfolgen, ein Melodie-Hook oder Stille vor dem Drop.
+Der Track folgt dem vermessenen Bauplan deiner Referenz, die Details stehen in `REFERENZ_ANALYSE.md`.
+Übernommen sind Tempo, Kick-Bass-Verhältnis, Groove-Raster, Arrangement-System, Stereo-Bild, Klangbalance und Lautheit.
+Sounds, Noten und Patterns sind eigen und selbst synthetisiert.
 
-## Öffnen
-1. `NACHTSTROM_v2.zip` aus dem Chat in **Downloads** entpacken. Es entsteht `Downloads/NACHTSTROM_v2/`.
-2. `NACHTSTROM.als` doppelklicken.
-3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → Ordner `NACHTSTROM_v2` → **Los** → **Sichern**, dann mit **Cmd+S** speichern.
+## In Ableton öffnen
+1. `NACHTSTROM_v3.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v3/`.
+2. `NACHTSTROM_v3/NACHTSTROM.als` öffnen.
+3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v3` → **Los** → **Sichern**, dann **Cmd+S**.
 
-Nur anhören: `bounce/NACHTSTROM_master.mp3`
+## Spuren
+| Spur | Inhalt |
+|---|---|
+| 00 REFERENZ (A/B) | deine Referenz, taktgenau auf 147 BPM; **aus**, zum Vergleichen einschalten |
+| 00 MASTER BOUNCE | fertiger Master; **aus** |
+| 01–10 | Stems: Kick, Rumble, Bass, Hats, Clap, Perc, Stab, Atmos, FX, Wide |
+| 11–13 | MIDI: Stab, Bass, Drums (für eigene Synths und Drum Rack) |
 
-## Wie der Track lebt (statt Monotonie)
-- **Groove:** 16tel mit ca. 56 % Shuffle, euklidische Tribal-Percussion (Toms, Congas, Rims), die alle 8 Takte rotiert, Ghost-Notes und Mikro-Timing.
-- **Polymetrik:** Die Hypno-Sequenz läuft in 7/16 gegen 4/4, in MAIN 1B und MAIN 2B in 5/16. Die metallische Perc läuft in 3/16, die Shaker in Triolen.
-- **Mutation:** Die Sequenz ändert alle 8 Takte einen Ton, im Finale alle 4 Takte. Bass- und Rumble-Patterns wechseln alle 8 Takte.
-- **Trippy:** Tape-Delay mit Wow (Echos eiern in der Tonhöhe), Phaser, Auto-Pan, Formant-Stimme (a-o-i-u-e) und Filter-LFOs mit 13, 19, 23, 29 und 37 Beats, also nie taktgleich.
-- **Low End:** runde, verzerrte Kick, rollendes Rumble und ein warmer, dreckiger Bass mit geschlossenem Filter und Röhren-Sättigung.
+Tipp für den A/B-Vergleich: 00 REFERENZ einschalten und solo hören, dann 00 MASTER BOUNCE solo.
+Die Stems ergeben in der Summe den Mix vor dem Master.
+Für den Bounce-Sound kommen auf die Master-Spur **Glue Compressor** (2:1) und **Limiter** (Ceiling −0,3 dB, ca. 8 dB Gain).
 
-## Arrangement
-| Takt | Teil | Was passiert |
-|---|---|---|
-| 1–16 | INTRO | Kick, Rumble, Rims im Dub-Delay; ab 9 die Sequenz, noch zu |
-| 17–32 | GROOVE | Dirty Bass, Hats, Toms; die Stimme blitzt auf |
-| 33–48 | DRIVE | Clap mit Raum, 3/16-Metall, Sequenz öffnet sich |
-| 49–64 | MAIN 1 | volle Hypnose, Congas |
-| 65–80 | MAIN 1B | Sequenz in 5/16, Rumble galoppiert, Voice-Chops, Phaser |
-| 81–92 | TRIP | Kick und Bass raus, Sequenz im eiernden Delay, Chant, Rausch-Nebel |
-| 93–96 | RETURN | die Kick kommt gefiltert zurück |
-| 97–112 | MAIN 2 | alles plus Ride |
-| 113–128 | MAIN 2B | 5/16 mit Oktaven, Shaker-Triolen |
-| 129–136 | TRIP 2 | nur Sequenz, Metall, Stimme |
-| 137–160 | FINAL | Mutationen alle 4 Takte |
-| 161–192 | OUTRO / DJ TOOL | Abbau; am Ende Kick, Rumble, Hats und Perc |
-
-Master: −9,4 LUFS, True Peak −1 dBTP. Die Stems haben Headroom; für den Bounce-Sound gehören Glue Compressor und Limiter auf den Master.
+## Das System
+- **Kick und Bass:** 4/4-Kick, auf jedem Offbeat ein dreckiger Bass eine Quarte über dem Kick-Ton. Am Ende jeder 8er-Phrase geht der Bass einen Halbton hoch (b2).
+- **Hats und Clap:** Hat auf jedem Offbeat, Clap auf 2 und 4, 16tel ab Takt 17, ein Top-Layer in den hellen Teilen.
+- **Stab:** Variante A, B oder C (3/16) je nach Phrase. Im 8. Takt jeder Phrase kommt die Antwort, über jeweils 16 Takte öffnet sich das Filter.
+- **FX:** ein Sweep alle 4 Takte, ein Swell vor jeder 8er-Phrase, ein Wash bei jedem Kick-Stopp.
+- **Übergänge:** Kick-Stopps an denselben Stellen wie in der Referenz (Takte 64, 79–80, 122, 130, 146).
 
 ## Neu rendern
 ```
-pip install numpy numba scipy soundfile
-cd src && python3 render.py && python3 export_midi.py && python3 build_als.py
+pip install numpy numba scipy soundfile pyloudnorm
+cd src && python3 render.py /pfad/zur/referenz.mp3 && python3 export_midi.py && python3 build_als.py
 ```

@@ -7,8 +7,8 @@ import compose as C
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PPQ = 480
 
-DRUM_MAP = {"kick": 36, "rim": 37, "clap": 39, "tl": 41, "c": 42, "tm": 45,
-            "o": 46, "ride": 51, "ch": 62, "cg": 63, "s": 70}
+DRUM_MAP = {"kick": 36, "rim": 37, "clap": 39, "c": 42, "tom": 45, "o": 46,
+            "t": 51, "cga": 63}
 
 
 def vlq(v):
@@ -48,7 +48,7 @@ def write(fn, tracks):
             (0, 0, b"\xff\x58\x04\x04\x02\x18\x08")]
     for name, b in C.SECTIONS:
         meta.append((b * 4 * PPQ, 0, b"\xff\x06" + vlq(len(name)) + name.encode()))
-    chunks = [track_chunk(meta, "NACHTSTROM 145 BPM")]
+    chunks = [track_chunk(meta, "NACHTSTROM 147 BPM")]
     for name, notes, ch in tracks:
         chunks.append(track_chunk(notes_to_events(notes, ch), name))
     hdr = b"MThd" + struct.pack(">IHHH", 6, 1, len(chunks), PPQ)
@@ -64,16 +64,13 @@ def drums():
     ev = [(b, 0.1, DRUM_MAP["kick"], v) for b, v in C.kick_hits()]
     ev += [(b, 0.1, DRUM_MAP["clap"], v) for b, v in C.clap_events()]
     ev += [(b, 0.1, DRUM_MAP[k], v) for b, k, v in C.hat_events()]
-    ev += [(b, 0.1, DRUM_MAP["ride"], v) for b, v in C.ride_events()]
     ev += [(b, 0.1, DRUM_MAP[k], v) for b, k, v in C.perc_events()]
     return [(max(0.0, b), d, p, v) for b, d, p, v in ev]
 
 
 PARTS = {
-    "HYPNO_SEQ": lambda: part(C.seq_notes()),
-    "DIRTY_BASS": lambda: part(C.bass_notes()),
-    "METAL_3-16": lambda: part(C.bleep_notes()),
-    "VOICE": lambda: part(C.voice_notes()),
+    "STAB": lambda: part(C.stab_notes()),
+    "BASS": lambda: part(C.bass_notes()),
     "DRUMS": drums,
 }
 

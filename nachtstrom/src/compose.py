@@ -1,41 +1,32 @@
-"""NACHTSTROM v2 – raw / hypnotic / trippy. 145 BPM, F-Phrygisch, 192 Takte.
+"""NACHTSTROM v3 – gebaut nach dem vermessenen Bauplan der Referenz.
 
-Keine EDM-Dramaturgie: keine Snare-Rolls, Riser, Impacts, Crashes,
-keine Akkorde, kein Melodie-Hook, kein Acid, keine Stille vor dem Drop.
-Spannung entsteht durch Bewegung: Polymetrik (7/16 und 3/16 gegen 4/4),
-Mutationen alle 4-8 Takte, nicht taktsynchrone Filter-LFOs, Tape-Wobble.
+Referenz-Analyse (siehe ../REFERENZ_ANALYSE.md):
+  147 BPM, Kick-Tail ~54 Hz, Offbeat-Bass konstant eine Quarte darueber,
+  Hats auf jedem Offbeat, Clap 2 & 4, Bass+Kick mono, Mitten sehr breit,
+  8/16-Takt-Phrasen, FX-Akzent alle 4 Takte, kurze Kick-Stopps als Uebergang,
+  Breaks: 8 Takte (41-48), 2 Takte (79-80), Breakdown 97-114.
 
-  INTRO       1-16   Kick, Rumble, Rim-Dub-Echos; ab 9 die Sequenz (zu)
-  GROOVE     17-32   Dirty Bass, Hats, euklidische Perc, Stimme blitzt auf
-  DRIVE      33-48   Clap mit Raum, 3/16-Bleeps, Sequenz mutiert
-  MAIN 1     49-64   alles laeuft, Sequenz atmet weit
-  MAIN 1B    65-80   Sequenz wechselt auf 5/16, Rumble galoppiert, Voice-Chops
-  TRIP       81-92   Kick + Bass raus, Sequenz im eiernden Tape-Delay, Chant
-  RETURN     93-96   Kick kommt gefiltert zurueck
-  MAIN 2    97-112   volle Hypnose, Ride
-  MAIN 2B  113-128   Sequenz in 5/16 + Oktave, Shaker-Triolen (Polyrhythmus)
-  TRIP 2   129-136   nur Sequenz, Bleeps, Stimme, Delay
-  FINAL    137-160   Mutation alle 4 Takte
-  OUTRO    161-176   Abbau
-  DJ TOOL  177-192   Kick, Rumble, Hats, Perc
+Eigener Inhalt: Cis-Phrygisch, eigene Patterns, eigene Sounds.
+Kein Zufall: jede Aenderung sitzt auf einer Phrasen-Grenze (System!).
+Takte im Code 0-basiert (Takt 1 = bar 0).
 """
-import zlib
 from dataclasses import dataclass
 import numpy as np
 
-BPM = 145.0
-BARS = 192
+BPM = 147.0
+BARS = 178
 BEATS = BARS * 4
 SPB = 60.0 / BPM
 
 SECTIONS = [
-    ("INTRO", 0), ("GROOVE", 16), ("DRIVE", 32), ("MAIN 1", 48),
-    ("MAIN 1B", 64), ("TRIP", 80), ("RETURN", 92), ("MAIN 2", 96),
-    ("MAIN 2B", 112), ("TRIP 2", 128), ("FINAL", 136), ("OUTRO", 160),
-    ("DJ TOOL", 176),
+    ("INTRO", 0), ("LAYER", 8), ("GROOVE", 16), ("DRIVE", 32), ("BREAK", 40),
+    ("MAIN 1", 48), ("MAIN 1B", 64), ("STOP", 78), ("MAIN 2", 80),
+    ("BREAKDOWN", 96), ("PEAK", 114), ("PEAK B", 130), ("MAIN 3", 146),
+    ("OUTRO", 162),
 ]
 
-PHRYG = [0, 1, 3, 5, 7, 8, 10, 12, 13, 15]  # F Gb Ab Bb C Db Eb F ...
+ROOT = 37           # C#2 = 69,3 Hz (Offbeat-Bass)
+KICK_HZ = 51.9      # G#1 – Quarte unter dem Bass (wie das Verhaeltnis in der Referenz)
 
 
 @dataclass
@@ -45,16 +36,6 @@ class Note:
     pitch: int
     vel: float = 1.0
     accent: bool = False
-    v0: float = 0.0  # Vokal Start (0=a 1=o 2=i 3=u 4=e)
-    v1: float = 0.0  # Vokal Ende
-
-
-SWING = 0.032  # Beats Verzoegerung auf jede zweite 16tel (~56 % Shuffle)
-
-
-def sw(bar, step, amt=SWING):
-    """16tel-Position mit Shuffle auf den geraden 16teln."""
-    return bar * 4 + step * 0.25 + (amt if step % 2 == 1 else 0.0)
 
 
 def in_(bar, a, b):
@@ -65,222 +46,202 @@ def sx(bar, step):
     return bar * 4 + step * 0.25
 
 
-def rng_for(*key):
-    return np.random.default_rng(zlib.crc32(repr(("nachtstrom",) + key).encode()))
+# ------------------------------------------------------------------ Kick-Plan (beat-genau)
+# Standard: 4 Kicks pro Takt. Ausnahmen = Uebergaenge wie in der Referenz.
+KICK_EXCEPT = {
+    40: [0, 1],                       # Break 1 beginnt nach Beat 2
+    41: [], 42: [], 43: [3], 44: [0, 1], 45: [], 46: [], 47: [3],
+    63: [0, 1, 2],                    # Stopp auf Beat 4
+    78: [0, 1], 79: [2, 3],           # 2-Takt-Stopp
+    96: [0, 2], 97: [3], 98: [0, 1], 99: [], 100: [1], 101: [3],
+    102: [0, 1, 2, 3], 103: [0, 2],   # Kick-Stottern am Anfang des Breakdowns
+    121: [0, 1, 3],                   # Beat 3 raus
+    129: [0, 1], 145: [0, 1],         # 2-Beat-Stopps
+}
+BREAKDOWN_SILENT = range(104, 114)
+BOOMS = [(104, 0), (105, 0), (107, 0), (109, 3), (112, 0)]  # tiefe Hits im Breakdown
 
 
-def euclid(k, n, rot=0):
-    pat = [((i * k) % n) < k for i in range(n)]
-    return pat[-rot % n:] + pat[:-rot % n]
+def kick_beats(bar):
+    if bar >= BARS:
+        return []
+    if bar in KICK_EXCEPT:
+        return KICK_EXCEPT[bar]
+    if bar in BREAKDOWN_SILENT:
+        return []
+    return [0, 1, 2, 3]
 
 
-TRIP = lambda bar: in_(bar, 80, 92) or in_(bar, 128, 136)
-
-
-# ------------------------------------------------------------------ Kick
 def kick_hits():
-    hits = []
+    out = []
     for bar in range(BARS):
-        if TRIP(bar):
-            continue
-        for beat in range(4):
+        for b in kick_beats(bar):
             v = 1.0
-            if in_(bar, 92, 96):
-                v = 0.95
-            hits.append((bar * 4 + beat, v))
-    return hits
+            if bar in (96, 97, 98, 99, 100, 101, 102, 103) or bar in (43, 44, 47, 79):
+                v = 0.85
+            out.append((bar * 4 + b, v))
+    return out
 
 
-# ------------------------------------------------------------------ Dirty Bass
-BASS_CELLS = [  # Velocity pro 16tel innerhalb eines Beats (0 = Kick-Platz)
-    [0.0, 0.7, 1.0, 0.8],
-    [0.0, 1.0, 0.0, 0.85],
-    [0.0, 0.0, 1.0, 0.9],
-    [0.0, 0.75, 1.0, 0.0],
-]
-
-
-def bass_active(bar):
-    return in_(bar, 16, 80) or in_(bar, 96, 128) or in_(bar, 136, 172)
-
-
+# ------------------------------------------------------------------ Offbeat-Bass (dirty, mono)
 def bass_notes():
     notes = []
     for bar in range(BARS):
-        if not bass_active(bar):
-            continue
-        block = bar // 8
-        cell = BASS_CELLS[[0, 0, 1, 0, 2, 0, 3, 1][block % 8]]
-        r = rng_for("bass", bar)
-        for beat in range(4):
-            for st in (1, 2, 3):
-                vel = cell[st]
-                if vel == 0:
-                    continue
-                p = 29  # F1
-                if bar % 4 == 3 and beat == 3 and st == 3:
-                    p = 30  # Gb1 – phrygischer Dreh
-                if bar % 8 == 7 and beat == 2 and st == 2:
-                    p = 27  # Eb1 drunter
-                if r.random() < 0.06:
-                    p = 41  # gelegentlicher Oktav-Pop
-                notes.append(Note(sw(bar, beat * 4 + st), 0.22, p, vel * (0.92 + 0.08 * r.random())))
-    return notes
-
-
-# ------------------------------------------------------------------ Hypno-Sequenz (Polymeter)
-SEQ7 = [(0, 1), (12, 0), (1, 0), (0, 1), (7, 0), (3, 0), (10, 0)]
-SEQ5 = [(0, 1), (13, 0), (0, 0), (7, 1), (12, 0)]
-
-
-def seq_active(bar):
-    return in_(bar, 8, 168)
-
-
-def seq_pattern(bar):
-    """Pattern mit Mutationen: neue Variante alle 8 (Final: 4) Takte."""
-    base = SEQ5 if (in_(bar, 64, 80) or in_(bar, 112, 128)) else SEQ7
-    pat = [list(s) for s in base]
-    period = 4 if in_(bar, 136, 160) else 8
-    gen = max(0, (bar - 16)) // period
-    for g in range(gen):
-        r = rng_for("seqmut", len(base), g)
-        if r.random() < 0.7:
-            i = int(r.integers(1, len(pat)))
-            pat[i][0] = int(r.choice(PHRYG))
-    if in_(bar, 112, 128):
-        for s in pat[1::2]:
-            s[0] += 12
-    return pat
-
-
-def seq_notes():
-    notes = []
-    k = 0  # globaler 16tel-Zaehler -> Polymeter laeuft ueber Taktgrenzen
-    for bar in range(BARS):
-        if not seq_active(bar):
-            continue
-        pat = seq_pattern(bar)
-        for st in range(16):
-            step = pat[k % len(pat)]
-            k += 1
-            off, acc = step
-            r = rng_for("seqgate", bar, st)
-            if not acc and r.random() < 0.14:
+        for b in kick_beats(bar):
+            if in_(bar, 40, 48) or in_(bar, 96, 114):
                 continue
-            notes.append(Note(sw(bar, st, SWING * 0.6), 0.34 if acc else 0.2, 41 + off,
-                              1.0 if acc else 0.62 + 0.15 * r.random(), accent=bool(acc)))
+            p = ROOT
+            if bar % 8 == 7 and b == 3:
+                p = ROOT + 1            # D2 – phrygische Spannung am Phrasenende
+            notes.append(Note(bar * 4 + b + 0.5, 0.45, p, 1.0))
     return notes
 
 
-# ------------------------------------------------------------------ 3/16-Bleeps
-BLEEP_P = [65, 65, 66, 65, 63]  # F4 F4 Gb4 F4 Eb4 – metallisch, keine Melodie
-
-
-def bleep_notes():
-    notes = []
-    k = 0
-    for bar in range(BARS):
-        on = in_(bar, 36, 48) or in_(bar, 96, 128) or in_(bar, 128, 136) or in_(bar, 140, 160)
-        for st in range(16):
-            gi = bar * 16 + st
-            if gi % 3 != 0:
-                continue
-            if on:
-                vel = 0.5 if bar < 48 else 0.8
-                notes.append(Note(sx(bar, st), 0.12, BLEEP_P[k % 5], vel))
-                k += 1
-    return notes
-
-
-# ------------------------------------------------------------------ Formant-Stimme
-def voice_notes():
-    notes = []
-    for bar in range(BARS):
-        r = rng_for("voice", bar)
-        if in_(bar, 24, 32) and bar % 4 == 2:
-            notes.append(Note(sx(bar, 6), 1.5, 53, 0.6, v0=0, v1=1))
-        if (in_(bar, 64, 80) or in_(bar, 112, 128) or in_(bar, 144, 160)) and bar % 2 == 1:
-            for st, d in ((2, 0.5), (7, 0.25), (10, 0.75)):
-                if r.random() < 0.85:
-                    v = float(r.integers(0, 5))
-                    notes.append(Note(sx(bar, st), d, 53 if r.random() < 0.8 else 54, 0.8,
-                                      v0=v, v1=(v + 1.5) % 5))
-        if TRIP(bar) and bar % 2 == 0:
-            notes.append(Note(bar * 4, 3.0, 53 if bar % 8 < 6 else 54, 0.75,
-                              v0=float(bar % 5), v1=float((bar + 2) % 5)))
-    return notes
-
-
-# ------------------------------------------------------------------ Drums/Perc
+# ------------------------------------------------------------------ Hats / Clap / Perc (feste Patterns)
 def hat_events():
     ev = []
     for bar in range(BARS):
-        r = rng_for("hats", bar)
-        trip = TRIP(bar)
-        for st in range(16):
-            b = sw(bar, st)
-            q = st % 4
-            if in_(bar, 0, 8):
-                if q == 2:
-                    ev.append((b, "c", 0.8))
-            elif in_(bar, 8, 176) or in_(bar, 176, 192):
-                if trip and q != 2 and r.random() < 0.5:
+        if in_(bar, 46, 48) or in_(bar, 103, 114) or bar >= 178:
+            continue
+        # Offbeat-Hat: Pegel waechst in Stufen (Phrasen)
+        lvl = 0.55 if bar < 16 else (0.75 if bar < 24 else 0.85)
+        if in_(bar, 32, 40):
+            lvl = 0.7
+        if in_(bar, 40, 46):
+            lvl = 0.6
+        if bar >= 162:
+            lvl = 0.7
+        for beat in range(4):
+            ev.append((bar * 4 + beat + 0.5, "o", lvl))
+        # 16tel-Closed-Hats ab Takt 17
+        if in_(bar, 16, 40) or in_(bar, 48, 96) or in_(bar, 114, 170):
+            for st in range(16):
+                if st % 4 == 2:
                     continue
-                v = [0.5, 0.3, 1.0, 0.38][q] * (0.8 + 0.25 * r.random())
-                if q in (1, 3) and r.random() < 0.12:
-                    continue
-                ev.append((b, "c", v))
-            if q == 2 and in_(bar, 16, 188) and not trip:
-                ev.append((b, "o", 0.8))
-        # Shaker-Triolen: 12 pro Takt gegen die 16tel
-        if in_(bar, 112, 128) or in_(bar, 144, 160):
-            for t in range(12):
-                ev.append((bar * 4 + t / 3.0, "s", [0.7, 0.35, 0.5][t % 3]))
-    return ev
-
-
-def ride_events():
-    ev = []
-    for bar in range(BARS):
-        if in_(bar, 96, 128) or in_(bar, 136, 168):
+                v = [0.45, 0.22, 0.0, 0.32][st % 4]
+                ev.append((sx(bar, st) + (0.012 if st % 2 else 0), "c", v))
+        # Top-Layer (Ride-artig) in den hellen Teilen
+        if in_(bar, 64, 78) or in_(bar, 114, 146):
             for st in (2, 6, 10, 14):
-                ev.append((sx(bar, st), 1.0))
+                ev.append((sx(bar, st), "t", 0.8))
     return ev
 
 
 def clap_events():
     ev = []
     for bar in range(BARS):
-        if in_(bar, 32, 40):
-            ev.append((bar * 4 + 3, 0.9))
-        elif in_(bar, 40, 80) or in_(bar, 96, 128) or in_(bar, 136, 168):
-            ev.append((bar * 4 + 1, 1.0))
-            ev.append((bar * 4 + 3, 1.0))
+        on = in_(bar, 16, 40) or in_(bar, 48, 96) or in_(bar, 114, 170)
+        if not on:
+            continue
+        for b in (1, 3):
+            if b in kick_beats(bar):
+                ev.append((bar * 4 + b, 1.0))
     return ev
+
+
+PERC = {  # 16tel-Positionen je Phrasen-Typ (fest, kein Zufall)
+    "rim": [3, 6, 11, 14],
+    "tom": [7, 15],
+    "cga": [2, 9, 12],
+}
 
 
 def perc_events():
-    """Euklidische Perc, rotiert jede 8-Takt-Gruppe."""
     ev = []
+    vel = [0.9, 0.7, 0.8, 0.65]
     for bar in range(BARS):
-        block = bar // 8
-        r = rng_for("perc", bar)
-        rim = euclid(5, 16, (block * 3) % 16)
-        tom = euclid(3, 16, (block * 5 + 2) % 16)
-        cga = euclid(7, 16, (block * 2 + 1) % 16)
-        for st in range(16):
-            b = sw(bar, st) + 0.004 * (r.random() - 0.5)
-            if rim[st] and in_(bar, 0, 184):
-                ev.append((b, "rim", 0.55 + 0.25 * r.random()))
-            if tom[st] and in_(bar, 16, 176) and not TRIP(bar):
-                ev.append((b, ["tl", "tm"][block % 2], 0.8))
-            if cga[st] and in_(bar, 48, 168) and r.random() < 0.85:
-                ev.append((b, "cg" if r.random() < 0.6 else "ch", 0.55 + 0.3 * r.random()))
+        rim_on = in_(bar, 8, 40) or in_(bar, 48, 96) or in_(bar, 114, 170)
+        tom_on = in_(bar, 48, 96) or in_(bar, 114, 162)
+        cga_on = in_(bar, 114, 162) or in_(bar, 80, 96)
+        if bar in (63, 78, 79, 121, 129, 145):
+            continue
+        if rim_on:
+            for i, st in enumerate(PERC["rim"]):
+                ev.append((sx(bar, st), "rim", vel[i]))
+        if tom_on:
+            for st in PERC["tom"]:
+                ev.append((sx(bar, st), "tom", 0.85))
+        if cga_on:
+            for i, st in enumerate(PERC["cga"]):
+                ev.append((sx(bar, st), "cga", [0.8, 0.6, 0.7][i]))
     return ev
 
 
-# ------------------------------------------------------------------ Automation
+# ------------------------------------------------------------------ Haupt-Stab (systematische Varianten)
+# Cis-Phrygisch: C#3=49, D3=50, E3=52, G#3=56, B3=59, C#4=61
+STAB_A = [(0, 49, 1), (3, 49, 0), (6, 61, 1), (8, 49, 0), (10, 50, 0), (13, 56, 1), (14, 49, 0)]
+STAB_B = [(0, 49, 1), (2, 61, 0), (3, 49, 0), (6, 52, 1), (9, 49, 0), (11, 56, 1), (12, 49, 0), (14, 50, 0)]
+STAB_CALL = [(12, 59, 1), (13, 56, 0), (14, 52, 0), (15, 50, 1)]  # Antwort im 8. Takt der Phrase
+
+
+def stab_plan(bar):
+    """Welche Variante wann – fest an die Phrasen gebunden."""
+    if in_(bar, 32, 40):
+        return "A", 0.55       # Teaser
+    if in_(bar, 40, 48):
+        return "LONG", 0.8     # Break: lange Toene im Raum
+    if in_(bar, 48, 64) or in_(bar, 146, 162):
+        return "A", 1.0
+    if in_(bar, 64, 78) or in_(bar, 114, 130):
+        return "B", 1.0
+    if in_(bar, 80, 96) or in_(bar, 130, 146):
+        return "C", 1.0        # 3/16-Polymeter
+    if in_(bar, 104, 114):
+        return "HALF", 0.8     # Breakdown: halbe Dichte, riesiger Raum
+    if in_(bar, 162, 170):
+        return "A", 0.6
+    return None, 0
+
+
+def stab_notes():
+    notes = []
+    for bar in range(BARS):
+        kind, v = stab_plan(bar)
+        if kind is None or bar in (63, 78, 79, 121, 129, 145):
+            continue
+        if kind == "LONG":
+            if bar % 2 == 0:
+                notes.append(Note(bar * 4, 3.0, 49 if bar % 4 == 0 else 50, v, True))
+            continue
+        if kind == "C":
+            for st in range(16):
+                g = bar * 16 + st
+                if g % 3 == 0:
+                    p = [49, 56, 61, 49, 52][(g // 3) % 5]
+                    notes.append(Note(sx(bar, st), 0.2, p, v * (1.0 if (g // 3) % 5 == 0 else 0.75), (g // 3) % 5 == 0))
+            continue
+        pat = STAB_A if kind in ("A", "HALF") else STAB_B
+        if kind == "HALF":
+            pat = pat[::2]
+        if bar % 8 == 7 and kind in ("A", "B"):
+            pat = [s for s in pat if s[0] < 12] + STAB_CALL
+        for st, p, acc in pat:
+            notes.append(Note(sx(bar, st), 0.3 if acc else 0.18, p, v * (1.0 if acc else 0.7), bool(acc)))
+    return notes
+
+
+# ------------------------------------------------------------------ Atmosphaere (nur Breaks / Main 2)
+ATMOS_WINDOWS = [(40, 48, 1.0), (78, 80, 0.8), (80, 96, 0.35), (96, 114, 1.0)]
+
+
+# ------------------------------------------------------------------ FX-System
+def fx_events():
+    """('sweep', beat) alle 4 Takte; ('swell', beat) vor jeder 8-Takt-Phrase;
+    ('wash', beat) bei jedem Kick-Stopp."""
+    ev = []
+    for bar in range(BARS):
+        if in_(bar, 104, 114) or bar >= 176:
+            continue
+        if bar % 4 == 3:
+            ev.append(("sweep", bar * 4 + 3))
+        if bar % 8 == 7:
+            ev.append(("swell", bar * 4 + 3))
+    for bar, beat in ((40, 2), (63, 3), (78, 2), (121, 2), (129, 2), (145, 2)):
+        ev.append(("wash", bar * 4 + beat))
+    return ev
+
+
+# ------------------------------------------------------------------ Automation (Phrasen-Rampen statt Zufalls-LFOs)
 def ramp(x, x0, x1, y0, y1):
     t = np.clip((x - x0) / (x1 - x0), 0, 1)
     return y0 + (y1 - y0) * t
@@ -291,92 +252,27 @@ def exp_ramp(x, x0, x1, y0, y1):
     return y0 * (y1 / y0) ** t
 
 
-def lfo(beat, period, phase=0.0):
-    return np.sin(2 * np.pi * beat / period + phase)
-
-
-def seq_cutoff(beat):
-    """Filterbewegung der Sequenz: zwei nicht taktsynchrone LFOs + Sections."""
+def stab_cutoff(beat):
     bar = beat / 4.0
-    base = np.full_like(beat, 300.0)
-    base = np.where(bar < 16, exp_ramp(bar, 8, 16, 220, 450), base)
-    base = np.where((bar >= 16) & (bar < 32), exp_ramp(bar, 16, 32, 450, 900), base)
-    base = np.where((bar >= 32) & (bar < 48), exp_ramp(bar, 32, 48, 900, 1400), base)
-    base = np.where((bar >= 48) & (bar < 80), 1500.0, base)
-    base = np.where((bar >= 80) & (bar < 96), exp_ramp(bar, 80, 96, 650, 1500), base)
-    base = np.where((bar >= 96) & (bar < 128), 1900.0, base)
-    base = np.where((bar >= 128) & (bar < 136), exp_ramp(bar, 128, 136, 500, 2400), base)
-    base = np.where((bar >= 136) & (bar < 160), 2200.0, base)
-    base = np.where(bar >= 160, exp_ramp(bar, 160, 168, 1500, 250), base)
-    m = 2.0 ** (1.1 * lfo(beat, 13.0) + 0.5 * lfo(beat, 37.0, 1.0))
-    return base * m * 0.6  # eher dunkel & dubby statt bissig
-
-
-def seq_fold(beat):
-    bar = beat / 4.0
-    f = 0.9 + 0.4 * (0.5 + 0.5 * lfo(beat, 29.0, 2.0))
-    f = f + np.where((bar >= 96) & (bar < 128), 0.25, 0.0) + np.where((bar >= 136) & (bar < 160), 0.4, 0.0)
-    return f
-
-
-def seq_wow(beat):
-    """Tape-Wobble-Tiefe (ms) im Delay der Sequenz."""
-    bar = beat / 4.0
-    w = np.full_like(beat, 1.2)
-    w = np.where(TRIP_MASK(bar), 7.0, w)
-    return w
-
-
-def TRIP_MASK(bar):
-    return ((bar >= 80) & (bar < 92)) | ((bar >= 128) & (bar < 136))
-
-
-def seq_delay_send(beat):
-    bar = beat / 4.0
-    return np.where(TRIP_MASK(bar), 0.65, 0.28)
-
-
-def bass_cutoff(beat):
-    bar = beat / 4.0
-    c = 380 * 2.0 ** (0.35 * lfo(beat, 23.0))
-    c = np.where(bar < 32, exp_ramp(bar, 16, 32, 160, 380), c)
-    c = np.where(bar >= 164, exp_ramp(bar, 164, 172, 380, 110), c)
+    c = np.full_like(beat, 1200.0)
+    c = np.where(bar < 40, exp_ramp(bar, 32, 40, 350, 900), c)
+    c = np.where((bar >= 40) & (bar < 48), exp_ramp(bar, 40, 48, 500, 1600), c)
+    # in jeder 16-Takt-Phrase oeffnet der Filter langsam (System statt Zufall)
+    phr = (bar % 16) / 16.0
+    c = np.where((bar >= 48) & (bar < 96), 900 * 2.0 ** (1.3 * phr), c)
+    c = np.where((bar >= 104) & (bar < 114), exp_ramp(bar, 104, 114, 300, 2500), c)
+    c = np.where((bar >= 114) & (bar < 146), 1300 * 2.0 ** (1.4 * phr), c)
+    c = np.where((bar >= 146) & (bar < 170), exp_ramp(bar, 146, 170, 1800, 300), c)
     return c
 
 
-def kick_hp(beat):
+def hats_tone(beat):
+    """Helligkeit der Hats (Hochpass) – Stufen wie die Hoehen-Kurve der Referenz."""
     bar = beat / 4.0
-    return np.where((bar >= 92) & (bar < 96), exp_ramp(bar, 92, 96, 700, 20), 10.0)
-
-
-RUMBLE_CELLS = [
-    [0.0, 0.6, 1.0, 0.8],
-    [0.0, 1.0, 0.35, 1.0],
-    [0.0, 0.45, 0.8, 1.0],
-]
-
-
-def rumble_shape(beat):
-    bar = (beat / 4.0).astype(int)
-    block = bar // 8
-    sel = np.array([0, 0, 1, 0, 2, 1, 0, 2])[block % 8]
-    ph = beat % 1.0
-    idx = np.minimum((ph * 4).astype(int), 3)
-    cells = np.array(RUMBLE_CELLS)
-    lev = cells[sel, idx]
-    # weiche Uebergaenge innerhalb der 16tel
-    sub = (ph * 4) % 1.0
-    env = np.clip(sub / 0.15, 0, 1) * (1 - 0.3 * sub)
-    return lev * env
-
-
-def rumble_gain(beat):
-    bar = beat / 4.0
-    g = np.ones_like(beat)
-    g = np.where(bar < 8, ramp(bar, 0, 8, 0.6, 1.0), g)
-    g = np.where(TRIP_MASK(bar) | ((bar >= 92) & (bar < 96)), 0.0, g)
-    return g
-
-
-def rumble_cutoff(beat):
-    return 150 * 2.0 ** (0.4 * lfo(beat, 19.0, 0.5))
+    h = np.full_like(beat, 5500.0)
+    h = np.where(bar < 16, 7500.0, h)
+    h = np.where((bar >= 16) & (bar < 32), exp_ramp(bar, 16, 32, 6500, 4500), h)
+    h = np.where((bar >= 64) & (bar < 78), 4000.0, h)
+    h = np.where((bar >= 114) & (bar < 146), 3800.0, h)
+    h = np.where(bar >= 162, exp_ramp(bar, 162, 178, 5000, 8000), h)
+    return h
