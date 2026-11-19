@@ -343,6 +343,23 @@ def main():
     tracks = []
     tid = 10
     cid = 0
+    # 00 KI-TRACK (ElevenLabs Music) – falls importiert: aktiv, ins 147-BPM-Raster gewarpt
+    kip, kim = f"{ROOT}/Samples/KI/KI_TRACK.flac", f"{ROOT}/Samples/KI/ki_meta.json"
+    ki_active = os.path.exists(kip) and os.path.exists(kim)
+    if ki_active:
+        import json
+        meta = json.load(open(kim))
+        frames = sf.info(kip).frames
+        per_src = 60.0 / meta["bpm"]
+        n_beats = int((meta["duration"] - meta["t0"]) / per_src)
+        mk = [(meta["t0"], 0.0), (meta["t0"] + n_beats * per_src, float(n_beats))]
+        ev = audio_clip(cid, "KI-TRACK", 60, "Samples/KI/KI_TRACK.flac", f"{ABS_GUESS}/Samples/KI/KI_TRACK.flac",
+                        0, n_beats, frames, os.path.getsize(kip), markers=mk)
+        cid += 1
+        tracks.append(track("AudioTrack", tid, "00 KI-TRACK (ElevenLabs)", 60,
+                            f"KI-Komplett-Track nach dem NACHTSTROM-Bauplan, original {meta['bpm']} BPM, auf das Set-Tempo gewarpt.",
+                            ev, n_scenes, 1.0, 0.0, speaker=True))
+        tid += 1
     # 00a REFERENZ (aus) – zum A/B-Vergleich, taktgenau auf 147 BPM gewarpt
     refp = f"{ROOT}/Samples/Referenz/REFERENZ.mp3"
     if os.path.exists(refp):
@@ -386,7 +403,8 @@ def main():
                                  f"Samples/Stems/{fn}", f"{ABS_GUESS}/Samples/Stems/{fn}",
                                  t0, t1, frames, size)
                 cid += 1
-        tracks.append(track("AudioTrack", tid, name, color, info, ev, n_scenes, vol, pan))
+        tracks.append(track("AudioTrack", tid, name, color, info, ev, n_scenes, vol, pan,
+                            speaker=not ki_active))
         tid += 1
     for name, key, color, info in MIDI:
         notes = M.PARTS[key]()
