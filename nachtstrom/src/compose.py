@@ -273,9 +273,6 @@ def wall_notes():
                 notes.append(Note(bar * 4, 4.0, 49, 0.9, True))
                 notes.append(Note(bar * 4 + 4, 4.0, 50 if bar % 4 == 0 else 47, 0.9, True))
             continue
-        if in_(bar, 114, 130):                  # Peak: Riff = Hook-Melodie
-            notes += hook_riff_notes(bar)
-            continue
         off = root_offset(bar)
         for st, semi, acc in riff_pattern(bar):
             notes.append(Note(sx(bar, st), 0.5 if acc else 0.25, base + off + semi, 1.0 if acc else 0.75, bool(acc)))
@@ -341,12 +338,12 @@ def fx_events():
 
 
 # ---------------------------------------------------------------- VIRALER HOOK
-# "De-ja-te ca-er / de-ja-te ca-er / mas pro-fun-do" – Cis-Moll, 4 Takte.
-# (16tel im 4-Takt-Block, Laenge in 16teln, MIDI, Silbe)
+# Hypnotischer Sprechgesang statt Pop-Melodie: enger Tonraum (Cis-D-E, phrygisches D),
+# Silben im 3-3-2-Groove, Takt 4 frei fuer den Atem. (16tel im 4-Takt-Block, Laenge, MIDI, Silbe)
 HOOK = [
-    (0, 2, 68, "de"), (2, 1, 66, "ja"), (3, 1, 64, "te"), (4, 2, 66, "ca"), (6, 8, 61, "er"),
-    (16, 2, 68, "de"), (18, 1, 66, "ja"), (19, 1, 64, "te"), (20, 2, 66, "ca"), (22, 8, 68, "er"),
-    (32, 3, 71, "mas"), (35, 1, 68, "pro"), (36, 4, 66, "fun"), (40, 8, 64, "do"),
+    (0, 2, 61, "de"), (3, 2, 61, "ja"), (6, 1, 61, "te"), (8, 2, 62, "ca"), (10, 4, 61, "er"),
+    (16, 2, 61, "de"), (19, 2, 61, "ja"), (22, 1, 61, "te"), (24, 2, 62, "ca"), (26, 4, 64, "er"),
+    (32, 3, 64, "mas"), (35, 2, 62, "pro"), (38, 3, 61, "fun"), (41, 5, 59, "do"),
 ]
 # (Start-Takt, Pegel, Stil) – Teaser, voller Hook, a cappella im Breakdown, Peak-Schleife
 HOOK_PLACES = [
@@ -357,6 +354,13 @@ HOOK_PLACES = [
     (150, 0.85, "full"),
     (166, 0.6, "teaser"),
 ]
+# Atem: Einatmen vor jedem Hook-Einsatz (endet auf der Eins), grosses Einatmen im Beat-Cut vor dem Drop,
+# Ausatmen zu Beginn des Breakdowns. (Art, Beat an dem der Atem ENDET bzw. BEGINNT, Pegel)
+_B = {("in", bar * 4): 0.8 for bar, g, st in HOOK_PLACES if st != "teaser"}
+_B[("in", 114 * 4)] = 1.0                       # grosses Einatmen im Beat-Cut vor dem Drop
+_B[("out", 96 * 4 + 0.5)] = 0.8                 # Ausatmen: Breakdown beginnt
+_B[("out", 41 * 4)] = 0.6                       # Ausatmen nach dem Tape-Stopp in Break 1
+BREATHS = sorted((k, b, v) for (k, b), v in _B.items())
 
 
 def hook_riff_notes(bar):
@@ -376,7 +380,7 @@ VOCAL_EVENTS = [
     ("VOX_ES_2_MAS_PROFUNDO", 44 * 4 + 2.0, 0.9, "deep"),             # Break 1, zwischen den Kick-Teasern
     ("VOX_ES_4_SIGUE", 79 * 4 + 0.9, 1.0, "deep"),             # im 2-Takt-Stopp, bevor die Kick zurueckkommt
     ("VOX_ES_3_DEJATE_CAER", 105 * 4 + 0.0, 0.9, "whisper"),  # Breakdown, grosser Raum
-    ("VOX_ES_2_MAS_PROFUNDO", 113 * 4 + 2.2, 1.0, "deep"),            # ueber Hoehen-Loch + Beat-Cut direkt in den Drop
+
     ("VOX_ES_4_SIGUE", 129 * 4 + 1.9, 0.9, "deep"),            # im Stopp bei Takt 130
     ("CHOP", 137 * 4 + 2.5, 0.7, "chop"),                    # "Nacht"-Chop als Call im Peak B
     ("CHOP", 141 * 4 + 2.5, 0.7, "chop"),

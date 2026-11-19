@@ -5,6 +5,8 @@ Erwartete Reihenfolge im Take (durch lange Pausen getrennt):
   2. [singing] "más profundo…"
   3. [whispers] "corriente nocturna"
   4. [softly] "sigue"
+  5. [inhales deeply]  (Atem rein)
+  6. [exhales slowly]  (Atem raus)
 
 Ablauf: Phrasen finden -> Silben an Energie-Tälern schneiden -> jede Silbe per
 Tonhöhenmessung (pYIN) auf ihren Melodieton aus compose.HOOK stimmen ->
@@ -103,11 +105,20 @@ def build(take, out_dir):
     x = load(take)
     groups = phrases(x, 0.6)                       # lange Pausen trennen die 4 Teile
     print("Teile im Take:", [(round(a / SR, 2), round(b / SR, 2)) for a, b in groups])
-    if len(groups) < 4:
-        raise SystemExit(f"Erwartet 4 Teile, gefunden {len(groups)} – Take prüfen.")
-    g1, g2, g3, g4 = [x[a:b] for a, b in groups[:4]]
-    sub = phrases(g1, 0.15)
-    first = g1[sub[0][0]:sub[0][1]] if len(sub) >= 2 else g1
+    parts = [x[a:b] for a, b in groups]
+    if len(parts) == 7:      # dejate caer | dejate caer | mas profundo | corriente | sigue | ein | aus
+        first, g2, g3, g4 = parts[0], parts[2], parts[3], parts[4]
+        groups = groups[:2] + groups[3:]          # damit Atem-Teile an Index 4/5 liegen
+        groups = [groups[0], groups[1], groups[2], groups[3], groups[4], groups[5]]
+        breath_in, breath_out = parts[5], parts[6]
+    elif len(parts) >= 4:
+        g1, g2, g3, g4 = parts[:4]
+        sub = phrases(g1, 0.15)
+        first = g1[sub[0][0]:sub[0][1]] if len(sub) >= 2 else g1
+        breath_in = parts[4] if len(parts) > 4 else None
+        breath_out = parts[5] if len(parts) > 5 else None
+    else:
+        raise SystemExit(f"Erwartet mind. 4 Teile, gefunden {len(groups)} – Take prüfen.")
     syl_dejate = syllables(first, 5)              # de-ja-te-ca-er
     syl_mas = syllables(g2, 4)                    # mas-pro-fun-do
     pool = {"de": syl_dejate[0], "ja": syl_dejate[1], "te": syl_dejate[2], "ca": syl_dejate[3],
@@ -121,8 +132,9 @@ def build(take, out_dir):
         print(f"  {syl:4s} gemessen {cur:5.1f} -> Ziel {midi} ({librosa.midi_to_note(midi)})")
     hook = hook / (np.max(np.abs(hook)) + 1e-9) * 10 ** (-1 / 20)
     sf.write(f"{out_dir}/HOOK_ES.flac", hook, SR, subtype="PCM_24")
-    for name, seg in (("VOX_ES_1_CORRIENTE", g3), ("VOX_ES_2_MAS_PROFUNDO", g2),
-                      ("VOX_ES_3_DEJATE_CAER", first), ("VOX_ES_4_SIGUE", g4)):
+    extra = [(n, seg) for n, seg in (("BREATH_IN", breath_in), ("BREATH_OUT", breath_out)) if seg is not None]
+    for name, seg in [("VOX_ES_1_CORRIENTE", g3), ("VOX_ES_2_MAS_PROFUNDO", g2),
+                      ("VOX_ES_3_DEJATE_CAER", first), ("VOX_ES_4_SIGUE", g4)] + extra:
         seg = seg / (np.max(np.abs(seg)) + 1e-9) * 10 ** (-1 / 20)
         sf.write(f"{out_dir}/{name}.flac", seg, SR, subtype="PCM_24")
     print("Hook + Shots geschrieben nach", out_dir)

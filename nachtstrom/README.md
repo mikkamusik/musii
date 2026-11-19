@@ -1,4 +1,4 @@
-# NACHTSTROM v11 – 147 BPM · Cis · ein durchgehender Track mit dreckigem Sub
+# NACHTSTROM v12 – 147 BPM · Cis · ein durchgehender Track, dirty Sub, spanischer Vocal-Hook
 
 Gebaut nach dem vermessenen Bauplan deiner Referenz, die Details stehen in `REFERENZ_ANALYSE.md`.
 
@@ -12,9 +12,9 @@ Neu in v11, nicht mehr progressiv und nicht mehr „wie 3 Tracks gleichzeitig“
 - **Vocals:** auf **Spanisch** („Corriente nocturna“, „Más profundo“, „Déjate caer“, „Sigue“). Die Plätze im Arrangement stehen, die Shots kommen von ElevenLabs. Die alten deutschen Shots liegen in `Samples/Vocals/alt_deutsch/`.
 
 ## In Ableton öffnen
-1. `NACHTSTROM_v11.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v11/`.
-2. `NACHTSTROM_v11/NACHTSTROM.als` öffnen.
-3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v11` → **Los** → **Sichern**, dann **Cmd+S**.
+1. `NACHTSTROM_v12.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v12/`.
+2. `NACHTSTROM_v12/NACHTSTROM.als` öffnen.
+3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v12` → **Los** → **Sichern**, dann **Cmd+S**.
 4. A/B-Vergleich: **00 REFERENZ** und **00 MASTER BOUNCE** abwechselnd solo hören.
 
 ## Highlights (Takt-Nummern wie in Ableton)
@@ -34,17 +34,31 @@ Neu in v11, nicht mehr progressiv und nicht mehr „wie 3 Tracks gleichzeitig“
 | 131–146 | Dub-Stabs alle 2 Takte |
 | alle 8 Takte | ein Fill im Wechsel: Tom-Fill, ausgelassene Kick, Hat-Roll, Reverse-Becken |
 
-## Vocal-Shots (Spanisch)
-| Takt | Shot |
+## Der spanische Vocal-Hook (neu in v12)
+**„Dé-ja-te ca-er / dé-ja-te ca-er / más pro-fun-do“**: ein hypnotischer Sprechgesang statt einer Pop-Melodie.
+- **Tonraum:** eng um Cis, D und E, mit dem phrygischen D als dunkler Farbe.
+- **Rhythmus:** Die Silben sitzen im 3-3-2-Groove.
+- **„Más profundo“** fällt eine Oktave nach unten, passend zum Wort („tiefer“).
+- **Stimme:** gesungen von „Daniela – Cálida, Emotiva y Dinámica“ (ElevenLabs). `src/vocal_hook.py` schneidet den Gesang in Silben und stimmt jede Silbe per Tonhöhenmessung auf ihren Melodieton.
+- **Klang:** dunkel gefiltert, leicht angezerrt, mit Dub-Echo, also bewusst nicht EDM-glatt.
+
+| Takt | Hook |
 |---|---|
-| 29 | „Corriente nocturna“ (geflüstert) |
-| 45 | „Más profundo“ in Break 1 |
-| 80 | „Sigue“ im Stopp |
-| 106 | „Déjate caer“ (geflüstert) im Breakdown |
-| 114 → 115 | „Más profundo“ über das Höhen-Loch und den Beat-Cut in den Drop |
-| 130 | „Sigue“ im Stopp |
-| 138, 142 | „Corr…“-Chop als Call |
-| 167 | „Corriente nocturna“ im Outro |
+| 37 | Teaser, gefiltert und weit weg |
+| 57, 61 | voller Hook in Main 1 |
+| 106 | **a cappella** im Breakdown, großer Raum |
+| 115–130 | 4× im Peak |
+| 151 | nochmal in Main 3 |
+| 167 | Echo im Outro |
+
+**Atem:**
+- Ein Einatmen endet genau auf jedem Hook-Einsatz.
+- Ein **großes Einatmen im Beat-Cut direkt vor dem Drop bei Takt 115**.
+- Ein Ausatmen zu Beginn des Breakdowns und nach dem Tape-Stopp in Break 1.
+
+**Weitere Shots:** „Corriente nocturna“ geflüstert (Takt 29 und 167), „Sigue“ in den Stopps (Takt 80 und 130), „Más profundo“ in Break 1 (Takt 45), „Déjate caer“ im Breakdown (Takt 106) und „Dé“-Chops als Call (Takt 138 und 142).
+
+**Dateien:** Der rohe Take liegt in `Samples/Vocals/raw_es/`. Hook, Shots und Atem liegen einzeln in `Samples/Vocals/`, die Hook-Melodie auch als **12b HOOK MIDI**.
 
 ## Neu rendern
 ```

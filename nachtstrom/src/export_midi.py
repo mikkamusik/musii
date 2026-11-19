@@ -70,7 +70,16 @@ def drums():
     return [(max(0.0, b), d, p, v) for b, d, p, v in ev]
 
 
+def hook_part():
+    out = []
+    for bar, g, style in C.HOOK_PLACES:
+        for st, ln, m, syl in C.HOOK:
+            out.append((bar * 4 + st * 0.25, ln * 0.25 * 0.9, m, g))
+    return out
+
+
 PARTS = {
+    "HOOK": hook_part,
     "WALL": lambda: part(C.wall_notes()),
     "DUB": lambda: part(C.dub_notes()),
     "BASS": lambda: part(C.bass_notes()),

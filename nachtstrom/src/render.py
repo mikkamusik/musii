@@ -459,6 +459,18 @@ def render_vocal():
         tmp = np.zeros(N)
         add(tmp, x * send_r, b, 1.0)
         verb += tmp
+    # Atem: Einatmen endet genau auf dem Einsatz, Ausatmen beginnt dort
+    for kind, b, g in C.BREATHS:
+        br = load_shot("BREATH_IN" if kind == "in" else "BREATH_OUT")
+        if br is None:
+            continue
+        x = hp(br, 120)
+        x = x / (np.max(np.abs(x)) + 1e-9) * g * 0.55
+        start = b - (len(x) / SR / C.SPB if kind == "in" else 0.0)
+        add(out, pan(x, 0.0), start, 1.0)
+        tmp = np.zeros(N)
+        add(tmp, x * 0.35, start, 1.0)
+        verb += tmp
     # Viraler Hook (gesungen, auf die Melodie gestimmt) – falls vorhanden
     hp_ = f"{ROOT}/Samples/Vocals/HOOK_ES.flac"
     if os.path.exists(hp_):
@@ -472,8 +484,8 @@ def render_vocal():
             elif style == "acapella":
                 sd_, sr_ = 0.45, 0.7
             else:
-                x = tube_os(x * 1.2, 1.3, 0.02)
-                sd_, sr_ = 0.3, 0.22
+                x = lp(tube_os(x * 1.6, 1.8, 0.05), 6500)      # dunkler & angezerrt statt Pop-Glanz
+                sd_, sr_ = 0.35, 0.22
             x = x / (np.max(np.abs(x)) + 1e-9) * g
             dry = pan(x, 0.0)
             add(out, dry, bar * 4, 1.0)
@@ -848,9 +860,14 @@ def main(ref_path):
     col = C.color_lp(BEAT_AT)
     for k in ("04 HATS", "06 PERC", "07 RIFF", "08 DUB STAB"):
         stems[k] = np.array([svf(c, col, 0.1, 0) for c in stems[k]])
-    vp = np.max(np.abs(stems["12 VOCAL"]))
-    if vp > 0:
-        stems["12 VOCAL"] = stems["12 VOCAL"] * (np.max(np.abs(stems["01 KICK"])) * db(-5.0) / vp)
+    # Vocal-Pegel nach der LAUTHEIT des Hooks im Peak (nicht nach Atem-Spitzen):
+    # Hook-RMS 5 dB unter Kick-RMS -> gut hoerbar vorne im Mix, Spitzen weich begrenzt.
+    s0, s1 = smp(114 * 4), smp(130 * 4)
+    vr = np.sqrt(np.mean(stems["12 VOCAL"][..., s0:s1] ** 2))
+    kr = np.sqrt(np.mean(stems["01 KICK"][s0:s1] ** 2))
+    if vr > 0:
+        stems["12 VOCAL"] = stems["12 VOCAL"] * (kr * db(-2.0) / vr)
+        stems["12 VOCAL"] = soft_clip(stems["12 VOCAL"], np.max(np.abs(stems["01 KICK"])) * db(-2.0))
     for k in EDITED:
         stems[k] = apply_edits(stems[k])
     # Spannungsbogen: Break leise & dunkel -> Crescendo im Aufbau -> Drop

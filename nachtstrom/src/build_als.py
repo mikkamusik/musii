@@ -18,7 +18,7 @@ import export_midi as M
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Wahrscheinlichster Ort nach dem Entpacken der Chat-ZIP (Fallback: relativer Pfad)
-ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v11")
+ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v12")
 
 
 class Ids:
@@ -294,10 +294,11 @@ AUDIO = [  # Stem, Farbe, Volume, Pan, Info
     ("09 ATMOS", 41, 1.0, 0, "Drone in Break 1 und Breakdown."),
     ("10 FX", 1, 1.0, 0, "Highlights: Reverse-Crashes, Crashes, Sub-Drops, Pings, Downlifter, Wand-Sweeps."),
     ("11 RISER", 1, 1.0, 0, "Weicher Riser vor dem grossen Drop."),
-    ("12 VOCAL", 60, 1.0, 0, "Spanische Vocal-Shots (ElevenLabs): Corriente nocturna / Mas profundo / Dejate caer / Sigue."),
+    ("12 VOCAL", 60, 1.0, 0, "Spanischer Hook 'Dejate caer / mas profundo' (ElevenLabs, Daniela), Silben auf die Melodie gestimmt; Atem ein/aus; Shots Corriente nocturna / Sigue. Rohdateien in Samples/Vocals."),
 ]
 
 MIDI = [  # Name, Datei-Key, Farbe, Info
+    ("12b HOOK MIDI", "HOOK", 60, "Die Hook-Melodie als MIDI (Cis-D-E, 3-3-2-Groove) – z.B. fuer einen eigenen Synth oder Vocoder."),
     ("13 RIFF MIDI", "WALL", 5, "Riff-Synth: Wavetable/Analog, 3 Saws leicht verstimmt, LP mit Env, sanfte Saettigung, Sidechain, Echo-Throws."),
     ("14 DUB MIDI", "DUB", 9, "Kurzer Stab -> Echo 3/16 mit viel Feedback -> Reverb."),
     ("15 BASS MIDI", "BASS", 12, "Operator: reiner Sinus, kurzer Attack, leichte Saettigung."),
