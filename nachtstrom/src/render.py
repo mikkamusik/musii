@@ -1,4 +1,4 @@
-"""NACHTSTROM v11 – Renderer: ein durchgehender Track, dreckiger Sub, Highlights, Vocals.
+"""NACHTSTROM v12 – Renderer: ein Track, dirty Sub, viraler Vocal-Hook, Highlights.
 
 Alle Sounds selbst synthetisiert. Klangbalance per Match-EQ (Regelkreis) an
 die vermessene Referenz angeglichen – vom Referenz-Audio landet nichts im Track.
@@ -435,11 +435,10 @@ def pitch_down(x, semis):
 def render_vocal():
     out = np.zeros((2, N))
     shots = {k: load_shot(k) for k in ("VOX_ES_1_CORRIENTE", "VOX_ES_2_MAS_PROFUNDO", "VOX_ES_3_DEJATE_CAER", "VOX_ES_4_SIGUE")}
-    if any(v is None for v in shots.values()):
-        return out
+    have_shots = not any(v is None for v in shots.values())
     dly = np.zeros((2, N))
     verb = np.zeros(N)
-    for name, b, g, style in C.VOCAL_EVENTS:
+    for name, b, g, style in (C.VOCAL_EVENTS if have_shots else []):
         if style == "chop":
             x = shots["VOX_ES_1_CORRIENTE"][: int(0.30 * SR)].copy()
             x[-300:] *= np.linspace(1, 0, 300)
@@ -460,6 +459,28 @@ def render_vocal():
         tmp = np.zeros(N)
         add(tmp, x * send_r, b, 1.0)
         verb += tmp
+    # Viraler Hook (gesungen, auf die Melodie gestimmt) – falls vorhanden
+    hp_ = f"{ROOT}/Samples/Vocals/HOOK_ES.flac"
+    if os.path.exists(hp_):
+        hk, _ = sf.read(hp_)
+        hk = hk if hk.ndim == 1 else hk.mean(1)
+        for bar, g, style in C.HOOK_PLACES:
+            x = hp(hk, 150)
+            if style == "teaser":
+                x = lp(x, 1500)
+                sd_, sr_ = 0.6, 0.6
+            elif style == "acapella":
+                sd_, sr_ = 0.45, 0.7
+            else:
+                x = tube_os(x * 1.2, 1.3, 0.02)
+                sd_, sr_ = 0.3, 0.22
+            x = x / (np.max(np.abs(x)) + 1e-9) * g
+            dry = pan(x, 0.0)
+            add(out, dry, bar * 4, 1.0)
+            add(dly, dry * sd_, bar * 4, 1.0)
+            tmp = np.zeros(N)
+            add(tmp, x * sr_, bar * 4, 1.0)
+            verb += tmp
     dl, dr = tape(dly[0], dly[1], 0.75, 2.0, 0.35, 0.5, 0.5, 1.3, 1.0)
     rv = reverb(verb, size=0.9, damp=0.45, predelay_ms=30)
     return out + np.array([hp(dl, 250), hp(dr, 250)]) * 0.7 + rv * 0.8

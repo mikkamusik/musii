@@ -1,4 +1,4 @@
-"""NACHTSTROM v11 – EIN durchgehender Track: ein Grundton, ein dreckiger Sub, ein Riff, eine Percussion-Familie.
+"""NACHTSTROM v12 – ein durchgehender Track + viraler spanischer Vocal-Hook (Ohrwurm-Melodie).
 
 Aus der Referenz (siehe ../REFERENZ_ANALYSE.md):
   147 BPM, lange Pitch-Sweep-Kick, Offbeat-Bass eine Quarte darueber,
@@ -273,6 +273,9 @@ def wall_notes():
                 notes.append(Note(bar * 4, 4.0, 49, 0.9, True))
                 notes.append(Note(bar * 4 + 4, 4.0, 50 if bar % 4 == 0 else 47, 0.9, True))
             continue
+        if in_(bar, 114, 130):                  # Peak: Riff = Hook-Melodie
+            notes += hook_riff_notes(bar)
+            continue
         off = root_offset(bar)
         for st, semi, acc in riff_pattern(bar):
             notes.append(Note(sx(bar, st), 0.5 if acc else 0.25, base + off + semi, 1.0 if acc else 0.75, bool(acc)))
@@ -335,6 +338,36 @@ def fx_events():
         if fill_type(bar) == "revcym":
             ev.append(("revcrash", bar * 4 + 3))
     return ev
+
+
+# ---------------------------------------------------------------- VIRALER HOOK
+# "De-ja-te ca-er / de-ja-te ca-er / mas pro-fun-do" – Cis-Moll, 4 Takte.
+# (16tel im 4-Takt-Block, Laenge in 16teln, MIDI, Silbe)
+HOOK = [
+    (0, 2, 68, "de"), (2, 1, 66, "ja"), (3, 1, 64, "te"), (4, 2, 66, "ca"), (6, 8, 61, "er"),
+    (16, 2, 68, "de"), (18, 1, 66, "ja"), (19, 1, 64, "te"), (20, 2, 66, "ca"), (22, 8, 68, "er"),
+    (32, 3, 71, "mas"), (35, 1, 68, "pro"), (36, 4, 66, "fun"), (40, 8, 64, "do"),
+]
+# (Start-Takt, Pegel, Stil) – Teaser, voller Hook, a cappella im Breakdown, Peak-Schleife
+HOOK_PLACES = [
+    (36, 0.55, "teaser"),
+    (56, 1.0, "full"), (60, 1.0, "full"),
+    (105, 0.95, "acapella"),
+    (114, 1.0, "full"), (118, 1.0, "full"), (122, 1.0, "full"), (126, 1.0, "full"),
+    (150, 0.85, "full"),
+    (166, 0.6, "teaser"),
+]
+
+
+def hook_riff_notes(bar):
+    """Im Peak spielt das Riff die Hook-Melodie mit (eine Oktave tiefer) – die Melodie brennt sich ein."""
+    blk = bar - ((bar - 114) % 4)
+    out = []
+    for st, ln, m, syl in HOOK:
+        b = blk * 4 + st * 0.25
+        if bar * 4 <= b < bar * 4 + 4:
+            out.append(Note(b, ln * 0.25 * 0.9, m - 12, 1.0, st in (0, 16, 32)))
+    return out
 
 
 # Vocal-Shots (ElevenLabs, eigene Woerter) – (Shot, Beat, Pegel, Stil)
