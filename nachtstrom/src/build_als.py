@@ -18,7 +18,7 @@ import export_midi as M
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Wahrscheinlichster Ort nach dem Entpacken der Chat-ZIP (Fallback: relativer Pfad)
-ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v10")
+ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v11")
 
 
 class Ids:
@@ -285,25 +285,23 @@ def master_track(n_scenes):
 AUDIO = [  # Stem, Farbe, Volume, Pan, Info
     ("01 KICK", 14, 1.0, 0, "Tiefe, runde Kick (Fit an Referenz), lange Sub-Fahne."),
     ("02 RUMBLE", 14, 1.0, 0, "Leiser Kick-Hall-Rumble im Offbeat-Fenster."),
-    ("03 BASS", 12, 1.0, 0, "Bass je Section: Muster UND Klang wechseln; Grundton Cis -> H (Main 2) -> Cis -> E (Peak B) -> Cis."),
+    ("03 BASS", 12, 1.0, 0, "Dreckiger Offbeat-Sub auf Cis: Sinus-Sub + Saw, Saettigung und paralleler Grit-Layer (100-900 Hz)."),
     ("04 HATS", 26, 1.0, 0, "Offbeat-Hat kurz->mittel->offen, Tick, Shaker (Main 1, Main 3), Ride (Peak)."),
     ("05 CLAP", 26, 1.0, 0, "Clap auf 2 & 4."),
     ("06 PERC", 22, 1.0, 0, "Identitaet je Section: Tribal-Toms, Halbtempo-Toms + Tom-Roll (Break 1), Congas, Rim, Metall-3/16-Loop."),
-    ("07 RIFF", 5, 1.0, 0, "Hypnotisches 16tel-Riff (A/B/C + Antwort alle 4 Takte), folgt dem Grundton-Wechsel."),
+    ("07 RIFF", 5, 1.0, 0, "Ein hypnotisches 16tel-Riff fuer den ganzen Track, Antwort alle 4 Takte, Filter oeffnet ueber 16 Takte."),
     ("08 DUB STAB", 9, 1.0, 0, "Dub-Stabs mit langem Echo (Takt 25, Breakdown, Peak B, Outro)."),
     ("09 ATMOS", 41, 1.0, 0, "Drone in Break 1 und Breakdown."),
     ("10 FX", 1, 1.0, 0, "Highlights: Reverse-Crashes, Crashes, Sub-Drops, Pings, Downlifter, Wand-Sweeps."),
     ("11 RISER", 1, 1.0, 0, "Weicher Riser vor dem grossen Drop."),
-    ("12 VOCAL", 60, 1.0, 0, "Vocal-Shots (ElevenLabs, Vincent Crowe): Nachtstrom / Tiefer / Lass dich fallen / Weiter."),
-    ("13 STAB", 3, 1.0, 0, "Stab-Hook nur im Peak (115-130) – eigene Identitaet des Hoehepunkts."),
+    ("12 VOCAL", 60, 1.0, 0, "Spanische Vocal-Shots (ElevenLabs): Corriente nocturna / Mas profundo / Dejate caer / Sigue."),
 ]
 
 MIDI = [  # Name, Datei-Key, Farbe, Info
-    ("14 RIFF MIDI", "WALL", 5, "Riff-Synth: Wavetable/Analog, 3 Saws leicht verstimmt, LP mit Env, sanfte Saettigung, Sidechain, Echo-Throws."),
-    ("15 STAB MIDI", "STAB", 3, "Analog: 2 Osc, LP 24, kurze Env, Echo 3/16."),
-    ("16 DUB MIDI", "DUB", 9, "Kurzer Stab -> Echo 3/16 mit viel Feedback -> Reverb."),
-    ("17 BASS MIDI", "BASS", 12, "Operator: reiner Sinus, kurzer Attack, leichte Saettigung."),
-    ("18 DRUMS MIDI", "DRUMS", 14, "Drum Rack: C1 Kick, C#1 Rim, D#1 Clap, F1 Tom L, F#1 Tick, A1 Tom M, A#1 Hat, D#2 Ride, D#3 Conga, A#3 Shaker, D#4-F4 Metall."),
+    ("13 RIFF MIDI", "WALL", 5, "Riff-Synth: Wavetable/Analog, 3 Saws leicht verstimmt, LP mit Env, sanfte Saettigung, Sidechain, Echo-Throws."),
+    ("14 DUB MIDI", "DUB", 9, "Kurzer Stab -> Echo 3/16 mit viel Feedback -> Reverb."),
+    ("15 BASS MIDI", "BASS", 12, "Operator: reiner Sinus, kurzer Attack, leichte Saettigung."),
+    ("16 DRUMS MIDI", "DRUMS", 14, "Drum Rack: C1 Kick, C#1 Rim, D#1 Clap, F1 Tom L, F#1 Tick, A1 Tom M, A#1 Hat, D#2 Ride, D#3 Conga, A#3 Shaker, D#4-F4 Metall."),
 ]
 
 REF_T0 = 0.0245  # erster Downbeat der Referenz (gemessen)

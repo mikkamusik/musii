@@ -1,4 +1,4 @@
-"""NACHTSTROM v10 – Grundton-Wechsel, entwickelndes Riff, Klangfarbe je Section, Fill alle 8 Takte.
+"""NACHTSTROM v11 – EIN durchgehender Track: ein Grundton, ein dreckiger Sub, ein Riff, eine Percussion-Familie.
 
 Aus der Referenz (siehe ../REFERENZ_ANALYSE.md):
   147 BPM, lange Pitch-Sweep-Kick, Offbeat-Bass eine Quarte darueber,
@@ -69,11 +69,7 @@ PICKUPS = [47 * 4 + 3]        # einzelne volle Kick vor dem Drop (wie Referenz)
 
 
 def root_offset(bar):
-    """Harmonischer Weg: Cis -> (Main 2) H -> Cis -> (Peak B) E -> Cis."""
-    if in_(bar, 80, 96):
-        return -2
-    if in_(bar, 130, 146):
-        return 3
+    """v11: kein Tonartwechsel mehr – der ganze Track bleibt auf Cis (nicht progressiv)."""
     return 0
 
 
@@ -126,13 +122,7 @@ def roll_hits():
 
 # ====================================================================== OFFBEAT-BASS
 def bass_pattern(bar):
-    if in_(bar, 48, 64):
-        return "roll"        # Main 1: rollende 16tel
-    if in_(bar, 80, 96) or in_(bar, 130, 146):
-        return "jump"        # Main 2 / Peak B: Oktav-Spruenge
-    if in_(bar, 114, 130):
-        return "sync"        # Peak: Offbeat + letzte 16tel
-    return "off"
+    return "off"         # v11: durchgehend Offbeat-Sub, ein Track statt drei
 
 
 def bass_notes():
@@ -187,10 +177,6 @@ def hat_events():
         if in_(bar, 72, 78) or in_(bar, 122, 129):        # Variation: 16tel oeffnen sich fuer ein paar Takte
             for beat in range(4):
                 ev.append((bar * 4 + beat + 0.75, "e", 0.32))
-        if in_(bar, 48, 64) or in_(bar, 146, 162):         # Shaker-Identitaet
-            for st in range(16):
-                if st % 4 != 0:
-                    ev.append((sx(bar, st) + (0.01 if st % 2 else 0), "s", [0, 0.45, 0.7, 0.5][st % 4]))
         if fill_type(bar) == "hatroll":                    # Fill: 32tel-Roll auf Beat 4
             for k in range(8):
                 ev.append((bar * 4 + 3 + k / 8, "e", 0.25 + 0.06 * k))
@@ -228,33 +214,22 @@ def perc_events():
         if bar in (63, 78, 79, 121, 129, 145):
             continue
         pats = []
-        if in_(bar, 16, 32) or in_(bar, 114, 130):
+        if in_(bar, 16, 40) or in_(bar, 48, 162):
             pats.append(TOMS_T1)
-        if in_(bar, 130, 146):
-            pats.append(TOMS_T2)
         if in_(bar, 40, 46):
-            pats.append(TOMS_HALF)                    # Break 1: Tribal in Halbtempo
-        if in_(bar, 80, 96) or in_(bar, 130, 146):
-            pats.append(((2, "cga", 0.8), (9, "cga", 0.6), (12, "cga", 0.7)))
-        if in_(bar, 64, 96) or in_(bar, 146, 166):
+            pats.append(TOMS_HALF)                    # Break 1: Toms in Halbtempo
+        if in_(bar, 48, 166):
             pats.append(((3, "rim", 0.8), (11, "rim", 0.65)))
-        if in_(bar, 114, 130):
-            pats.append(((3, "rim", 0.8), (6, "rim", 0.55), (11, "rim", 0.65), (14, "rim", 0.5)))
+        if in_(bar, 114, 146):                        # Peak: gleiche Familie, nur dichter
+            pats.append(((2, "cga", 0.7), (9, "cga", 0.55), (12, "cga", 0.6)))
         for pat in pats:
             for st, kind, v in pat:
                 ev.append((sx(bar, st), kind, v))
-        # metallischer 3/16-Loop (Polymeter) in Main 1B und Main 3
-        if in_(bar, 64, 78) or in_(bar, 146, 162):
-            for st in range(16):
-                g = bar * 16 + st
-                if g % 3 == 0:
-                    ev.append((sx(bar, st), ["mt1", "mt2", "mt1", "mt3"][(g // 3) % 4], 0.7))
     for bar in range(BARS):
         if fill_type(bar) == "toms":
             for k, kind in enumerate(("tm", "tm", "tl", "tl")):
                 ev.append((bar * 4 + 3 + k / 4, kind, 0.65 + 0.08 * k))
-    # Tom-Roll als Aufbau in Break 1 (8tel -> 16tel)
-    for bar, div in ((46, 2), (47, 4)):
+    for bar, div in ((46, 2), (47, 4)):           # Tom-Roll als Aufbau in Break 1
         n = 4 * div if bar == 46 else 3 * div
         for k in range(n):
             prog = ((bar - 46) * 4 + k / div) / 7.0
@@ -269,7 +244,7 @@ WALL_C = [49, 49, 49, 61]                  # Main 1B / Peak: Oktav-Sprung auf Be
 
 
 def wall_active(bar):
-    return in_(bar, 32, 40) or in_(bar, 48, 64) or in_(bar, 80, 130) or in_(bar, 146, 162)
+    return in_(bar, 32, 40) or in_(bar, 48, 162)
 
 
 RIFF_A = [(0, 0, 1), (3, 0, 0), (6, 12, 1), (8, 0, 0), (11, 3, 0), (14, 0, 1)]            # Drive / Main 1 / Main 3
@@ -279,12 +254,7 @@ RIFF_CALL = [(12, 7, 1), (13, 5, 0), (14, 3, 0), (15, 1, 1)]                    
 
 
 def riff_pattern(bar):
-    if in_(bar, 80, 96):
-        pat = RIFF_B
-    elif in_(bar, 114, 130):
-        pat = RIFF_C
-    else:
-        pat = RIFF_A
+    pat = RIFF_A
     if bar % 4 == 3:
         pat = [n for n in pat if n[0] < 12] + RIFF_CALL
     if bar % 16 < 4 and not in_(bar, 32, 40):      # erste 4 Takte jeder Phrase: nur Akzente (Luft)
@@ -329,14 +299,7 @@ STAB_PEAK = [(0, 49, 1), (3, 49, 0), (6, 56, 1), (10, 49, 0), (13, 52, 1)]
 
 
 def stab_notes():
-    notes = []
-    for bar in range(114, 130):
-        if bar in (121, 129):
-            continue
-        pat = STAB_PEAK if bar % 4 != 3 else STAB_PEAK[:3] + [(12, 59, 1), (14, 56, 0)]
-        for st, p, acc in pat:
-            notes.append(Note(sx(bar, st), 0.3 if acc else 0.18, p, 1.0 if acc else 0.7, bool(acc)))
-    return notes
+    return []      # v11: kein Extra-Hook im Peak (sonst "wie ein zweiter Track")
 
 
 # ====================================================================== ATMOS (Drone mit Pitch-Riser)
@@ -376,15 +339,15 @@ def fx_events():
 
 # Vocal-Shots (ElevenLabs, eigene Woerter) – (Shot, Beat, Pegel, Stil)
 VOCAL_EVENTS = [
-    ("VOX_1_NACHTSTROM", 28 * 4 + 1.0, 0.8, "whisper"),       # Vorbote vor dem Drive
-    ("VOX_2_TIEFER", 44 * 4 + 2.0, 0.9, "deep"),             # Break 1, zwischen den Kick-Teasern
-    ("VOX_4_WEITER", 79 * 4 + 0.9, 1.0, "deep"),             # im 2-Takt-Stopp, bevor die Kick zurueckkommt
-    ("VOX_3_LASS_DICH_FALLEN", 105 * 4 + 0.0, 0.9, "whisper"),  # Breakdown, grosser Raum
-    ("VOX_2_TIEFER", 113 * 4 + 2.2, 1.0, "deep"),            # ueber Hoehen-Loch + Beat-Cut direkt in den Drop
-    ("VOX_4_WEITER", 129 * 4 + 1.9, 0.9, "deep"),            # im Stopp bei Takt 130
+    ("VOX_ES_1_CORRIENTE", 28 * 4 + 1.0, 0.8, "whisper"),       # Vorbote vor dem Drive
+    ("VOX_ES_2_MAS_PROFUNDO", 44 * 4 + 2.0, 0.9, "deep"),             # Break 1, zwischen den Kick-Teasern
+    ("VOX_ES_4_SIGUE", 79 * 4 + 0.9, 1.0, "deep"),             # im 2-Takt-Stopp, bevor die Kick zurueckkommt
+    ("VOX_ES_3_DEJATE_CAER", 105 * 4 + 0.0, 0.9, "whisper"),  # Breakdown, grosser Raum
+    ("VOX_ES_2_MAS_PROFUNDO", 113 * 4 + 2.2, 1.0, "deep"),            # ueber Hoehen-Loch + Beat-Cut direkt in den Drop
+    ("VOX_ES_4_SIGUE", 129 * 4 + 1.9, 0.9, "deep"),            # im Stopp bei Takt 130
     ("CHOP", 137 * 4 + 2.5, 0.7, "chop"),                    # "Nacht"-Chop als Call im Peak B
     ("CHOP", 141 * 4 + 2.5, 0.7, "chop"),
-    ("VOX_1_NACHTSTROM", 166 * 4 + 0.0, 0.75, "whisper"),     # Abschied im Outro
+    ("VOX_ES_1_CORRIENTE", 166 * 4 + 0.0, 0.75, "whisper"),     # Abschied im Outro
 ]
 
 
@@ -460,29 +423,17 @@ def throw_beats():
 
 
 def color_lp(beat):
-    """Klangfarbe je Section (Tiefpass auf Hats/Perc/Riff/Stabs): dunkel -> offen -> warm -> hell -> zu."""
+    """Dezente Klangfarben-Dramaturgie: Intro dunkel -> offen; Peak etwas heller; Main 3/Outro schliessen."""
     bar = beat / 4.0
     c = np.full_like(beat, 16000.0)
     c = np.where(bar < 8, 4500.0, c)
     c = np.where((bar >= 8) & (bar < 16), exp_ramp(bar, 8, 16, 4500, 16000), c)
-    c = np.where((bar >= 48) & (bar < 64), 13000.0, c)
-    c = np.where((bar >= 64) & (bar < 80), 19000.0, c)
-    c = np.where((bar >= 80) & (bar < 96), 8000.0, c)
-    c = np.where((bar >= 114) & (bar < 130), 19500.0, c)
-    c = np.where((bar >= 130) & (bar < 146), 11000.0, c)
-    c = np.where((bar >= 146) & (bar < 162), exp_ramp(bar, 146, 162, 14000, 5000), c)
-    c = np.where(bar >= 162, exp_ramp(bar, 162, 178, 5000, 3000), c)
+    c = np.where((bar >= 114) & (bar < 146), 19000.0, c)
+    c = np.where((bar >= 146) & (bar < 162), exp_ramp(bar, 146, 162, 15000, 7000), c)
+    c = np.where(bar >= 162, exp_ramp(bar, 162, 178, 7000, 4000), c)
     return c
 
 
 def bass_color(bar):
-    """(Saw-Anteil, Drive, Tiefpass) je Section – der Bass klingt nicht ueberall gleich."""
-    if in_(bar, 48, 64):
-        return 0.15, 1.6, 500.0
-    if in_(bar, 80, 96):
-        return 0.35, 1.5, 380.0
-    if in_(bar, 114, 130):
-        return 0.25, 2.0, 650.0
-    if in_(bar, 130, 146):
-        return 0.1, 1.4, 420.0
-    return 0.0, 1.3, 400.0
+    """v11: ein dreckiger Sub-Sound fuer den ganzen Track (Saw-Anteil, Drive, Tiefpass)."""
+    return 0.25, 3.0, 320.0

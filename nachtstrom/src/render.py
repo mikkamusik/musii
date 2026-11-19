@@ -1,4 +1,4 @@
-"""NACHTSTROM v10 – Renderer: Grundton-Wechsel, Riff, Klangfarben, Fills, Highlights, Vocals.
+"""NACHTSTROM v11 – Renderer: ein durchgehender Track, dreckiger Sub, Highlights, Vocals.
 
 Alle Sounds selbst synthetisiert. Klangbalance per Match-EQ (Regelkreis) an
 die vermessene Referenz angeglichen – vom Referenz-Audio landet nichts im Track.
@@ -152,7 +152,7 @@ def render_rumble(ghost):
     wet = reverb(ghost, size=0.93, damp=0.62, predelay_ms=5)
     r = 0.5 * (wet[0] + wet[1])
     r = svf(r, np.full(N, 140.0), 0.35, 0)
-    r = tube(r * 9.0, 3.2, 0.2)
+    r = tube(r * 11.0, 4.0, 0.25)
     r = svf(r, np.full(N, 190.0), 0.15, 0)
     r = hp(r, 70)
     ph = BEAT_AT % 1.0
@@ -176,7 +176,11 @@ def render_bass():
         att = min(0.035, dur * 0.25)
         amp = np.minimum(t / att, 1) * np.where(t < dur, 1.0, np.exp(-(t - dur) / 0.004))
         add(out, y * amp, nt.start, nt.vel)
-    out = svf(out, np.full(N, 1200.0), 0.0, 0)
+    # Dreck: parallele Verzerrung nur ueber dem Sub (100-900 Hz), der Sub selbst bleibt satt
+    grit = tube_os(hp(out, 90) * 3.5, 3.0, 0.2)
+    grit = svf(hp(grit, 110), np.full(N, 900.0), 0.2, 0)
+    out = out + 0.8 * grit
+    out = svf(out, np.full(N, 1500.0), 0.0, 0)
     return hp(out, 30)
 
 
@@ -430,14 +434,14 @@ def pitch_down(x, semis):
 
 def render_vocal():
     out = np.zeros((2, N))
-    shots = {k: load_shot(k) for k in ("VOX_1_NACHTSTROM", "VOX_2_TIEFER", "VOX_3_LASS_DICH_FALLEN", "VOX_4_WEITER")}
-    if shots["VOX_1_NACHTSTROM"] is None:
+    shots = {k: load_shot(k) for k in ("VOX_ES_1_CORRIENTE", "VOX_ES_2_MAS_PROFUNDO", "VOX_ES_3_DEJATE_CAER", "VOX_ES_4_SIGUE")}
+    if any(v is None for v in shots.values()):
         return out
     dly = np.zeros((2, N))
     verb = np.zeros(N)
     for name, b, g, style in C.VOCAL_EVENTS:
         if style == "chop":
-            x = shots["VOX_1_NACHTSTROM"][: int(0.30 * SR)].copy()
+            x = shots["VOX_ES_1_CORRIENTE"][: int(0.30 * SR)].copy()
             x[-300:] *= np.linspace(1, 0, 300)
             x = hp(x, 250)
             send_d, send_r = 0.9, 0.25
@@ -739,15 +743,15 @@ def apply_fir(x, taps):
 
 # ====================================================================== MIX & MASTER
 TARGET = {
-    "01 KICK": -9.0, "02 RUMBLE": -23.0, "03 BASS": -12.0, "04 HATS": -21.0,
+    "01 KICK": -9.0, "02 RUMBLE": -17.5, "03 BASS": -10.0, "04 HATS": -21.0,
     "05 CLAP": -21.0, "06 PERC": -25.0, "07 RIFF": -21.5, "08 DUB STAB": -24.0,
-    "09 ATMOS": -27.0, "10 FX": -31.0, "11 RISER": -24.0, "13 STAB": -22.5,
+    "09 ATMOS": -27.0, "10 FX": -31.0, "11 RISER": -24.0,
 }
-REGION = {"08 DUB STAB": (130, 146), "09 ATMOS": (96, 114), "10 FX": (0, 178), "11 RISER": (112, 114), "13 STAB": (114, 130)}
+REGION = {"08 DUB STAB": (130, 146), "09 ATMOS": (96, 114), "10 FX": (0, 178), "11 RISER": (112, 114)}
 CREST = {"04 HATS": 12.0, "05 CLAP": 14.0, "06 PERC": 13.0, "07 RIFF": 11.0, "08 DUB STAB": 14.0,
-         "10 FX": 16.0, "11 RISER": 10.0, "13 STAB": 12.0}
-SC = {"07 RIFF": 0.6, "08 DUB STAB": 0.4, "09 ATMOS": 0.5, "04 HATS": 0.1, "06 PERC": 0.15, "13 STAB": 0.45}
-EDITED = ["01 KICK", "02 RUMBLE", "03 BASS", "04 HATS", "05 CLAP", "06 PERC", "07 RIFF", "08 DUB STAB", "13 STAB"]
+         "10 FX": 16.0, "11 RISER": 10.0}
+SC = {"07 RIFF": 0.6, "08 DUB STAB": 0.4, "09 ATMOS": 0.5, "04 HATS": 0.1, "06 PERC": 0.15}
+EDITED = ["01 KICK", "02 RUMBLE", "03 BASS", "04 HATS", "05 CLAP", "06 PERC", "07 RIFF", "08 DUB STAB"]
 
 
 def rms_db(x, b0, b1):
@@ -810,7 +814,6 @@ def main(ref_path):
     stems["10 FX"] = fx
     stems["11 RISER"] = ris
     stems["12 VOCAL"] = render_vocal()
-    stems["13 STAB"] = render_stab()
     print("synths/fx/vocal", round(time.time() - t0), flush=True)
 
     scs = {d: sidechain(d) for d in set(SC.values())}
@@ -822,7 +825,7 @@ def main(ref_path):
         if k in CREST:
             stems[k] = soft_clip(stems[k], db(tgt + CREST[k]))
     col = C.color_lp(BEAT_AT)
-    for k in ("04 HATS", "06 PERC", "07 RIFF", "08 DUB STAB", "13 STAB"):
+    for k in ("04 HATS", "06 PERC", "07 RIFF", "08 DUB STAB"):
         stems[k] = np.array([svf(c, col, 0.1, 0) for c in stems[k]])
     vp = np.max(np.abs(stems["12 VOCAL"]))
     if vp > 0:
@@ -882,6 +885,7 @@ def main(ref_path):
         print(f"Iteration {it + 1}: {L:.2f} LUFS, max. Abweichung {np.max(np.abs(resid[2:27])):.1f} dB", flush=True)
         if it < 2:
             curve = np.clip(curve + 0.75 * np.clip(resid, -6, 6), -10, 10)
+            curve[THIRD < 250] = np.clip(curve[THIRD < 250], -1.5, 1.5)   # dirty Sub bewusst behalten
             curve = np.convolve(np.pad(curve, 1, mode="edge"), np.ones(3) / 3, mode="valid")
     stems = {k: v * head for k, v in st.items()}
 
