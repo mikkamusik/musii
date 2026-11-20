@@ -8,8 +8,9 @@ import kotlin.math.roundToLong
 
 fun newId(): String = UUID.randomUUID().toString()
 
-/** Zeit in Mikrosekunden (gerundet) */
-fun us(seconds: Double): Long = (seconds * 1_000_000.0).roundToLong()
+/** Zeit in Mikrosekunden (auf Millisekunden gerundet) */
+fun us(seconds: Double): Long = (seconds * 1000.0).roundToLong() * 1000L
+fun snapMs(us: Long): Long = Math.round(us / 1000.0) * 1000L
 fun sec(us: Long): Double = us / 1_000_000.0
 
 @Serializable
@@ -45,6 +46,8 @@ data class MediaFile(
     val height: Int,
     val hasAudio: Boolean,
     val generated: Boolean = false,
+    /** Drehung laut Metadaten (0/90/180/270) */
+    val rotation: Int = 0,
 ) {
     val isVisual get() = kind != MediaKind.AUDIO
 }
@@ -182,7 +185,8 @@ data class Clip(
     val chroma: ChromaKey = ChromaKey(),
     val name: String? = null,
 ) {
-    val durationUs: Long get() = max(1L, (sourceDurationUs / max(0.01f, speed).toDouble()).roundToLong())
+    /** Dauer auf der Timeline, auf Millisekunden gerundet */
+    val durationUs: Long get() = max(1000L, (sourceDurationUs / max(0.01f, speed).toDouble() / 1000.0).roundToLong() * 1000L)
     val endUs: Long get() = startUs + durationUs
 }
 

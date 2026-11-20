@@ -269,8 +269,8 @@ vec4 fxColor(vec4 c, vec2 uv, float code, float k, float t, vec2 size) {
     vec2 f = fract(rp / cell) - 0.5;
     float l = luma(c.rgb);
     float rad = sqrt(1.0 - l) * 0.7;
-    float dot = smoothstep(rad, rad - 0.08, length(f));
-    c.rgb = mix(vec3(1.0), vec3(0.05), dot);
+    float dt = smoothstep(rad, rad - 0.08, length(f));
+    c.rgb = mix(vec3(1.0), vec3(0.05), dt);
     return c;
   }
   if (code == 30.0) {
@@ -384,9 +384,9 @@ uniform float uTColorAmt;
 uniform float uTBlur;
 uniform float uTPixel;
 uniform float uTGlitch;
-// Effekte
-uniform float uFx[4];
-uniform float uFxAmt[4];
+// Effekte (bis zu 4 pro Clip)
+uniform vec4 uFxCodes;
+uniform vec4 uFxAmts;
 
 vec2 texUvFromDisp(vec2 n) {
   vec2 t = n;
@@ -468,9 +468,10 @@ void main() {
   if (inside) {
     vec2 euv = vec2((disp.x - uCrop.x) / uCrop.z, 1.0 - (disp.y - uCrop.y) / uCrop.w);
     vec2 cropSize = uCrop.zw;
-    for (int i = 0; i < 4; i++) {
-      if (uFx[i] > 0.5) { euv = fxWarp(euv, uFx[i], uFxAmt[i], uTime, cropSize); }
-    }
+    if (uFxCodes.x > 0.5) { euv = fxWarp(euv, uFxCodes.x, uFxAmts.x, uTime, cropSize); }
+    if (uFxCodes.y > 0.5) { euv = fxWarp(euv, uFxCodes.y, uFxAmts.y, uTime, cropSize); }
+    if (uFxCodes.z > 0.5) { euv = fxWarp(euv, uFxCodes.z, uFxAmts.z, uTime, cropSize); }
+    if (uFxCodes.w > 0.5) { euv = fxWarp(euv, uFxCodes.w, uFxAmts.w, uTime, cropSize); }
     if (uTGlitch > 0.001) { euv = fxWarp(euv, 3.0, uTGlitch, uTime * 3.0, cropSize); }
     if (uTPixel > 0.001) { euv = fxWarp(euv, 2.0, uTPixel * 1.2, uTime, cropSize); }
     euv = clamp(euv, 0.0, 1.0);
@@ -485,9 +486,10 @@ void main() {
       }
     }
     col.rgb = colorGrade(col.rgb, euv, cropSize, uTime);
-    for (int i = 0; i < 4; i++) {
-      if (uFx[i] > 0.5) { col = fxColor(col, euv, uFx[i], uFxAmt[i], uTime, cropSize); }
-    }
+    if (uFxCodes.x > 0.5) { col = fxColor(col, euv, uFxCodes.x, uFxAmts.x, uTime, cropSize); }
+    if (uFxCodes.y > 0.5) { col = fxColor(col, euv, uFxCodes.y, uFxAmts.y, uTime, cropSize); }
+    if (uFxCodes.z > 0.5) { col = fxColor(col, euv, uFxCodes.z, uFxAmts.z, uTime, cropSize); }
+    if (uFxCodes.w > 0.5) { col = fxColor(col, euv, uFxCodes.w, uFxAmts.w, uTime, cropSize); }
     if (uTGlitch > 0.001) { col = fxColor(col, euv, 3.0, uTGlitch, uTime * 3.0, cropSize); }
     col.a *= maskAlpha(disp);
   }
@@ -522,9 +524,9 @@ uniform sampler2D uTex;
 uniform sampler2D uTextTex;
 uniform float uHasText;
 uniform vec2 uOutSize;
-uniform float uFx[6];
-uniform float uFxAmt[6];
-uniform float uFxTime[6];
+uniform vec4 uFxCodes;
+uniform vec4 uFxAmts;
+uniform vec4 uFxTimes;
 
 vec4 SRC(vec2 uv) {
   vec4 base = texture2D(uTex, uv);
@@ -540,14 +542,16 @@ $COMMON
 
 void main() {
   vec2 uv = vUv;
-  for (int i = 0; i < 6; i++) {
-    if (uFx[i] > 0.5) { uv = fxWarp(uv, uFx[i], uFxAmt[i], uFxTime[i], uOutSize); }
-  }
+  if (uFxCodes.x > 0.5) { uv = fxWarp(uv, uFxCodes.x, uFxAmts.x, uFxTimes.x, uOutSize); }
+  if (uFxCodes.y > 0.5) { uv = fxWarp(uv, uFxCodes.y, uFxAmts.y, uFxTimes.y, uOutSize); }
+  if (uFxCodes.z > 0.5) { uv = fxWarp(uv, uFxCodes.z, uFxAmts.z, uFxTimes.z, uOutSize); }
+  if (uFxCodes.w > 0.5) { uv = fxWarp(uv, uFxCodes.w, uFxAmts.w, uFxTimes.w, uOutSize); }
   uv = clamp(uv, 0.0, 1.0);
   vec4 c = SRC(uv);
-  for (int i = 0; i < 6; i++) {
-    if (uFx[i] > 0.5) { c = fxColor(c, uv, uFx[i], uFxAmt[i], uFxTime[i], uOutSize); }
-  }
+  if (uFxCodes.x > 0.5) { c = fxColor(c, uv, uFxCodes.x, uFxAmts.x, uFxTimes.x, uOutSize); }
+  if (uFxCodes.y > 0.5) { c = fxColor(c, uv, uFxCodes.y, uFxAmts.y, uFxTimes.y, uOutSize); }
+  if (uFxCodes.z > 0.5) { c = fxColor(c, uv, uFxCodes.z, uFxAmts.z, uFxTimes.z, uOutSize); }
+  if (uFxCodes.w > 0.5) { c = fxColor(c, uv, uFxCodes.w, uFxAmts.w, uFxTimes.w, uOutSize); }
   c.a = 1.0;
   gl_FragColor = c;
 }
