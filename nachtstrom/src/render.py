@@ -181,12 +181,10 @@ def render_bass():
         att = min(0.035, dur * 0.25)
         amp = np.minimum(t / att, 1) * np.where(t < dur, 1.0, np.exp(-(t - dur) / 0.004))
         add(out, y * amp, nt.start, nt.vel)
-    # Dreck: parallele Verzerrung nur ueber dem Sub (100-900 Hz), der Sub selbst bleibt satt
-    grit = tube_os(hp(out, 90) * 3.5, 3.0, 0.2)
-    grit = svf(hp(grit, 110), np.full(N, 900.0), 0.2, 0)
-    out = out + 0.8 * grit
-    out = svf(out, np.full(N, 1500.0), 0.0, 0)
-    return hp(out, 30)
+    # v15: reiner Sub – kein Grit-Layer mehr (der klang nach EDM), alles ueber ~200 Hz weg
+    out = svf(out, np.full(N, 190.0), 0.0, 0)
+    out = svf(out, np.full(N, 190.0), 0.0, 0)
+    return hp(out, 28)
 
 
 # ====================================================================== DRUMS

@@ -472,5 +472,6 @@ def color_lp(beat):
 
 
 def bass_color(bar):
-    """v11: ein dreckiger Sub-Sound fuer den ganzen Track (Saw-Anteil, Drive, Tiefpass)."""
-    return 0.25, 3.0, 320.0
+    """v15: reiner Sub (kein Saw, kein Mitten-Dreck) – tief, gefuehlt statt gehoert, nicht EDM.
+    Nur eine sanfte Saettigung, damit der Sub auch auf kleinen Boxen noch ahnbar bleibt."""
+    return 0.0, 1.4, 150.0
