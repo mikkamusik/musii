@@ -903,16 +903,23 @@ def main(ref_path):
     for k in EDITED:
         stems[k] = apply_edits(stems[k])
     # Spannungsbogen: Break leise & dunkel -> Crescendo im Aufbau -> Drop
+    # v13: Breaks tiefer (wie Referenz: Breakdown ~14 dB unter dem Drop) -> der Drop knallt
     bgdb = np.zeros(N)
-    for a, b in ((40.6, 44.0), (78.6, 80.0), (96.6, 110.0)):
-        bgdb = np.where((BAR_AT >= a) & (BAR_AT < b), -6.5, bgdb)
-    for a, b in ((44.0, 48.0), (110.0, 114.0)):
+    for a, b, d in ((40.6, 44.0, -8.5), (78.6, 80.0, -6.5), (96.6, 110.0, -9.5)):
+        bgdb = np.where((BAR_AT >= a) & (BAR_AT < b), d, bgdb)
+    for a, b, d in ((44.0, 48.0, -8.5), (110.0, 114.0, -9.5)):
         u = np.clip((BAR_AT - a) / (b - a), 0, 1)
-        bgdb = np.where((BAR_AT >= a) & (BAR_AT < b), -6.5 + 5.5 * u ** 1.5, bgdb)
+        bgdb = np.where((BAR_AT >= a) & (BAR_AT < b), d + (-1.0 - d) * u ** 1.5, bgdb)
     bg = smooth(10 ** (bgdb / 20), SR // 4)
     for k in stems:
         if k not in ("11 RISER", "10 FX", "12 VOCAL"):
             stems[k] = stems[k] * bg
+    # Vocal in den Breaks nicht mit Peak-Pegel (sonst EDM-A-cappella): -4.5 dB, mehr "im Raum".
+    # Das grosse Einatmen im Beat-Cut vor dem Drop (ab Takt 110) bleibt voll.
+    vdb = np.zeros(N)
+    for a, b in ((40.6, 44.5), (96.6, 110.0)):
+        vdb = np.where((BAR_AT >= a) & (BAR_AT < b), -4.5, vdb)
+    stems["12 VOCAL"] = stems["12 VOCAL"] * smooth(10 ** (vdb / 20), SR // 2)
     print("edits", round(time.time() - t0), flush=True)
 
     ref = ref_main_levels(ref_path)
