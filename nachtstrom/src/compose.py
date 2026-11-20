@@ -366,12 +366,14 @@ STRINGS_CHORDS = [
 ]
 STRINGS_PLACES = [
     (36, 0.55, "teaser"),
-    (56, 1.0, "full"), (60, 1.0, "full"),
+    (48, 1.0, "full"), (52, 1.0, "full"), (56, 1.0, "full"), (60, 1.0, "full"),   # Drop 1: Streicher steigen ein
     (105, 0.9, "soft"),
     (114, 1.0, "full"), (118, 1.0, "full"), (122, 1.0, "full"), (126, 1.0, "full"),
     (150, 0.9, "full"),
     (166, 0.6, "teaser"),
 ]
+# Auftakt "ta-" auf der letzten Achtel vor jedem grossen Drop (im Beat-Cut), dann der Tutti-Schlag
+STRINGS_PICKUPS = [47 * 4 + 3.5, 113 * 4 + 3.5]
 # (Start-Takt, Pegel, Stil): teaser = gefiltert & weit weg, full = Geigen-Pult + Bratsche,
 # solo = eine Geige eine Oktave tiefer im Breakdown (der Gaensehaut-Moment)
 VIOLIN_PLACES = [

@@ -66,36 +66,55 @@ def section_bus(events, name, length, rng):
     return np.array(out) * gain / players
 
 
+# 2-Takt-Motiv (tanzbar, Ruf & Antwort) in 16teln: (Schritt, Laenge s, Akzent)
+#   Takt A: DAMM . . DA . . DA . . . . . . . . .   (Tresillo, Luft danach)
+#   Takt B: . . da . . . da . . . da . . . DA .    (Offbeats, Auftakt in den naechsten Takt)
+MOTIF_A = [(0, 0.30, 1.0), (3, 0.16, 0.8), (6, 0.16, 0.85)]
+MOTIF_B = [(2, 0.14, 0.6), (6, 0.14, 0.62), (10, 0.14, 0.66), (14, 0.18, 0.9)]
+
+
 def phrase(chords, spb, style="full", seed=0, crescendo=True):
-    """4-Takt-Phrase. chords: pro Takt dict mit 'v1' (hi, mid, lo), 'v2', 'va', 'vc' (MIDI)."""
+    """4-Takt-Phrase, tanzbar: Akkord-Stabs (Vl1-Oberstimme, Vl2, Va) im Tresillo-Motiv,
+    Celli ein DUM auf jeder Eins, Tutti-Schlag auf der ersten Eins.
+    chords: pro Takt dict mit 'v1' (hi, mid, lo), 'v2', 'va', 'vc' (MIDI)."""
     rng = np.random.default_rng(seed)
     s16 = spb / 4.0
     bars = len(chords)
     length = int((bars * 16 * s16 + 2.0) * SR)
-    acc = {0, 3, 6, 8, 11, 14}                                    # 3-3-2-Akzente
     ev = {"vln1": [], "vln2": [], "vla": [], "vc": []}
     for bi, ch in enumerate(chords):
-        dyn = (0.78 + 0.22 * bi / max(bars - 1, 1)) if crescendo else 1.0
+        dyn = (0.85 + 0.15 * bi / max(bars - 1, 1)) if crescendo else 1.0
         if style == "soft":
-            dyn *= 0.6
+            dyn *= 0.55
         hi, mid, lo = ch["v1"]
-        fig = [hi, mid, lo, mid]
-        for st in range(16):
+        if style == "soft":                                    # Breakdown: nur ein langer Akkord pro Takt
+            motif = [(0, 0.45, 1.0)]
+        else:
+            motif = MOTIF_A if bi % 2 == 0 else MOTIF_B
+        for st, dur, accv in motif:
             t0 = (bi * 16 + st) * s16
-            v = (1.0 if st in acc else 0.6) * dyn
-            ev["vln1"].append((t0, fig[st % 4], 0.085, v))
-            if st % 2 == 0:
-                v2 = (1.0 if st in (0, 6, 12) else 0.65) * dyn
-                ev["vln2"].append((t0, ch["v2"], 0.12, v2))
-                ev["vla"].append((t0, ch["va"], 0.12, v2 * 0.95))
-            if st in (0, 6, 12):                                  # Celli: Marcato DUM . . DUM . . DUM .
-                ev["vc"].append((t0, ch["vc"], 0.26, 1.0 * dyn))
-    # Tutti-Schlag auf der ersten Eins der Phrase
+            v = accv * dyn
+            ev["vln1"].append((t0, hi, dur, v))
+            ev["vln1"].append((t0, mid, dur, v * 0.8))
+            ev["vln2"].append((t0, ch["v2"], dur, v * 0.9))
+            ev["vla"].append((t0, ch["va"], dur, v * 0.85))
+        ev["vc"].append((bi * 16 * s16, ch["vc"], 0.42, 1.0 * dyn))     # DUM auf der Eins
+    # Tutti-Schlag auf der ersten Eins der Phrase (der Drop)
     c0 = chords[0]
     for name, m in (("vln1", c0["v1"][0]), ("vln2", c0["v2"]), ("vla", c0["va"]), ("vc", c0["vc"])):
-        ev[name].append((0.0, m, 0.38, 1.25 if style != "soft" else 0.8))
+        ev[name].append((0.0, m, 0.5, 1.3 if style != "soft" else 0.8))
     names = ["vln1"] if style == "teaser" else ["vln1", "vln2", "vla", "vc"]
     out = np.zeros((2, length))
     for name in names:
         out += section_bus(ev[name], name, length, rng)
+    return out / (np.max(np.abs(out)) + 1e-9)
+
+
+def pickup(chord, spb, seed=0):
+    """Auftakt im Beat-Cut: ein kurzes 'ta-' auf der letzten Achtel vor dem Drop."""
+    rng = np.random.default_rng(seed)
+    length = int(1.0 * SR)
+    out = np.zeros((2, length))
+    for name, m in (("vln1", chord["v1"][1]), ("vln2", chord["v2"]), ("vla", chord["va"])):
+        out += section_bus([(0.0, m, 0.12, 0.9)], name, length, rng)
     return out / (np.max(np.abs(out)) + 1e-9)

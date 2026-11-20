@@ -467,6 +467,13 @@ def render_strings():
         tmp = np.zeros(N)
         add(tmp, 0.5 * (x[0] + x[1]) * sr_, bar * 4, 1.0)
         verb += tmp
+    for b in C.STRINGS_PICKUPS:                                 # "ta-" im Beat-Cut vor dem Drop
+        x = S.pickup(C.STRINGS_CHORDS[-1], C.SPB, seed=int(b)) * 0.8
+        x = np.array([hp(c, 110) for c in x])
+        add(out, x, b, 1.0)
+        tmp = np.zeros(N)
+        add(tmp, 0.5 * (x[0] + x[1]) * 0.5, b, 1.0)
+        verb += tmp
     rv = reverb(verb, size=0.93, damp=0.4, predelay_ms=28)     # Konzertsaal
     return out + rv * 0.8
 
@@ -776,7 +783,7 @@ TARGET = {
 REGION = {"08 DUB STAB": (130, 146), "09 ATMOS": (96, 114), "10 FX": (0, 178), "11 RISER": (112, 114)}
 CREST = {"04 HATS": 12.0, "05 CLAP": 14.0, "06 PERC": 13.0, "07 RIFF": 11.0, "08 DUB STAB": 14.0,
          "10 FX": 16.0, "11 RISER": 10.0}
-SC = {"07 RIFF": 0.6, "08 DUB STAB": 0.4, "09 ATMOS": 0.5, "04 HATS": 0.1, "06 PERC": 0.15}
+SC = {"12 STRINGS": 0.4, "07 RIFF": 0.6, "08 DUB STAB": 0.4, "09 ATMOS": 0.5, "04 HATS": 0.1, "06 PERC": 0.15}
 EDITED = ["01 KICK", "02 RUMBLE", "03 BASS", "04 HATS", "05 CLAP", "06 PERC", "07 RIFF", "08 DUB STAB"]
 
 
