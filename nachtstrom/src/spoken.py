@@ -21,7 +21,7 @@ from scipy.signal import lfilter, resample_poly
 from dsp import SR, compressor, hp, lp, svf, smooth
 
 # wie stark gehaucht: Anteil Fluesterstimme (0 = normal, 1 = nur Fluestern)
-BREATHY = {"DEJATE": 0.45, "PROFUNDO": 0.35, "CORRIENTE": 0.7, "SIGUE": 0.45, "NOPARES": 0.4}
+BREATHY = {"DEJATE": 0.1, "PROFUNDO": 0.08, "CORRIENTE": 0.22, "SIGUE": 0.1, "NOPARES": 0.08}   # v15: kaum Rauschen
 
 
 def whisperize(x, order=28, frame=0.028, hop=0.007, seed=7):
@@ -78,6 +78,14 @@ def soft_s(x, fc=4000, below_db=24.0):
     return x * gain
 
 
+def gate(x, open_db=-34.0, close_db=-46.0):
+    """Sanftes Gate/Expander: unter close_db (relativ zur Spitze) zu, ab open_db ganz offen."""
+    env = smooth(np.abs(x), int(0.012 * SR))
+    lvl = 20 * np.log10(env / (np.max(env) + 1e-12) + 1e-12)
+    g = np.clip((lvl - close_db) / (open_db - close_db), 0.0, 1.0)
+    return x * smooth(g, int(0.02 * SR))
+
+
 def sexy(x22, breathy):
     x = resample_poly(x22, 2, 1)
     x = librosa.effects.pitch_shift(x, sr=SR, n_steps=-1.0, bins_per_octave=12)
@@ -88,15 +96,16 @@ def sexy(x22, breathy):
     # Luft: Rauschen ueber 9 kHz folgt der Zischlaut-Huellkurve (TTS endet bei 11 kHz)
     env = smooth(np.abs(w), int(0.01 * SR))          # folgt dem ganzen Hauch, nicht nur den Zischlauten
     air = hp(np.random.default_rng(3).standard_normal(len(y)), 8000) * env
-    y = y + 0.045 * air
+    y = y + 0.0 * air                         # v15: kein Luft-Rauschen mehr
     y = shelf(y, 180, 2.5, high=False)       # Naehe / Waerme
     y = peak(y, 500, -3.0)                    # weniger Mulm
     y = peak(y, 2800, 1.5)                    # Praesenz
     y = shelf(y, 5000, 3.0, high=True)        # Glanz & Luft
     y = deess(y)
     y = y / (np.max(np.abs(y)) + 1e-9) * 0.5
-    y = compressor(np.stack([y, y]), y, -26.0, 4.0, 3.0, 90.0, 8.0)[0]
+    y = compressor(np.stack([y, y]), y, -22.0, 2.5, 5.0, 120.0, 4.0)[0]   # sanfter: zieht kein Grundrauschen hoch
     y = soft_s(y)                             # nach dem Kompressor: der hebt Zischlaute sonst wieder an
+    y = gate(y)                               # zwischen den Silben: Ruhe statt Rauschen
     y = np.tanh(1.3 * y) / np.tanh(1.3)
     fade = int(0.01 * SR)
     y[:fade] *= np.linspace(0, 1, fade)
