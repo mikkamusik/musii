@@ -429,3 +429,147 @@ def limiter_fast(x, ceiling, look, rel_ms):
         for c in range(x.shape[0]):
             out[c, i] = x[c, i] * g
     return out
+
+
+# ---------------------------------------------------------------- v13: Studio-Hall (FDN)
+@njit(cache=True)
+def _fdn8(x, lens, gains, lp_a, mod_depth, mod_rate, ins, out_l, out_r):
+    """8-Kanal Feedback-Delay-Network, Hadamard-Matrix, modulierte Leitungen
+    (gegen metallisches Klingeln), Daempfung pro Leitung."""
+    n = x.shape[0]
+    size = 0
+    for k in range(8):
+        if lens[k] > size:
+            size = lens[k]
+    size = size + int(mod_depth) + 8
+    buf = np.zeros((8, size))
+    w = 0
+    z = np.zeros(8)
+    o = np.zeros(8)
+    h = np.zeros(8)
+    for i in range(n):
+        for k in range(8):
+            d = lens[k] + mod_depth * np.sin(2.0 * np.pi * mod_rate * (1.0 + 0.137 * k) * i / SR + 1.3 * k)
+            rp = w - d
+            while rp < 0:
+                rp += size
+            i0 = int(rp)
+            fr = rp - i0
+            i1 = i0 + 1
+            if i1 >= size:
+                i1 = 0
+            y = buf[k, i0] * (1.0 - fr) + buf[k, i1] * fr
+            z[k] = (1.0 - lp_a) * y + lp_a * z[k]
+            o[k] = z[k] * gains[k]
+        # schnelle Hadamard-Transformation (8)
+        for k in range(8):
+            h[k] = o[k]
+        step = 1
+        while step < 8:
+            for a in range(0, 8, 2 * step):
+                for b in range(a, a + step):
+                    u = h[b]
+                    v = h[b + step]
+                    h[b] = u + v
+                    h[b + step] = u - v
+            step *= 2
+        for k in range(8):
+            buf[k, w] = x[i] * ins[k] + h[k] * 0.35355339059327373
+        out_l[i] = o[0] - o[2] + o[4] - o[6]
+        out_r[i] = o[1] - o[3] + o[5] - o[7]
+        w += 1
+        if w >= size:
+            w = 0
+
+
+def reverb_fdn(x, size=0.84, damp=0.35, spread=23, predelay_ms=12.0):
+    """Ersetzt den alten Freeverb: glatter, dichter, nicht metallisch. Gleiche Signatur."""
+    n = x.shape[0]
+    pd = int(SR * predelay_ms / 1000.0)
+    xin = np.concatenate([np.zeros(pd), x])[:n]
+    t60 = float(np.clip(0.55 + 2.4 * max(0.0, (size - 0.68) / 0.27) ** 2.2, 0.35, 4.5))
+    scale = 0.75 + 0.5 * size
+    lens = (np.array([1031, 1259, 1433, 1601, 1789, 1951, 2153, 2357]) * scale).astype(np.int64)
+    gains = 10.0 ** (-3.0 * lens / (t60 * SR))
+    fc = 1500.0 + 9000.0 * (1.0 - damp) ** 1.5
+    lp_a = float(np.exp(-2.0 * np.pi * fc / SR))
+    ins = np.array([1, -1, 1, 1, -1, 1, -1, -1], dtype=np.float64) * 0.5
+    out_l = np.zeros(n)
+    out_r = np.zeros(n)
+    _fdn8(xin, lens, gains, lp_a, 9.0, 0.35, ins, out_l, out_r)
+    # fruehe Reflexionen (Raumgefuehl), abwechselnd L/R
+    er_l = np.zeros(n)
+    er_r = np.zeros(n)
+    for j, (ms, g) in enumerate(((7.1, 0.5), (11.3, 0.42), (17.9, 0.36), (23.3, 0.3), (31.7, 0.25), (41.2, 0.2))):
+        d = int(SR * ms / 1000.0)
+        tgt = er_l if j % 2 == 0 else er_r
+        tgt[d:] += xin[: n - d] * g
+    return np.array([out_l + 0.35 * er_l, out_r + 0.35 * er_r]) * 0.44
+
+
+# Alle Aufrufe von reverb() nutzen ab v13 das FDN (der alte Freeverb bleibt als reverb_freeverb erhalten).
+reverb_freeverb = reverb
+reverb = reverb_fdn
+
+
+# ---------------------------------------------------------------- v13: analoge Drift + Stereo-Chorus
+def analog_drift(n, cents, rng, rate_hz=0.35):
+    """Langsam wandernde Verstimmung (Cent) wie bei einem analogen VCO."""
+    k = max(2, int(n / SR * rate_hz) + 3)
+    pts = rng.standard_normal(k)
+    xs = np.linspace(0, n, k)
+    d = np.interp(np.arange(n), xs, pts)
+    d = smooth(d, int(SR / rate_hz / 2))
+    return cents * d / (np.std(d) + 1e-9)
+
+
+@njit(cache=True)
+def _moddelay(x, base_ms, depth_ms, rate_hz, phase0):
+    n = x.shape[0]
+    out = np.empty(n)
+    size = int((base_ms + depth_ms) * SR / 1000.0) + 8
+    buf = np.zeros(size)
+    w = 0
+    for i in range(n):
+        buf[w] = x[i]
+        d = (base_ms + depth_ms * 0.5 * (1.0 + np.sin(2.0 * np.pi * rate_hz * i / SR + phase0))) * SR / 1000.0
+        rpos = w - d
+        while rpos < 0:
+            rpos += size
+        i0 = int(rpos)
+        fr = rpos - i0
+        i1 = (i0 + 1) % size
+        out[i] = buf[i0] * (1.0 - fr) + buf[i1] * fr
+        w = (w + 1) % size
+    return out
+
+
+def chorus(st, mix=0.35, rate=0.3, depth_ms=2.5, base_ms=8.0):
+    """Zwei modulierte Stimmen pro Seite, LFOs L/R um 90 Grad versetzt -> breite, lebendige Flaeche."""
+    l, r = st[0], st[1]
+    wl = _moddelay(l, base_ms, depth_ms, rate, 0.0) + _moddelay(l, base_ms * 1.37, depth_ms, rate * 0.83, 2.1)
+    wr = (_moddelay(r, base_ms, depth_ms, rate, np.pi / 2)
+          + _moddelay(r, base_ms * 1.37, depth_ms, rate * 0.83, 2.1 + np.pi / 2))
+    return np.array([l + mix * 0.5 * wl, r + mix * 0.5 * wr]) / (1.0 + 0.5 * mix)
+
+
+@njit(cache=True)
+def pulse_pwm(freq, width, phase0=0.0):
+    """Pulse mit Pulsbreite pro Sample (PWM)."""
+    n = freq.shape[0]
+    out = np.empty(n)
+    ph = phase0
+    for i in range(n):
+        dt = freq[i] / SR
+        w = width[i]
+        v = 1.0 if ph < w else -1.0
+        v += _blep(ph, dt)
+        p2 = ph + 1.0 - w
+        if p2 >= 1.0:
+            p2 -= 1.0
+        v -= _blep(p2, dt)
+        out[i] = v
+        ph += dt
+        if ph >= 1.0:
+            ph -= 1.0
+    return out

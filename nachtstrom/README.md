@@ -1,6 +1,18 @@
-# NACHTSTROM v12 – 147 BPM · Cis · ein durchgehender Track, dirty Sub, spanischer Vocal-Hook
+# NACHTSTROM v13 – 147 BPM · Cis · ein durchgehender Track, dirty Sub, spanischer Vocal-Hook
 
 Gebaut nach dem vermessenen Bauplan deiner Referenz, die Details stehen in `REFERENZ_ANALYSE.md`.
+
+## Neu in v13: Studio-Klang
+Alles ist hier im Chat gerechnet, ohne Bezahldienste und ohne fremde Plugins.
+- **Studio-Hall statt Metall-Hall:** Ein modulierender 8-Kanal-FDN-Hall (Feedback Delay Network) ersetzt den alten Freeverb. Die Hallfahne ist dicht, nicht metallisch, links und rechts unkorreliert (Korrelation ≈ 0) und hat frequenzabhängige Dämpfung. Pegel und Nachhallzeit sind auf den alten Hall eingemessen, die Proportionen im Mix bleiben also gleich.
+- **Kick-Punch:** Der Match-EQ auf die Referenz arbeitet jetzt **minimalphasig**. Die alte linearphasige Version erzeugte vor jedem Kick-Transienten ein Vorecho (−26 dB), das den Punch verwischt hat. Das Vorecho ist jetzt komplett weg, der Frequenzgang ist identisch.
+- **Riff wie ein echter Analog-Synth:**
+  - drei Saw-VCOs pro Seite, jeder mit eigener langsamer Tonhöhen-Drift (±3,5 Cent)
+  - PWM-Sub-Oszillator
+  - **4-Pol Transistor-Ladder-Filter** (Moog-Art) statt State-Variable
+  - Röhrensättigung und Stereo-Chorus mit zwei Stimmen
+  - Die Helligkeit ist auf v12 eingemessen (Spektralschwerpunkt 600 Hz zu 604 Hz).
+- **Stereobild wie die Referenz:** Ein M/S-EQ gleicht die Breite pro Terzband automatisch an die Referenz an. Vorher war unser Track in den Mitten zu schmal und in den Höhen zu breit. Das Rumble bleibt im Sub mono und wird erst ab 150 Hz breit.
 
 Neu in v11, nicht mehr progressiv und nicht mehr „wie 3 Tracks gleichzeitig“:
 - **Ein Grundton (Cis)** für den ganzen Track, ohne Tonartwechsel.
@@ -12,9 +24,9 @@ Neu in v11, nicht mehr progressiv und nicht mehr „wie 3 Tracks gleichzeitig“
 - **Vocals:** auf **Spanisch** („Corriente nocturna“, „Más profundo“, „Déjate caer“, „Sigue“). Die Plätze im Arrangement stehen, die Shots kommen von ElevenLabs. Die alten deutschen Shots liegen in `Samples/Vocals/alt_deutsch/`.
 
 ## In Ableton öffnen
-1. `NACHTSTROM_v12.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v12/`.
-2. `NACHTSTROM_v12/NACHTSTROM.als` öffnen.
-3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v12` → **Los** → **Sichern**, dann **Cmd+S**.
+1. `NACHTSTROM_v13.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v13/`.
+2. `NACHTSTROM_v13/NACHTSTROM.als` öffnen.
+3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v13` → **Los** → **Sichern**, dann **Cmd+S**.
 4. A/B-Vergleich: **00 REFERENZ** und **00 MASTER BOUNCE** abwechselnd solo hören.
 
 ## Highlights (Takt-Nummern wie in Ableton)

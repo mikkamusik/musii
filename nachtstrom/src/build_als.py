@@ -18,7 +18,7 @@ import export_midi as M
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Wahrscheinlichster Ort nach dem Entpacken der Chat-ZIP (Fallback: relativer Pfad)
-ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v12")
+ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v13")
 
 
 class Ids:
@@ -284,12 +284,12 @@ def master_track(n_scenes):
 
 AUDIO = [  # Stem, Farbe, Volume, Pan, Info
     ("01 KICK", 14, 1.0, 0, "Tiefe, runde Kick (Fit an Referenz), lange Sub-Fahne."),
-    ("02 RUMBLE", 14, 1.0, 0, "Leiser Kick-Hall-Rumble im Offbeat-Fenster."),
+    ("02 RUMBLE", 14, 1.0, 0, "Kick-Hall-Rumble im Offbeat-Fenster (FDN-Hall): Sub mono, ab 150 Hz breit."),
     ("03 BASS", 12, 1.0, 0, "Dreckiger Offbeat-Sub auf Cis: Sinus-Sub + Saw, Saettigung und paralleler Grit-Layer (100-900 Hz)."),
     ("04 HATS", 26, 1.0, 0, "Offbeat-Hat kurz->mittel->offen, Tick, Shaker (Main 1, Main 3), Ride (Peak)."),
     ("05 CLAP", 26, 1.0, 0, "Clap auf 2 & 4."),
     ("06 PERC", 22, 1.0, 0, "Identitaet je Section: Tribal-Toms, Halbtempo-Toms + Tom-Roll (Break 1), Congas, Rim, Metall-3/16-Loop."),
-    ("07 RIFF", 5, 1.0, 0, "Ein hypnotisches 16tel-Riff fuer den ganzen Track, Antwort alle 4 Takte, Filter oeffnet ueber 16 Takte."),
+    ("07 RIFF", 5, 1.0, 0, "Ein hypnotisches 16tel-Riff: 3 driftende Saw-VCOs + PWM-Sub pro Seite, Moog-Ladder-Filter, Roehre, Stereo-Chorus. Antwort alle 4 Takte, Filter oeffnet ueber 16 Takte."),
     ("08 DUB STAB", 9, 1.0, 0, "Dub-Stabs mit langem Echo (Takt 25, Breakdown, Peak B, Outro)."),
     ("09 ATMOS", 41, 1.0, 0, "Drone in Break 1 und Breakdown."),
     ("10 FX", 1, 1.0, 0, "Highlights: Reverse-Crashes, Crashes, Sub-Drops, Pings, Downlifter, Wand-Sweeps."),

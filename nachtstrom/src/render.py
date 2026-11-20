@@ -1,4 +1,4 @@
-"""NACHTSTROM v12 – Renderer: ein Track, dirty Sub, viraler Vocal-Hook, Highlights.
+"""NACHTSTROM v13 – Renderer: Studio-Hall (FDN), minimalphasiger Match-EQ, Unisono/Chorus, Vocal-Hook.
 
 Alle Sounds selbst synthetisiert. Klangbalance per Match-EQ (Regelkreis) an
 die vermessene Referenz angeglichen – vom Referenz-Audio landet nichts im Track.
@@ -12,14 +12,15 @@ import time
 
 import numpy as np
 import soundfile as sf
-from scipy.signal import resample_poly, firwin2, oaconvolve
+from scipy.signal import resample_poly, firwin2, oaconvolve, minimum_phase
 
 import compose as C
 from dsp import (SR, saw, pulse, svf, lp, hp, bp, reverb, compressor, db,
-                 tape_delay, phaser, smooth, limiter_fast, onepole_lp)
+                 tape_delay, phaser, smooth, limiter_fast, onepole_lp, ladder, analog_drift, chorus, pulse_pwm)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RNG = np.random.default_rng(147)
+LADDER_FC, LADDER_MAKEUP = 1.6, 2.6
 TAIL = 4.0
 N = int((C.BEATS * C.SPB + TAIL) * SR)
 BEAT_AT = np.arange(N) / SR / C.SPB
@@ -150,14 +151,18 @@ def offbeat_mask():
 
 def render_rumble(ghost):
     wet = reverb(ghost, size=0.93, damp=0.62, predelay_ms=5)
-    r = 0.5 * (wet[0] + wet[1])
-    r = svf(r, np.full(N, 140.0), 0.35, 0)
-    r = tube(r * 11.0, 4.0, 0.25)
-    r = svf(r, np.full(N, 190.0), 0.15, 0)
-    r = hp(r, 70)
+
+    def chain(r):
+        r = svf(r, np.full(N, 140.0), 0.35, 0)
+        r = tube(r * 11.0, 4.0, 0.25)
+        r = svf(r, np.full(N, 190.0), 0.15, 0)
+        return hp(r, 70)
     ph = BEAT_AT % 1.0
-    win = gate_window(ph, 0.42, 0.6, 0.93, 0.995) * (0.75 + 0.25 * ph)
-    return r * win * offbeat_mask()
+    win = gate_window(ph, 0.42, 0.6, 0.93, 0.995) * (0.75 + 0.25 * ph) * offbeat_mask()
+    r = chain(0.5 * (wet[0] + wet[1])) * win
+    # v13: Sub bleibt mono, ab 150 Hz wird das Rumble breit (wie in der Referenz)
+    side = hp(0.5 * (chain(wet[0]) - chain(wet[1])), 150) * win
+    return np.array([r + side, r - side])
 
 
 def render_bass():
@@ -342,18 +347,22 @@ def render_wall():
     sect = window([(32, 40, 0.5), (48, 64, 0.7), (80, 96, 0.8), (96, 104, 0.6), (104, 110, 0.4), (110, 114, 0.6),
                    (114, 130, 1.0), (146, 162, 0.7)], SR // 2)
     chans = []
+    drng = np.random.default_rng(1313)
+    pwm = 0.5 + 0.12 * np.sin(2 * np.pi * 0.11 * np.arange(N) / SR)
     for ch, dets in enumerate(((-12, 0, 9), (-8, 0, 13))):
         x = np.zeros(N)
         for d in dets:
-            x += saw(freq * 2 ** (d / 1200), RNG.uniform())
-        x += 0.35 * pulse(freq / 2, 0.5, 0.25)
-        y = svf(x * 0.5, cut, 0.35, 0)
-        y = tube_os(y * 1.2, 1.8, 0.05)
+            # jeder VCO driftet eigenstaendig (+-3.5 Cent) -> lebt wie ein echter Analog-Synth
+            x += saw(freq * 2 ** ((d + analog_drift(N, 3.5, drng)) / 1200), RNG.uniform())
+        x += 0.35 * pulse_pwm(freq / 2, pwm, 0.25)
+        # 4-Pol Transistor-Ladder statt SVF: runder, dreckiger, "Moog"
+        y = ladder(x * 0.3, cut * LADDER_FC, np.full(N, 0.3), 1.5)
+        y = tube_os(y * LADDER_MAKEUP, 1.8, 0.05)
         y = svf(y, np.full(N, 5500.0), 0.0, 0)
         chans.append(hp(y, 180) * g * pluck * sect)
     hz = int(0.008 * SR)
     chans[1] = np.concatenate([np.zeros(hz), chans[1][:-hz]])
-    st = np.array(chans)
+    st = chorus(np.array(chans), mix=0.4, rate=0.27, depth_ms=2.2, base_ms=7.0)
     snd = throw_send()
     dl, dr = tape(st[0] * snd, st[1] * snd, 0.75, 2.0, 0.5, 0.68, 0.45, 1.6, 1.0)
     rv = reverb(st[0] + st[1], size=0.8, damp=0.5, predelay_ms=15)
@@ -767,8 +776,28 @@ def ref_main_levels(ref_path):
     return band_levels(m[a:b], sr)
 
 
-def apply_fir(x, taps):
-    d = (len(taps) - 1) // 2
+def ref_side_ratio(ref_path):
+    x, sr = sf.read(ref_path)
+    a = int((REF_T0 + 114 * 4 * C.SPB) * sr)
+    b = int((REF_T0 + 162 * 4 * C.SPB) * sr)
+    return sm_ratio(x[a:b].T)
+
+
+def sm_ratio(x):
+    """Seiten- zu Mittenpegel pro Terzband (dB) -> Stereobreite pro Frequenz."""
+    return band_levels(0.5 * (x[0] - x[1])) - band_levels(0.5 * (x[0] + x[1]))
+
+
+def minphase_fir(curve):
+    freqs = np.concatenate([[0], THIRD, [SR / 2]])
+    gains = np.concatenate([[curve[0]], curve, [curve[-1]]])
+    # minimalphasig (keine Vorechos vor der Kick): erst linearphasig mit doppeltem dB-Gain
+    # entwerfen, dann homomorph in minimale Phase wandeln (Betrag = Wurzel -> wieder Zielkurve)
+    return minimum_phase(firwin2(8191, freqs, 10 ** (2 * gains / 20), fs=SR), method="homomorphic", n_fft=2 ** 17)
+
+
+def apply_fir(x, taps, minphase=False):
+    d = 0 if minphase else (len(taps) - 1) // 2
     if x.ndim == 1:
         return oaconvolve(x, taps)[d:d + x.shape[0]]
     return np.array([oaconvolve(c, taps)[d:d + x.shape[1]] for c in x])
@@ -854,7 +883,10 @@ def main(ref_path):
         stems[k] = stems[k] * scs[d]
     for k, tgt in TARGET.items():
         a, b = REGION.get(k, (114, 146))
-        stems[k] = stems[k] * db(tgt - rms_db(stems[k], a, b))
+        lvl = stems[k]
+        if k == "02 RUMBLE":                    # Pegel nach der Mitte (Sub) – die neue Breite kommt obendrauf
+            lvl = 0.5 * (lvl[0] + lvl[1])
+        stems[k] = stems[k] * db(tgt - rms_db(lvl, a, b))
         if k in CREST:
             stems[k] = soft_clip(stems[k], db(tgt + CREST[k]))
     col = C.color_lp(BEAT_AT)
@@ -886,17 +918,15 @@ def main(ref_path):
     ref = ref_main_levels(ref_path)
     raw = dict(stems)
 
-    def build(curve):
-        freqs = np.concatenate([[0], THIRD, [SR / 2]])
-        gains = np.concatenate([[curve[0]], curve, [curve[-1]]])
-        taps = firwin2(8191, freqs, 10 ** (gains / 20), fs=SR)
+    def build(curve, scurve):
+        taps = minphase_fir(curve)
+        staps = minphase_fir(scurve)        # M/S-EQ: Stereobreite pro Band, an die Referenz angeglichen
         st, mx = {}, np.zeros((2, N))
         for k, v in raw.items():
-            v = apply_fir(v, taps)
+            v = apply_fir(v, taps, minphase=True)
             if v.ndim == 2:
                 mid, side = 0.5 * (v[0] + v[1]), 0.5 * (v[0] - v[1])
-                side = hp(side, 150)
-                side = side + (db(5.0) - 1) * hp(side, 400)
+                side = apply_fir(hp(side, 150), staps, minphase=True)
                 v = np.array([mid + side, mid - side])
             st[k] = v
             mx += v if v.ndim == 2 else stereo(v)
@@ -912,19 +942,29 @@ def main(ref_path):
             g += (target - L) * 1.6
         return m, g, L
 
+    ref_sm = ref_side_ratio(ref_path)
     curve = np.zeros(len(THIRD))
-    for it in range(3):
-        st, mx = build(curve)
+    scurve = np.where(THIRD >= 400, 5.0, 0.0)            # Startpunkt = Breite von v12
+    sband = THIRD >= 160
+    for it in range(4):
+        st, mx = build(curve, scurve)
         head = db(-1.0) / np.max(np.abs(mx))
         m, g, L = master_to(mx * head)
-        meas = band_levels(0.5 * (m[0] + m[1])[smp(114 * 4):smp(162 * 4)])
+        sec = m[:, smp(114 * 4):smp(162 * 4)]
+        meas = band_levels(0.5 * (sec[0] + sec[1]))
         resid = ref - meas
         resid -= np.mean(resid[6:26])
-        print(f"Iteration {it + 1}: {L:.2f} LUFS, max. Abweichung {np.max(np.abs(resid[2:27])):.1f} dB", flush=True)
-        if it < 2:
+        sres = ref_sm - sm_ratio(sec)
+        print(f"Iteration {it + 1}: {L:.2f} LUFS, max. Abweichung {np.max(np.abs(resid[2:27])):.1f} dB, "
+              f"Stereo max. {np.max(np.abs(sres[sband & (THIRD <= 12500)])):.1f} dB", flush=True)
+        if it < 3:
             curve = np.clip(curve + 0.75 * np.clip(resid, -6, 6), -10, 10)
             curve[THIRD < 250] = np.clip(curve[THIRD < 250], -1.5, 1.5)   # dirty Sub bewusst behalten
             curve = np.convolve(np.pad(curve, 1, mode="edge"), np.ones(3) / 3, mode="valid")
+            scurve[sband] = np.clip(scurve[sband] + 0.75 * np.clip(sres[sband], -6, 6), -9, 9)
+            scurve = np.convolve(np.pad(scurve, 1, mode="edge"), np.ones(3) / 3, mode="valid")
+    os.makedirs(f"{ROOT}/bounce", exist_ok=True)
+    np.save(f"{ROOT}/bounce/eq_curves.npy", np.array([THIRD, curve, scurve, ref_sm]))
     stems = {k: v * head for k, v in st.items()}
 
     sd = f"{ROOT}/Samples/Stems"
