@@ -1,0 +1,76 @@
+<header class="top">
+  <div class="wrap">
+    <div class="brand" aria-label="MöbelFit">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="#1B1C1F"/><circle cx="16" cy="16" r="11" fill="#C8322D"/><circle cx="16" cy="16" r="8" fill="#EFE4CC"/><circle cx="16" cy="16" r="4.5" fill="#17784A"/><circle cx="16" cy="16" r="1.8" fill="#C8322D"/></svg>
+      <span>Möbel<b>Fit</b></span>
+    </div>
+    <div class="date" id="today-date"></div>
+  </div>
+</header>
+
+<main>
+  <section class="view wrap" id="v-start" aria-label="Start"></section>
+  <section class="view wrap" id="v-workouts" aria-label="Workouts" hidden></section>
+  <section class="view wrap" id="v-uebungen" aria-label="Übungen" hidden></section>
+  <section class="view wrap" id="v-dart" aria-label="Dart-Roulette" hidden></section>
+  <section class="view wrap" id="v-advent" aria-label="Adventskalender" hidden></section>
+</main>
+
+<nav class="tabs" aria-label="Bereiche">
+  <div class="row">
+    <button data-view="start" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Start</button>
+    <button data-view="workouts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.5v5l4.5-2.5z" fill="currentColor"/></svg>Videos</button>
+    <button data-view="uebungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="4.5" r="2"/><path d="M12 7v7M12 9l-5 3M12 9l5-1M12 14l-4 6M12 14l4 6"/></svg>Übungen</button>
+    <button data-view="dart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>Dart</button>
+    <button data-view="advent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M9 13h2v2H9zM14 13h2v2h-2zM9 17h2"/></svg>Advent</button>
+  </div>
+</nav>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="sheet-title" id="sheet-panel"></div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<div class="player" id="player" hidden aria-label="Video-Workout">
+  <div class="pl-top">
+    <button class="iconbtn" id="pl-close" aria-label="Workout beenden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="pl-title"><div class="a" id="pl-wtitle"></div><div class="b" id="pl-wsub"></div></div>
+    <button class="iconbtn" id="pl-voice" aria-label="Sprachansage an oder aus" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg></button>
+  </div>
+  <div class="pl-prog" id="pl-prog"></div>
+  <div class="pl-main">
+    <div class="pl-stage">
+      <svg class="stage" id="pl-stage" viewBox="0 0 400 300" aria-hidden="true"></svg>
+      <div class="pl-badge" id="pl-badge"></div>
+      <div class="pl-side" id="pl-side" hidden></div>
+    </div>
+    <div class="pl-info">
+      <div>
+        <div class="pl-name" id="pl-name"></div>
+        <div class="pl-cue" id="pl-cue"></div>
+      </div>
+      <div class="pl-ring" id="pl-ring">
+        <svg viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="52"/><circle class="fg" id="pl-arc" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="0"/></svg>
+        <div class="pl-time num" id="pl-time"></div>
+      </div>
+    </div>
+    <div class="pl-next" id="pl-next"></div>
+    <div class="pl-ctrl">
+      <button class="iconbtn" id="pl-prev" aria-label="Zurück"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+      <button class="main" id="pl-play" aria-label="Pause"><svg viewBox="0 0 24 24" fill="currentColor" id="pl-play-ico"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg></button>
+      <button class="iconbtn" id="pl-nextbtn" aria-label="Weiter"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+      <button class="btn red pl-done-btn" id="pl-done">Erledigt</button>
+    </div>
+    <div class="pl-watermark"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="#1B1C1F"/><circle cx="16" cy="16" r="11" fill="#C8322D"/><circle cx="16" cy="16" r="8" fill="#EFE4CC"/><circle cx="16" cy="16" r="4.5" fill="#17784A"/><circle cx="16" cy="16" r="1.8" fill="#C8322D"/></svg><span>Möbel<b>Fit</b></span></div>
+  </div>
+  <div class="pl-confirm" id="pl-confirm" hidden>
+    <div class="box">
+      <h3>Workout beenden?</h3>
+      <p class="muted">Dein Fortschritt in diesem Video wird nicht gespeichert.</p>
+      <button class="btn red" id="pl-quit">Beenden</button>
+      <button class="btn" id="pl-stay">Weitermachen</button>
+    </div>
+  </div>
+  <div class="pl-finish" id="pl-finish" hidden></div>
+</div>
