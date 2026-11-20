@@ -20,6 +20,17 @@ Alles ist hier im Chat gerechnet, ohne Bezahldienste und ohne fremde Plugins.
   - Die Helligkeit ist auf v12 eingemessen (Spektralschwerpunkt 600 Hz zu 604 Hz).
 - **Stereobild wie die Referenz:** Ein M/S-EQ gleicht die Breite pro Terzband automatisch an die Referenz an. Vorher war unser Track in den Mitten zu schmal und in den Höhen zu breit. Das Rumble bleibt im Sub mono und wird erst ab 150 Hz breit.
 
+**Gemessen gegen die Referenz (gleiche Abschnitte, gleiche Methode):**
+
+| Messung | Referenz | v12 | v13 |
+|---|---|---|---|
+| Sprung Breakdown → Drop | 11,2 LU | 4,3 LU | **8,4 LU** |
+| Sprung Break 1 → Main 1 | 7,8 LU | 5,1 LU | **6,6 LU** |
+| Takt 114 → Drop (Takt 115) | +13,3 LU | −0,7 LU (Drop leiser!) | **+4,7 LU** |
+| Crest-Faktor im Peak (Wucht) | 7,2 dB | 6,4 dB | **7,1 dB** |
+| Stereobreite im Peak (Seite/Mitte) | −11,9 dB | −15,6 dB | **−12,5 dB** |
+| Klangbalance, größte Abweichung | – | 7,1 dB | **3,8 dB** |
+
 Neu in v11, nicht mehr progressiv und nicht mehr „wie 3 Tracks gleichzeitig“:
 - **Ein Grundton (Cis)** für den ganzen Track, ohne Tonartwechsel.
 - **Ein Bass:** ein dreckiger Offbeat-Sub. Sinus-Sub mit Saw-Anteil, Sättigung und einem parallelen Grit-Layer zwischen 100 und 900 Hz. Dazu ein lauteres, raueres Rumble. Den Low-End-Bereich lässt der Match-EQ bewusst in Ruhe.
