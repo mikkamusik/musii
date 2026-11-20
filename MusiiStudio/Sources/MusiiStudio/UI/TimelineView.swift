@@ -87,6 +87,8 @@ struct TimelineScroll: View {
             ScrollViewReader { proxy in
                 ScrollView([.horizontal, .vertical], showsIndicators: true) {
                     ZStack(alignment: .topLeading) {
+                        Color.black.opacity(0.001)
+                            .onTapGesture { editor.selection = nil }
                         HStack(spacing: 0) {
                             ForEach(0..<Int(contentWidth / TL.marker) + 1, id: \.self) { i in
                                 Color.clear.frame(width: TL.marker, height: 1).id(i)
@@ -122,8 +124,26 @@ struct TimelineScroll: View {
             }
         }
         .background(Theme.bg)
-        .onDrop(of: [UTType.fileURL], isTargeted: nil) { providers in
-            loadDroppedURLs(providers) { urls in editor.importMedia(urls, addToTimeline: true) }
+        .onDrop(of: [UTType.fileURL, UTType.plainText], isTargeted: nil) { providers, location in
+            let t = max(0, Double(location.x + scrollX - TL.leftPad) / editor.pps)
+            let mainTop = TL.rulerHeight + TL.spacing
+                + CGFloat(editor.effectLaneCount()) * (TL.effectHeight + TL.spacing)
+                + CGFloat(editor.textLaneCount()) * (TL.textHeight + TL.spacing)
+                + CGFloat(editor.overlayLaneCount()) * (TL.overlayHeight + TL.spacing)
+            let asOverlay = location.y < mainTop - 2
+            if providers.contains(where: { $0.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) }) {
+                loadDroppedURLs(providers) { urls in editor.importMedia(urls, addToTimeline: true) }
+                return true
+            }
+            for p in providers where p.canLoadObject(ofClass: NSString.self) {
+                _ = p.loadObject(ofClass: NSString.self) { obj, _ in
+                    guard let str = obj as? String, str.hasPrefix("musii-media:"),
+                          let id = UUID(uuidString: String(str.dropFirst("musii-media:".count))) else { return }
+                    DispatchQueue.main.async {
+                        if let m = editor.project.mediaItem(id) { editor.dropMedia(m, at: t, asOverlay: asOverlay) }
+                    }
+                }
+            }
             return true
         }
     }
@@ -222,7 +242,7 @@ struct LaneBackground<Content: View>: View {
     @ViewBuilder var content: Content
     var body: some View {
         ZStack(alignment: .topLeading) {
-            Rectangle().fill(Color.white.opacity(0.025)).frame(height: height)
+            Rectangle().fill(Color.white.opacity(0.025)).frame(height: height).allowsHitTesting(false)
             content
         }
         .frame(height: height)
@@ -317,7 +337,7 @@ struct MainLane: View {
         let p = editor.project
         let slots = editor.mainSlots
         ZStack(alignment: .topLeading) {
-            Rectangle().fill(Color.white.opacity(0.04)).frame(height: TL.mainHeight)
+            Rectangle().fill(Color.white.opacity(0.04)).frame(height: TL.mainHeight).allowsHitTesting(false)
             if p.main.isEmpty {
                 HStack(spacing: 8) {
                     Image(systemName: "plus.rectangle.on.rectangle")

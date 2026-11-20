@@ -113,8 +113,13 @@ final class ProjectStore: ObservableObject {
         try data.write(to: url, options: .atomic)
     }
 
+    private var thumbKeys: [UUID: String] = [:]
+
     private func makeThumbnail(_ p: Project) {
         guard let first = p.main.first, let media = p.mediaItem(first.mediaID), media.exists else { return }
+        let key = "\(media.path)|\(first.sourceStart)"
+        if thumbKeys[p.id] == key && FileManager.default.fileExists(atPath: thumbFile(p.id).path) { return }
+        thumbKeys[p.id] = key
         let target = thumbFile(p.id)
         let id = p.id
         DispatchQueue.global(qos: .utility).async {

@@ -549,10 +549,26 @@ final class EditorState: ObservableObject {
         selection = .main(c.id)
     }
 
-    func addOverlay(_ m: MediaItem) {
+    /// Medium aus der Bibliothek in die Timeline gezogen
+    func dropMedia(_ m: MediaItem, at time: Double, asOverlay: Bool) {
+        if m.isVisual {
+            if asOverlay {
+                addOverlay(m, at: time)
+            } else {
+                let c = newClip(for: m)
+                let index = mainSlots.filter { ($0.start + $0.end) / 2 < time }.count
+                update { p in p.main.insert(c, at: min(index, p.main.count)) }
+                selection = .main(c.id)
+            }
+        } else {
+            addAudio(m, at: time)
+        }
+    }
+
+    func addOverlay(_ m: MediaItem, at time: Double? = nil) {
         guard m.isVisual else { return }
         var c = newClip(for: m)
-        c.start = clock.time
+        c.start = time ?? clock.time
         c.transform.scale = 0.6
         c.lane = freeLane(project.overlays, start: c.start, end: c.end, lane: { $0.lane }, range: { ($0.start, $0.end) })
         update { $0.overlays.append(c) }

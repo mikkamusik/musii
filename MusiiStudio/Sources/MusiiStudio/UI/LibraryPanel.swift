@@ -157,6 +157,7 @@ struct MediaCell: View {
         }
         .onHover { hover = $0 }
         .onTapGesture(count: 2) { editor.addToTimelineAuto(media) }
+        .onDrag { NSItemProvider(object: "musii-media:\(media.id.uuidString)" as NSString) }
         .contextMenu {
             if media.isVisual {
                 Button("Zur Hauptspur hinzufügen") { editor.addToMain(media) }
