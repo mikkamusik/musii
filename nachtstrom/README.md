@@ -1,6 +1,26 @@
-# NACHTSTROM v17 – 147 BPM · Cis · ein durchgehender Track, reiner Sub, dramatische Orchester-Shorts
+# NACHTSTROM v18 – 147 BPM · Cis · ein durchgehender Track, reiner Sub, tanzbare Orchester-Shorts mit Drop
 
 Gebaut nach dem vermessenen Bauplan deiner Referenz, die Details stehen in `REFERENZ_ANALYSE.md`.
+
+## Neu in v18: Tanzbar statt hektisch, die Streicher droppen
+- **Kein 16tel-Gefiedel mehr.** Die Streicher spielen jetzt **Akkord-Stabs** in einem 2-Takt-Motiv mit Ruf und Antwort und viel Luft zwischen den Kicks:
+  - Takt A: `DAMM . . DA . . DA . . . . . . . . .` (Tresillo)
+  - Takt B: `. . da . . . da . . . da . . . DA .` (Offbeats, Auftakt in den nächsten Takt)
+- **Celli:** nur noch ein wuchtiges **DUM auf jeder Eins**, zusammen mit der Kick.
+- **Sidechain an die Kick:** Die Streicher pumpen mit dem Groove.
+- **Drop:** Im Beat-Cut kommt ein kurzer Auftakt „ta–“, dann der **Tutti-Schlag genau auf dem Drop**. Die Streicher steigen schon beim ersten Drop (Takt 49) ein und wieder im großen Drop (Takt 115).
+- **Breakdown:** nur ein langer, leiser Akkord pro Takt im großen Saal.
+
+| Takt | Streicher |
+|---|---|
+| 37 | Teaser: nur 1. Violinen, gefiltert |
+| 48 → 49 | „ta–DAMM“: Drop 1, die Streicher steigen ein |
+| 49–64 | Stabs und Celli |
+| 106 | Breakdown: lange, leise Akkorde |
+| 114 → 115 | „ta–DAMM“: großer Drop |
+| 115–130 | Stabs und Celli, 16 Takte |
+| 151 | Main 3 |
+| 167 | Teaser im Outro |
 
 ## Neu in v17: Dramatisches Streichorchester mit Shorts
 Die Solo-Violine ist raus. Jetzt spielt ein **Streichorchester kurze Noten (Shorts)**, dramatisch wie in Film- und Trailer-Musik (`src/strings.py`, ganz ohne Samples synthetisiert).
@@ -130,9 +150,9 @@ Neu in v11, nicht mehr progressiv und nicht mehr „wie 3 Tracks gleichzeitig“
 - **Vocals:** auf **Spanisch** („Corriente nocturna“, „Más profundo“, „Déjate caer“, „Sigue“). Die Plätze im Arrangement stehen, die Shots kommen von ElevenLabs. Die alten deutschen Shots liegen in `Samples/Vocals/alt_deutsch/`.
 
 ## In Ableton öffnen
-1. `NACHTSTROM_v17.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v17/`.
-2. `NACHTSTROM_v17/NACHTSTROM.als` öffnen.
-3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v17` → **Los** → **Sichern**, dann **Cmd+S**.
+1. `NACHTSTROM_v18.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v18/`.
+2. `NACHTSTROM_v18/NACHTSTROM.als` öffnen.
+3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v18` → **Los** → **Sichern**, dann **Cmd+S**.
 4. A/B-Vergleich: **00 REFERENZ** und **00 MASTER BOUNCE** abwechselnd solo hören.
 
 ## Highlights (Takt-Nummern wie in Ableton)

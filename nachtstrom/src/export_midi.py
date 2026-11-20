@@ -79,23 +79,25 @@ def hook_part():
 
 
 def strings_part():
+    import strings as S
     out = []
-    acc = {0, 3, 6, 8, 11, 14}
     for bar, g, style in C.STRINGS_PLACES:
         for bi, ch in enumerate(C.STRINGS_CHORDS):
-            dyn = (0.78 + 0.22 * bi / 3) * (0.6 if style == "soft" else 1.0) * g
+            dyn = (0.85 + 0.15 * bi / 3) * (0.55 if style == "soft" else 1.0) * g
             hi, mid, lo = ch["v1"]
-            fig = [hi, mid, lo, mid]
-            for st in range(16):
+            motif = [(0, 0.45, 1.0)] if style == "soft" else (S.MOTIF_A if bi % 2 == 0 else S.MOTIF_B)
+            for st, dur, accv in motif:
                 b0 = bar * 4 + bi * 4 + st * 0.25
-                out.append((b0, 0.2, fig[st % 4], (1.0 if st in acc else 0.6) * dyn))
-                if style == "teaser":
-                    continue
-                if st % 2 == 0:
-                    out.append((b0, 0.3, ch["v2"], 0.75 * dyn))
-                    out.append((b0, 0.3, ch["va"], 0.7 * dyn))
-                if st in (0, 6, 12):
-                    out.append((b0, 0.6, ch["vc"], dyn))
+                d = dur / C.SPB
+                notes = [hi, mid] if style == "teaser" else [hi, mid, ch["v2"], ch["va"]]
+                for m in notes:
+                    out.append((b0, d, m, accv * dyn))
+            if style != "teaser":
+                out.append((bar * 4 + bi * 4, 0.42 / C.SPB, ch["vc"], dyn))
+    for b in C.STRINGS_PICKUPS:
+        ch = C.STRINGS_CHORDS[-1]
+        for m in (ch["v1"][1], ch["v2"], ch["va"]):
+            out.append((b, 0.12 / C.SPB, m, 0.9))
     return out
 
 
