@@ -331,6 +331,20 @@ enum MediaTools {
             }
         }
 
+        var audioBuffers: [CMSampleBuffer] = []
+        var audioIndex = 0
+        if aIn != nil {
+            let totalFrames = reversedAudio.count / channels
+            var pos = 0
+            while pos < totalFrames {
+                let n = min(4096, totalFrames - pos)
+                let slice = Array(reversedAudio[(pos * channels)..<((pos + n) * channels)])
+                if let sb = pcmBuffer(samples: slice, channels: channels, sampleRate: sampleRate, startFrame: pos) { audioBuffers.append(sb) }
+                pos += n
+            }
+            reversedAudio = []
+        }
+
         guard writer.startWriting() else { throw writer.error ?? StudioError.message("Rückwärts fehlgeschlagen") }
         writer.startSession(atSourceTime: .zero)
 
@@ -356,7 +370,18 @@ enum MediaTools {
                 }
             }
             for pb in frames.reversed() {
-                while !vIn.isReadyForMoreMediaData { try await Task.sleep(nanoseconds: 3_000_000) }
+                var waited = 0
+                while !vIn.isReadyForMoreMediaData {
+                    // Bild und Ton müssen abwechselnd geschrieben werden
+                    if let a = aIn, audioIndex < audioBuffers.count, a.isReadyForMoreMediaData {
+                        a.append(audioBuffers[audioIndex])
+                        audioIndex += 1
+                        continue
+                    }
+                    waited += 1
+                    if waited > 20_000 { throw StudioError.message("Rückwärts: Zeitüberschreitung beim Schreiben") }
+                    try await Task.sleep(nanoseconds: 2_000_000)
+                }
                 let t = CMTime(value: frameIndex * 1000, timescale: CMTimeScale(outFps * 1000))
                 adaptor.append(pb, withPresentationTime: t)
                 frameIndex += 1
@@ -367,33 +392,17 @@ enum MediaTools {
         vIn.markAsFinished()
 
         if let i = aIn {
-            var pos = 0
-            let framesPerBuffer = 4096
-            let totalFrames = reversedAudio.count / channels
-            var asbd = AudioStreamBasicDescription(mSampleRate: sampleRate, mFormatID: kAudioFormatLinearPCM,
-                                                   mFormatFlags: kLinearPCMFormatFlagIsSignedInteger | kLinearPCMFormatFlagIsPacked,
-                                                   mBytesPerPacket: UInt32(2 * channels), mFramesPerPacket: 1, mBytesPerFrame: UInt32(2 * channels),
-                                                   mChannelsPerFrame: UInt32(channels), mBitsPerChannel: 16, mReserved: 0)
-            var fmt: CMAudioFormatDescription?
-            CMAudioFormatDescriptionCreate(allocator: kCFAllocatorDefault, asbd: &asbd, layoutSize: 0, layout: nil, magicCookieSize: 0, magicCookie: nil, extensions: nil, formatDescriptionOut: &fmt)
-            while pos < totalFrames, let fmt = fmt {
-                let n = min(framesPerBuffer, totalFrames - pos)
-                let byteCount = n * channels * 2
-                var block: CMBlockBuffer?
-                CMBlockBufferCreateWithMemoryBlock(allocator: kCFAllocatorDefault, memoryBlock: nil, blockLength: byteCount, blockAllocator: kCFAllocatorDefault,
-                                                   customBlockSource: nil, offsetToData: 0, dataLength: byteCount, flags: kCMBlockBufferAssureMemoryNowFlag, blockBufferOut: &block)
-                guard let b = block else { break }
-                reversedAudio.withUnsafeBytes { raw in
-                    _ = CMBlockBufferReplaceDataBytes(with: raw.baseAddress!.advanced(by: pos * channels * 2), blockBuffer: b, offsetIntoDestination: 0, dataLength: byteCount)
+            var waited = 0
+            while audioIndex < audioBuffers.count {
+                if i.isReadyForMoreMediaData {
+                    i.append(audioBuffers[audioIndex])
+                    audioIndex += 1
+                    waited = 0
+                } else {
+                    waited += 1
+                    if waited > 20_000 { throw StudioError.message("Rückwärts: Zeitüberschreitung (Ton)") }
+                    try await Task.sleep(nanoseconds: 2_000_000)
                 }
-                var sb: CMSampleBuffer?
-                CMAudioSampleBufferCreateReadyWithPacketDescriptions(allocator: kCFAllocatorDefault, dataBuffer: b, formatDescription: fmt, sampleCount: n,
-                                                                     presentationTimeStamp: CMTime(value: CMTimeValue(pos), timescale: CMTimeScale(sampleRate)),
-                                                                     packetDescriptions: nil, sampleBufferOut: &sb)
-                guard let s = sb else { break }
-                while !i.isReadyForMoreMediaData { try await Task.sleep(nanoseconds: 3_000_000) }
-                i.append(s)
-                pos += n
             }
             i.markAsFinished()
         }
@@ -404,6 +413,32 @@ enum MediaTools {
         guard writer.status == .completed else { throw writer.error ?? StudioError.message("Rückwärts fehlgeschlagen") }
         progress(1)
         return url
+    }
+
+    /// Erzeugt einen PCM-Audio-Puffer (16 Bit, verschachtelt) für AVAssetWriter
+    static func pcmBuffer(samples: [Int16], channels: Int, sampleRate: Double, startFrame: Int) -> CMSampleBuffer? {
+        var asbd = AudioStreamBasicDescription(mSampleRate: sampleRate, mFormatID: kAudioFormatLinearPCM,
+                                               mFormatFlags: kLinearPCMFormatFlagIsSignedInteger | kLinearPCMFormatFlagIsPacked,
+                                               mBytesPerPacket: UInt32(2 * channels), mFramesPerPacket: 1, mBytesPerFrame: UInt32(2 * channels),
+                                               mChannelsPerFrame: UInt32(channels), mBitsPerChannel: 16, mReserved: 0)
+        var fmt: CMAudioFormatDescription?
+        CMAudioFormatDescriptionCreate(allocator: kCFAllocatorDefault, asbd: &asbd, layoutSize: 0, layout: nil, magicCookieSize: 0,
+                                       magicCookie: nil, extensions: nil, formatDescriptionOut: &fmt)
+        guard let f = fmt, !samples.isEmpty else { return nil }
+        let bytes = samples.count * 2
+        var block: CMBlockBuffer?
+        CMBlockBufferCreateWithMemoryBlock(allocator: kCFAllocatorDefault, memoryBlock: nil, blockLength: bytes, blockAllocator: kCFAllocatorDefault,
+                                           customBlockSource: nil, offsetToData: 0, dataLength: bytes, flags: kCMBlockBufferAssureMemoryNowFlag, blockBufferOut: &block)
+        guard let b = block else { return nil }
+        samples.withUnsafeBytes { raw in
+            _ = CMBlockBufferReplaceDataBytes(with: raw.baseAddress!, blockBuffer: b, offsetIntoDestination: 0, dataLength: bytes)
+        }
+        var sb: CMSampleBuffer?
+        CMAudioSampleBufferCreateReadyWithPacketDescriptions(allocator: kCFAllocatorDefault, dataBuffer: b, formatDescription: f,
+                                                             sampleCount: samples.count / channels,
+                                                             presentationTimeStamp: CMTime(value: CMTimeValue(startFrame), timescale: CMTimeScale(sampleRate)),
+                                                             packetDescriptions: nil, sampleBufferOut: &sb)
+        return sb
     }
 
     /// Kopiert eine Datei in den Projektordner (für Aufnahmen etc.)

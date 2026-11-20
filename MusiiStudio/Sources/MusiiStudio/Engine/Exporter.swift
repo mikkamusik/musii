@@ -95,6 +95,13 @@ final class ExportJob {
 
     private var isCancelled: Bool { lock.lock(); defer { lock.unlock() }; return cancelled }
 
+    /// Export mit eigener Job-Instanz, die während des gesamten Exports gehalten wird
+    static func runRetained(project: Project, settings: ExportSettings, to url: URL, progress: @escaping (Double) -> Void) async throws {
+        let job = ExportJob()
+        try await job.run(project: project, settings: settings, to: url, progress: progress)
+        withExtendedLifetime(job) {}
+    }
+
     static func renderSize(project: Project, resolution: ExportResolution) -> CGSize {
         let c = project.canvasSize
         let f = resolution.shortSide / min(c.width, c.height)
@@ -224,9 +231,9 @@ final class ExportJob {
             group.enter()
             let q = DispatchQueue(label: "musii.export.\(label)")
             var finished = false
-            input.requestMediaDataWhenReady(on: q) { [weak self] in
+            input.requestMediaDataWhenReady(on: q) {
                 while input.isReadyForMoreMediaData && !finished {
-                    if self?.isCancelled ?? true {
+                    if self.isCancelled {
                         finished = true
                         input.markAsFinished()
                         group.leave()

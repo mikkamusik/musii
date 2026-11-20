@@ -39,31 +39,6 @@ enum SelfTest {
 
     // MARK: Testmedien
 
-    static func pcmBuffer(samples: [Int16], channels: Int, sampleRate: Double, startFrame: Int) -> CMSampleBuffer? {
-        var asbd = AudioStreamBasicDescription(mSampleRate: sampleRate, mFormatID: kAudioFormatLinearPCM,
-                                               mFormatFlags: kLinearPCMFormatFlagIsSignedInteger | kLinearPCMFormatFlagIsPacked,
-                                               mBytesPerPacket: UInt32(2 * channels), mFramesPerPacket: 1, mBytesPerFrame: UInt32(2 * channels),
-                                               mChannelsPerFrame: UInt32(channels), mBitsPerChannel: 16, mReserved: 0)
-        var fmt: CMAudioFormatDescription?
-        CMAudioFormatDescriptionCreate(allocator: kCFAllocatorDefault, asbd: &asbd, layoutSize: 0, layout: nil, magicCookieSize: 0,
-                                       magicCookie: nil, extensions: nil, formatDescriptionOut: &fmt)
-        guard let f = fmt else { return nil }
-        let bytes = samples.count * 2
-        var block: CMBlockBuffer?
-        CMBlockBufferCreateWithMemoryBlock(allocator: kCFAllocatorDefault, memoryBlock: nil, blockLength: bytes, blockAllocator: kCFAllocatorDefault,
-                                           customBlockSource: nil, offsetToData: 0, dataLength: bytes, flags: kCMBlockBufferAssureMemoryNowFlag, blockBufferOut: &block)
-        guard let b = block else { return nil }
-        samples.withUnsafeBytes { raw in
-            _ = CMBlockBufferReplaceDataBytes(with: raw.baseAddress!, blockBuffer: b, offsetIntoDestination: 0, dataLength: bytes)
-        }
-        var sb: CMSampleBuffer?
-        CMAudioSampleBufferCreateReadyWithPacketDescriptions(allocator: kCFAllocatorDefault, dataBuffer: b, formatDescription: f,
-                                                             sampleCount: samples.count / channels,
-                                                             presentationTimeStamp: CMTime(value: CMTimeValue(startFrame), timescale: CMTimeScale(sampleRate)),
-                                                             packetDescriptions: nil, sampleBufferOut: &sb)
-        return sb
-    }
-
     static func makeVideo(url: URL, width: Int, height: Int, seconds: Double, fps: Int, hue: Double, rotate: Bool, withAudio: Bool) async throws {
         try? FileManager.default.removeItem(at: url)
         let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
@@ -92,10 +67,10 @@ enum SelfTest {
         let frames = Int(seconds * Double(fps))
         let samplesPerFrame = Int(sampleRate) / fps
         var phase = 0.0
-        for i in 0..<frames {
+        func videoFrame(_ i: Int) -> CVPixelBuffer? {
             var pb: CVPixelBuffer?
             CVPixelBufferCreate(kCFAllocatorDefault, width, height, kCVPixelFormatType_32BGRA, nil, &pb)
-            guard let buf = pb else { continue }
+            guard let buf = pb else { return nil }
             CVPixelBufferLockBaseAddress(buf, [])
             let base = CVPixelBufferGetBaseAddress(buf)!.assumingMemoryBound(to: UInt8.self)
             let bpr = CVPixelBufferGetBytesPerRow(buf)
@@ -115,26 +90,45 @@ enum SelfTest {
                 }
             }
             CVPixelBufferUnlockBaseAddress(buf, [])
-            var waited = 0
-            while !vIn.isReadyForMoreMediaData && waited < 2000 { try await Task.sleep(nanoseconds: 2_000_000); waited += 1 }
-            adaptor.append(buf, withPresentationTime: CMTime(value: CMTimeValue(i), timescale: CMTimeScale(fps)))
-            if let a = aIn {
-                var samples = [Int16](repeating: 0, count: samplesPerFrame * 2)
-                for s in 0..<samplesPerFrame {
-                    let v = Int16(sin(phase) * 8000)
-                    phase += 2 * Double.pi * 440 / sampleRate
-                    samples[s * 2] = v
-                    samples[s * 2 + 1] = v
+            return buf
+        }
+        func audioChunk(_ i: Int) -> CMSampleBuffer? {
+            var samples = [Int16](repeating: 0, count: samplesPerFrame * 2)
+            for s in 0..<samplesPerFrame {
+                let v = Int16(sin(phase) * 8000)
+                phase += 2 * Double.pi * 440 / sampleRate
+                samples[s * 2] = v
+                samples[s * 2 + 1] = v
+            }
+            return MediaTools.pcmBuffer(samples: samples, channels: 2, sampleRate: sampleRate, startFrame: i * samplesPerFrame)
+        }
+        // Bild und Ton abwechselnd schreiben, sobald die jeweilige Spur bereit ist
+        var vi = 0, ai = aIn == nil ? frames : 0
+        var idle = 0
+        while vi < frames || ai < frames {
+            var progressed = false
+            if vi < frames && vIn.isReadyForMoreMediaData {
+                if let buf = videoFrame(vi) {
+                    adaptor.append(buf, withPresentationTime: CMTime(value: CMTimeValue(vi), timescale: CMTimeScale(fps)))
                 }
-                if let sb = pcmBuffer(samples: samples, channels: 2, sampleRate: sampleRate, startFrame: i * samplesPerFrame) {
-                    waited = 0
-                    while !a.isReadyForMoreMediaData && waited < 2000 { try await Task.sleep(nanoseconds: 2_000_000); waited += 1 }
-                    a.append(sb)
-                }
+                vi += 1
+                progressed = true
+                if vi == frames { vIn.markAsFinished() }
+            }
+            if let a = aIn, ai < frames, a.isReadyForMoreMediaData {
+                if let sb = audioChunk(ai) { a.append(sb) }
+                ai += 1
+                progressed = true
+                if ai == frames { a.markAsFinished() }
+            }
+            if !progressed {
+                idle += 1
+                if idle > 10_000 { throw StudioError.message("Testvideo: Zeitüberschreitung") }
+                try await Task.sleep(nanoseconds: 2_000_000)
+            } else {
+                idle = 0
             }
         }
-        vIn.markAsFinished()
-        aIn?.markAsFinished()
         await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in writer.finishWriting { c.resume() } }
         if writer.status != .completed { throw writer.error ?? StudioError.message("Testvideo fehlgeschlagen") }
     }
@@ -339,7 +333,7 @@ enum SelfTest {
         let mp4 = outputDir.appendingPathComponent("export-h264.mp4")
         _ = await step("Export MP4 (H.264, 720p)") {
             var s = ExportSettings(); s.resolution = .p720; s.fps = 30; s.codec = .h264; s.format = .mp4
-            try await ExportJob().run(project: p, settings: s, to: mp4) { _ in }
+            try await ExportJob.runRetained(project: p, settings: s, to: mp4) { _ in }
             let info = await probe(mp4)
             check(abs(info.duration - expected) < 0.2, "MP4-Dauer \(String(format: "%.2f", info.duration)) s ≈ \(String(format: "%.2f", expected)) s")
             check(info.video && info.audio, "MP4 hat Bild und Ton")
@@ -356,7 +350,7 @@ enum SelfTest {
         _ = await step("Export HEVC 1080p 60 fps") {
             var s = ExportSettings(); s.resolution = .p1080; s.fps = 60; s.codec = .hevc; s.format = .mov; s.quality = .high
             let u = outputDir.appendingPathComponent("export-hevc.mov")
-            try await ExportJob().run(project: p, settings: s, to: u) { _ in }
+            try await ExportJob.runRetained(project: p, settings: s, to: u) { _ in }
             let info = await probe(u)
             check(info.video && abs(info.duration - expected) < 0.2, "HEVC-Export ok")
         }
@@ -364,21 +358,21 @@ enum SelfTest {
             var q = p; q.aspect = .r9x16
             var s = ExportSettings(); s.resolution = .p720; s.format = .mp4
             let u = outputDir.appendingPathComponent("export-9x16.mp4")
-            try await ExportJob().run(project: q, settings: s, to: u) { _ in }
+            try await ExportJob.runRetained(project: q, settings: s, to: u) { _ in }
             let info = await probe(u)
             check(Int(info.size.width) == 720 && Int(info.size.height) == 1280, "Hochformat 720×1280")
         }
         _ = await step("Export GIF") {
             var s = ExportSettings(); s.format = .gif
             let u = outputDir.appendingPathComponent("export.gif")
-            try await ExportJob().run(project: p, settings: s, to: u) { _ in }
+            try await ExportJob.runRetained(project: p, settings: s, to: u) { _ in }
             let size = (try? FileManager.default.attributesOfItem(atPath: u.path)[.size] as? Int) ?? 0
             check(size > 1000, "GIF erstellt (\(size / 1024) KB)")
         }
         _ = await step("Export nur Audio (M4A)") {
             var s = ExportSettings(); s.format = .m4a
             let u = outputDir.appendingPathComponent("export.m4a")
-            try await ExportJob().run(project: p, settings: s, to: u) { _ in }
+            try await ExportJob.runRetained(project: p, settings: s, to: u) { _ in }
             let info = await probe(u)
             check(info.audio && !info.video && info.duration > 4, "M4A hat nur Ton")
         }
