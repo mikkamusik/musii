@@ -447,97 +447,32 @@ def pitch_down(x, semis):
     return resample_poly(x, up, down)
 
 
-def verspult(x, stretch=False, seed=0):
-    """Verspult statt verzerrt: Tape-Leiern (Wow + Flutter), leiser Oktav-Schatten, langsamer
-    Phaser, auf Wunsch das letzte Wort gedehnt ("caeeer...")."""
-    import librosa
-    rng = np.random.default_rng(seed)
-    if stretch:
-        k = int(len(x) * 0.62)
-        xf = int(0.03 * SR)
-        tail = librosa.effects.time_stretch(x[k - xf:], rate=0.55)
-        tail[:xf] = tail[:xf] * np.linspace(0, 1, xf) + x[k - xf:k] * np.linspace(1, 0, xf)
-        x = np.concatenate([x[:k - xf], tail])
-        fo = int(0.15 * SR)
-        x[-fo:] *= np.linspace(1, 0, fo)
-    pad = np.concatenate([x, np.zeros(int(0.06 * SR))])
-    w = _moddelay(pad, 6.0, 12.0, 0.45, rng.uniform(0, 6.28))       # Wow: ca. +-25 Cent, langsam
-    w = _moddelay(w, 1.0, 0.15, 5.5, rng.uniform(0, 6.28))          # Flutter
-    sub = lp(librosa.effects.pitch_shift(w, sr=SR, n_steps=-12), 1200)
-    y = w + 0.22 * sub
-    return 0.75 * y + 0.25 * phaser(y, 0.13, 250.0, 3500.0, 0.55, 6, rng.uniform(0, 6.28))
-
-
-def preverb(x, size=0.9):
-    """Reverse-Hall: saugt die Phrase an (endet genau auf ihrem Einsatz)."""
-    tail = reverb(np.concatenate([x, np.zeros(int(1.5 * SR))]), size=size, damp=0.45, predelay_ms=0)
-    r = tail[:, ::-1][:, -int(1.6 * SR):].copy()
-    fi = int(0.4 * SR)
-    r[:, :fi] *= np.linspace(0, 1, fi)
-    return r
-
-
-def render_vocal():
-    """Gesprochene, gehauchte Stimme (spoken.py) – verspult: leiert, schwebt, Reverse-Hall, Dub-Echo, Raum."""
+def render_violin():
+    """Viraler Hook: synthetische Violine (violin.py) – Pult im Main/Peak, Solo im Breakdown."""
+    import violin as V
     out = np.zeros((2, N))
     dly = np.zeros((2, N))
     verb = np.zeros(N)
-
-    def place(x, b, g, send_d, send_r, p=0.0, stretch=False, pre=0.0, seed=0):
-        x = verspult(x, stretch=stretch, seed=seed)
+    for i, (bar, g, style) in enumerate(C.VIOLIN_PLACES):
+        if style == "solo":
+            x = V.ensemble(C.VIOLIN_HOOK, C.SPB, seed=100 + i, octave=-1, solo=True)
+            sd, sr_ = 0.3, 0.75
+        elif style == "teaser":
+            x = V.ensemble(C.VIOLIN_HOOK, C.SPB, seed=100 + i)
+            x = np.array([lp(c, 1800) for c in x])
+            sd, sr_ = 0.5, 0.7
+        else:
+            x = V.ensemble(C.VIOLIN_HOOK, C.SPB, seed=100 + i)
+            sd, sr_ = 0.22, 0.3
         x = x / (np.max(np.abs(x)) + 1e-9) * g
-        if pre > 0:
-            r = preverb(x)
-            add(out, r * pre, b - r.shape[1] / SR / C.SPB, 1.0)
-        dry = pan(x, p)
-        add(out, dry, b, 1.0)
-        add(dly, dry * send_d, b, 1.0)
+        add(out, x, bar * 4, 1.0)
+        add(dly, x * sd, bar * 4, 1.0)
         tmp = np.zeros(N)
-        add(tmp, x * send_r, b, 1.0)
-        verb[:] += tmp
-
-    spk = {k: load_spoken(k) for k in ("SPK_DEJATE", "SPK_PROFUNDO", "SPK_CORRIENTE", "SPK_SIGUE", "SPK_NOPARES")}
-    if any(v is None for v in spk.values()):
-        return out
-    for name, b, g, style in C.VOCAL_EVENTS:
-        if style == "chop":
-            x = spk["SPK_DEJATE"][: int(0.28 * SR)].copy()
-            x[-300:] *= np.linspace(1, 0, 300)
-            place(hp(x, 250), b, g, 0.9, 0.25, seed=int(b))
-        elif style == "deep":
-            place(spk[name], b, g, 0.55, 0.4, stretch=True, pre=0.5, seed=int(b))
-        elif style == "close":
-            place(spk[name], b, g, 0.35, 0.15, seed=int(b))  # nah am Ohr, nur leicht verspult
-        else:                                                # whisper
-            place(lp(spk[name], 9000), b, g, 0.6, 0.6, pre=0.6, seed=int(b))
-    # Atem: Einatmen endet genau auf dem Einsatz, Ausatmen beginnt dort
-    for kind, b, g in C.BREATHS:
-        br = load_shot("BREATH_IN" if kind == "in" else "BREATH_OUT")
-        if br is None:
-            continue
-        x = hp(br, 120)
-        x = x / (np.max(np.abs(x)) + 1e-9) * g * 0.55
-        start = b - (len(x) / SR / C.SPB if kind == "in" else 0.0)
-        add(out, pan(x, 0.0), start, 1.0)
-        tmp = np.zeros(N)
-        add(tmp, x * 0.35, start, 1.0)
+        add(tmp, 0.5 * (x[0] + x[1]) * sr_, bar * 4, 1.0)
         verb += tmp
-    # Gesprochener Hook
-    for bar, g, style in C.HOOK_PLACES:
-        for name, off in C.SPOKEN_HOOK:
-            x = spk[name]
-            sd = int(bar * 10 + off)
-            if style == "teaser":
-                place(lp(x, 1500), bar * 4 + off, g, 0.6, 0.6, stretch=True, pre=0.6, seed=sd)
-            elif style == "acapella":
-                place(x, bar * 4 + off, g, 0.5, 0.6, stretch=True, pre=0.7, seed=sd)
-            else:
-                place(x, bar * 4 + off, g, 0.4, 0.3, stretch=True, pre=0.45, seed=sd)
-    # Dub-Echos: mehr Leiern und Feedback, sauber (nicht angezerrt) -> schwebt
-    out = np.array([c + (db(3.5) - 1) * bp(c, 2600, 0.35) for c in out])   # Praesenz: Worte kommen durch
-    dl, dr = tape(dly[0], dly[1], 0.75, 4.0, 0.3, 0.58, 0.55, 1.2, 1.0)
-    rv = reverb(verb, size=0.9, damp=0.45, predelay_ms=25)
-    return out + np.array([hp(dl, 250), hp(dr, 250)]) * 0.6 + rv * 0.7
+    dl, dr = tape(dly[0], dly[1], 0.75, 1.5, 0.3, 0.42, 0.55, 1.1, 1.0)
+    rv = reverb(verb, size=0.88, damp=0.45, predelay_ms=25)
+    return out + np.array([hp(dl, 300), hp(dr, 300)]) * 0.5 + rv * 0.75
 
 
 # ====================================================================== ATMOS (Drone mit Pitch-Riser)
@@ -908,7 +843,7 @@ def main(ref_path):
     fx, ris = render_fx(kick, stems["07 RIFF"])
     stems["10 FX"] = fx
     stems["11 RISER"] = ris
-    stems["12 VOCAL"] = render_vocal()
+    stems["12 VIOLIN"] = render_violin()
     print("synths/fx/vocal", round(time.time() - t0), flush=True)
 
     scs = {d: sidechain(d) for d in set(SC.values())}
@@ -925,20 +860,18 @@ def main(ref_path):
     col = C.color_lp(BEAT_AT)
     for k in ("04 HATS", "06 PERC", "07 RIFF", "08 DUB STAB"):
         stems[k] = np.array([svf(c, col, 0.1, 0) for c in stems[k]])
-    # Vocal-Pegel nach der LAUTHEIT des Hooks im Peak (nicht nach Atem-Spitzen):
-    # Hook-RMS 5 dB unter Kick-RMS -> gut hoerbar vorne im Mix, Spitzen weich begrenzt.
+    # Violinen-Pegel: im Peak 3 dB unter der Kick (RMS) -> der Hook liegt klar vorne
     s0, s1 = smp(114 * 4), smp(130 * 4)
-    vr = np.sqrt(np.mean(stems["12 VOCAL"][..., s0:s1] ** 2))
+    vr = np.sqrt(np.mean(stems["12 VIOLIN"][..., s0:s1] ** 2))
     kr = np.sqrt(np.mean(stems["01 KICK"][s0:s1] ** 2))
     if vr > 0:
-        # v15: Stimme deutlich nach vorn (vorher ging sie im Riff/Perc-Band unter: ~15 % der Energie 0.7-3 kHz)
-        stems["12 VOCAL"] = stems["12 VOCAL"] * (kr * db(3.0) / vr)
-        stems["12 VOCAL"] = soft_clip(stems["12 VOCAL"], np.max(np.abs(stems["01 KICK"])) * db(0.0))
-    # Ducking: Sobald sie spricht, machen Riff, Perc, Hats, Dub-Stab und Atmos Platz (bis -4 dB)
-    vm = np.abs(0.5 * (stems["12 VOCAL"][0] + stems["12 VOCAL"][1]))
-    venv = smooth(vm, int(0.03 * SR))
+        stems["12 VIOLIN"] = stems["12 VIOLIN"] * (kr * db(-3.0) / vr)
+        stems["12 VIOLIN"] = soft_clip(stems["12 VIOLIN"], np.max(np.abs(stems["01 KICK"])) * db(-1.0))
+    # Platz fuer die Geige: Riff, Perc, Hats, Dub-Stab, Atmos ducken langsam (bis -3 dB), solange sie spielt
+    vm = np.abs(0.5 * (stems["12 VIOLIN"][0] + stems["12 VIOLIN"][1]))
+    venv = smooth(vm, int(0.05 * SR))
     thr = np.percentile(venv[venv > 1e-6], 90) if np.any(venv > 1e-6) else 1.0
-    duckg = smooth(1.0 - 0.37 * np.clip(venv / (0.35 * thr), 0.0, 1.0), int(0.12 * SR))
+    duckg = smooth(1.0 - 0.3 * np.clip(venv / (0.3 * thr), 0.0, 1.0), int(0.3 * SR))
     for k in ("07 RIFF", "06 PERC", "04 HATS", "08 DUB STAB", "09 ATMOS"):
         stems[k] = stems[k] * duckg
     for k in EDITED:
@@ -957,19 +890,19 @@ def main(ref_path):
         bgdb = np.where((BAR_AT >= a) & (BAR_AT < b), d0 + (d1 - d0) * u ** 1.5, bgdb)
     bg = smooth(10 ** (bgdb / 20), SR // 4)
     for k in stems:
-        if k not in ("11 RISER", "10 FX", "12 VOCAL"):
+        if k not in ("11 RISER", "10 FX", "12 VIOLIN"):
             stems[k] = stems[k] * bg
-    # Vocal in den Breaks nicht mit Peak-Pegel (sonst EDM-A-cappella): intim und im Raum.
+    # Geigen-Solo im Breakdown: etwas zurueck (intim), aber der Gaensehaut-Moment bleibt
     vdb = np.zeros(N)
-    for a, b, d in ((40.6, 47.5, -7.0), (96.6, 110.0, -9.0)):
+    for a, b, d in ((96.6, 110.0, -5.0),):
         vdb = np.where((BAR_AT >= a) & (BAR_AT < b), d, vdb)
-    stems["12 VOCAL"] = stems["12 VOCAL"] * smooth(10 ** (vdb / 20), SR // 2)
+    stems["12 VIOLIN"] = stems["12 VIOLIN"] * smooth(10 ** (vdb / 20), SR // 2)
     # Letzter Takt vor dem Drop: auch Riser, FX und Atem treten zurueck -> fast Stille, dann der Schlag
     ddb = np.zeros(N)
     for a, b, d in ((47.0, 48.0 - pre, -4.0), (113.0, 114.0 - pre, -6.0)):
         ddb = np.where((BAR_AT >= a) & (BAR_AT < b), d, ddb)
     duck = smooth(10 ** (ddb / 20), SR // 4)
-    for k in ("10 FX", "11 RISER", "12 VOCAL"):
+    for k in ("10 FX", "11 RISER", "12 VIOLIN"):
         stems[k] = stems[k] * duck
     print("edits", round(time.time() - t0), flush=True)
 

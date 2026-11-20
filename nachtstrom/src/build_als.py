@@ -294,10 +294,11 @@ AUDIO = [  # Stem, Farbe, Volume, Pan, Info
     ("09 ATMOS", 41, 1.0, 0, "Drone in Break 1 und Breakdown."),
     ("10 FX", 1, 1.0, 0, "Highlights: Reverse-Crashes, Crashes, Sub-Drops, Pings, Downlifter, Wand-Sweeps."),
     ("11 RISER", 1, 1.0, 0, "Weicher Riser vor dem grossen Drop."),
-    ("12 VOCAL", 60, 1.0, 0, "Sexy gesprochene, gehauchte, verspulte Stimme (Spanisch): 'Ven... dejate caer' / 'Mas profundo', Shots 'No pares', 'Sigue', 'Corriente nocturna'; Tape-Leiern, Reverse-Hall, Dub-Echos; Atem. Einzelne Phrasen in Samples/Vocals/spoken."),
+    ("12 VIOLIN", 60, 1.0, 0, "Viraler Hook: synthetische Violine (Saegezahn-Saite, Geigenkorpus, Slides, verzoegertes Vibrato, Bogengeraeusch). Pult + Bratsche im Main/Peak, Solo eine Oktave tiefer im Breakdown."),
 ]
 
 MIDI = [  # Name, Datei-Key, Farbe, Info
+    ("12b VIOLIN MIDI", "VIOLIN", 60, "Die Violinen-Melodie als MIDI (Cis-phrygisch) - z.B. fuer eine echte Violin-Library."),
     ("13 RIFF MIDI", "WALL", 5, "Riff-Synth: Wavetable/Analog, 3 Saws leicht verstimmt, LP mit Env, sanfte Saettigung, Sidechain, Echo-Throws."),
     ("14 DUB MIDI", "DUB", 9, "Kurzer Stab -> Echo 3/16 mit viel Feedback -> Reverb."),
     ("15 BASS MIDI", "BASS", 12, "Operator: reiner Sinus, kurzer Attack, leichte Saettigung."),

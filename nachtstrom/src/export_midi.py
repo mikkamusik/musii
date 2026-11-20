@@ -78,7 +78,17 @@ def hook_part():
     return out
 
 
+def violin_part():
+    out = []
+    for bar, g, style in C.VIOLIN_PLACES:
+        oc = -12 if style == "solo" else 0
+        for st, ln, m in C.VIOLIN_HOOK:
+            out.append((bar * 4 + st * 0.25, ln * 0.25 * 0.97, m + oc, g))
+    return out
+
+
 PARTS = {
+    "VIOLIN": violin_part,
     "WALL": lambda: part(C.wall_notes()),
     "DUB": lambda: part(C.dub_notes()),
     "BASS": lambda: part(C.bass_notes()),

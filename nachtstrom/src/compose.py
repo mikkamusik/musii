@@ -345,6 +345,26 @@ HOOK = [
     (16, 2, 61, "de"), (19, 2, 61, "ja"), (22, 1, 61, "te"), (24, 2, 62, "ca"), (26, 4, 64, "er"),
     (32, 3, 64, "mas"), (35, 2, 62, "pro"), (38, 3, 61, "fun"), (41, 5, 59, "do"),
 ]
+# ---------------------------------------------------------------- VIOLINE (viraler Hook, v16)
+# Singbare 4-Takt-Melodie in Cis-phrygisch (wie das Riff: Cis D E Fis Gis A H).
+# Bogen: hoch auf Cis, kleine Terz E, dann die phrygische Kadenz D -> Cis.
+#   Cis-H-Cis-E | D-Cis-H | Gis-A-H-Cis | D-Cis.  (16tel im 4-Takt-Block, Laenge, MIDI)
+VIOLIN_HOOK = [
+    (0, 6, 85), (6, 2, 83), (8, 4, 85), (12, 4, 88),
+    (16, 8, 86), (24, 4, 85), (28, 4, 83),
+    (32, 6, 80), (38, 2, 81), (40, 4, 83), (44, 4, 85),
+    (48, 6, 86), (54, 10, 85),
+]
+# (Start-Takt, Pegel, Stil): teaser = gefiltert & weit weg, full = Geigen-Pult + Bratsche,
+# solo = eine Geige eine Oktave tiefer im Breakdown (der Gaensehaut-Moment)
+VIOLIN_PLACES = [
+    (36, 0.55, "teaser"),
+    (56, 1.0, "full"), (60, 1.0, "full"),
+    (105, 0.95, "solo"),
+    (114, 1.0, "full"), (118, 1.0, "full"), (122, 1.0, "full"), (126, 1.0, "full"),
+    (150, 0.9, "full"),
+    (166, 0.6, "teaser"),
+]
 # (Start-Takt, Pegel, Stil) – Teaser, voller Hook, a cappella im Breakdown, Peak-Schleife
 HOOK_PLACES = [
     (36, 0.55, "teaser"),
