@@ -272,7 +272,8 @@ enum MediaTools {
         let duration = try await asset.load(.duration)
         let natural = try await vTrack.load(.naturalSize)
         let transform = try await vTrack.load(.preferredTransform)
-        let fps = Double(try await vTrack.load(.nominalFrameRate))
+        let fpsRaw = try await vTrack.load(.nominalFrameRate)
+        let fps = Double(fpsRaw)
         let url = AppPaths.generatedMedia(projectID).appendingPathComponent("Rueckwaerts-\(UUID().uuidString.prefix(8)).mov")
         try? FileManager.default.removeItem(at: url)
 

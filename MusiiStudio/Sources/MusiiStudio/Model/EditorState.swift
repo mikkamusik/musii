@@ -257,7 +257,7 @@ final class EditorState: ObservableObject {
             }
         }
         if let e = endObserver { NotificationCenter.default.removeObserver(e) }
-        endObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main) { [weak self] _ in
+        endObserver = NotificationCenter.default.addObserver(forName: AVPlayerItem.didPlayToEndTimeNotification, object: item, queue: .main) { [weak self] _ in
             guard let self = self else { return }
             self.isPlaying = false
             self.clock.time = self.duration
