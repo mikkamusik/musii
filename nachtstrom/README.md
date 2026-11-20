@@ -16,10 +16,11 @@ Gebaut nach dem vermessenen Bauplan deiner Referenz, die Details stehen in `REFE
   - Für eine kommerzielle Veröffentlichung bitte die Lizenz beachten. Alternativ die Zeilen neu einsprechen und die Dateien in `Samples/Vocals/spoken/` ersetzen; Arrangement und Effekte bleiben gleich.
 - **Sexy-Kette** (`src/spoken.py`):
   - einen Halbton tiefer
-  - eine LPC-Flüsterstimme als Hauch darunter
-  - Luft über 9 kHz und Nahbesprechungs-Wärme
+  - nur ein Hauch LPC-Flüsterstimme darunter, ohne Rauschen
+  - Nahbesprechungs-Wärme
   - weiches S: Zischlaute bleiben 24 dB unter dem lautesten Vokal
-  - Kompressor, der Atem und Nähe nach vorne holt
+  - sanfter Kompressor
+  - Gate zwischen den Silben: Ruhe statt Grundrauschen (5–11 dB weniger Rauschen als in der ersten Version)
 
 | Takt | Stimme |
 |---|---|
