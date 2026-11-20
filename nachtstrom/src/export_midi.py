@@ -78,17 +78,29 @@ def hook_part():
     return out
 
 
-def violin_part():
+def strings_part():
     out = []
-    for bar, g, style in C.VIOLIN_PLACES:
-        oc = -12 if style == "solo" else 0
-        for st, ln, m in C.VIOLIN_HOOK:
-            out.append((bar * 4 + st * 0.25, ln * 0.25 * 0.97, m + oc, g))
+    acc = {0, 3, 6, 8, 11, 14}
+    for bar, g, style in C.STRINGS_PLACES:
+        for bi, ch in enumerate(C.STRINGS_CHORDS):
+            dyn = (0.78 + 0.22 * bi / 3) * (0.6 if style == "soft" else 1.0) * g
+            hi, mid, lo = ch["v1"]
+            fig = [hi, mid, lo, mid]
+            for st in range(16):
+                b0 = bar * 4 + bi * 4 + st * 0.25
+                out.append((b0, 0.2, fig[st % 4], (1.0 if st in acc else 0.6) * dyn))
+                if style == "teaser":
+                    continue
+                if st % 2 == 0:
+                    out.append((b0, 0.3, ch["v2"], 0.75 * dyn))
+                    out.append((b0, 0.3, ch["va"], 0.7 * dyn))
+                if st in (0, 6, 12):
+                    out.append((b0, 0.6, ch["vc"], dyn))
     return out
 
 
 PARTS = {
-    "VIOLIN": violin_part,
+    "STRINGS": strings_part,
     "WALL": lambda: part(C.wall_notes()),
     "DUB": lambda: part(C.dub_notes()),
     "BASS": lambda: part(C.bass_notes()),

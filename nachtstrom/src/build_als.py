@@ -18,7 +18,7 @@ import export_midi as M
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Wahrscheinlichster Ort nach dem Entpacken der Chat-ZIP (Fallback: relativer Pfad)
-ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v16")
+ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v17")
 
 
 class Ids:
@@ -294,11 +294,11 @@ AUDIO = [  # Stem, Farbe, Volume, Pan, Info
     ("09 ATMOS", 41, 1.0, 0, "Drone in Break 1 und Breakdown."),
     ("10 FX", 1, 1.0, 0, "Highlights: Reverse-Crashes, Crashes, Sub-Drops, Pings, Downlifter, Wand-Sweeps."),
     ("11 RISER", 1, 1.0, 0, "Weicher Riser vor dem grossen Drop."),
-    ("12 VIOLIN", 60, 1.0, 0, "Viraler Hook: synthetische Violine (Saegezahn-Saite, Geigenkorpus, Slides, verzoegertes Vibrato, Bogengeraeusch). Pult + Bratsche im Main/Peak, Solo eine Oktave tiefer im Breakdown."),
+    ("12 STRINGS", 60, 1.0, 0, "Dramatisches Streichorchester mit Shorts: 1. Violinen 16tel-Spiccato (3-3-2-Akzente), 2. Violinen + Bratschen Achtel, Celli Marcato, Tutti-Schlag; Cis-Moll - A - D - E, Crescendo, Konzertsaal."),
 ]
 
 MIDI = [  # Name, Datei-Key, Farbe, Info
-    ("12b VIOLIN MIDI", "VIOLIN", 60, "Die Violinen-Melodie als MIDI (Cis-phrygisch) - z.B. fuer eine echte Violin-Library."),
+    ("12b STRINGS MIDI", "STRINGS", 60, "Alle Streicher-Shorts als MIDI (Vl1/Vl2/Va/Vc) - z.B. fuer BBC SO Discover oder Spitfire LABS (Spiccato/Staccato)."),
     ("13 RIFF MIDI", "WALL", 5, "Riff-Synth: Wavetable/Analog, 3 Saws leicht verstimmt, LP mit Env, sanfte Saettigung, Sidechain, Echo-Throws."),
     ("14 DUB MIDI", "DUB", 9, "Kurzer Stab -> Echo 3/16 mit viel Feedback -> Reverb."),
     ("15 BASS MIDI", "BASS", 12, "Operator: reiner Sinus, kurzer Attack, leichte Saettigung."),

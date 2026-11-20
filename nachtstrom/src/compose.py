@@ -355,6 +355,23 @@ VIOLIN_HOOK = [
     (32, 6, 80), (38, 2, 81), (40, 4, 83), (44, 4, 85),
     (48, 6, 86), (54, 10, 85),
 ]
+# ---------------------------------------------------------------- STREICHER-SHORTS (v17)
+# Dramatisch wie im Orchester: Cis-Moll -> A -> D (Neapolitaner) -> E; die Oberstimme der
+# 1. Violinen steigt E6 -> E6 -> Fis6 -> Gis6 (Spannung), Crescendo ueber 4 Takte.
+STRINGS_CHORDS = [
+    {"v1": (88, 85, 80), "v2": 73, "va": 68, "vc": 49},   # Cis-Moll: E6 Cis6 Gis5 | Cis5 | Gis4 | Cis3
+    {"v1": (88, 85, 81), "v2": 76, "va": 69, "vc": 45},   # A-Dur:    E6 Cis6 A5   | E5   | A4   | A2
+    {"v1": (90, 86, 81), "v2": 74, "va": 69, "vc": 50},   # D-Dur:    Fis6 D6 A5   | D5   | A4   | D3
+    {"v1": (92, 88, 83), "v2": 76, "va": 71, "vc": 52},   # E-Dur:    Gis6 E6 H5   | E5   | H4   | E3
+]
+STRINGS_PLACES = [
+    (36, 0.55, "teaser"),
+    (56, 1.0, "full"), (60, 1.0, "full"),
+    (105, 0.9, "soft"),
+    (114, 1.0, "full"), (118, 1.0, "full"), (122, 1.0, "full"), (126, 1.0, "full"),
+    (150, 0.9, "full"),
+    (166, 0.6, "teaser"),
+]
 # (Start-Takt, Pegel, Stil): teaser = gefiltert & weit weg, full = Geigen-Pult + Bratsche,
 # solo = eine Geige eine Oktave tiefer im Breakdown (der Gaensehaut-Moment)
 VIOLIN_PLACES = [

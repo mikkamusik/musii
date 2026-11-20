@@ -447,32 +447,28 @@ def pitch_down(x, semis):
     return resample_poly(x, up, down)
 
 
-def render_violin():
-    """Viraler Hook: synthetische Violine (violin.py) – Pult im Main/Peak, Solo im Breakdown."""
-    import violin as V
+def render_strings():
+    """Dramatisches Streichorchester mit Shorts (strings.py): Spiccato-16tel, Achtel-Puls,
+    Celli-Marcato, Tutti-Schlag; grosser Konzertsaal."""
+    import strings as S
     out = np.zeros((2, N))
-    dly = np.zeros((2, N))
     verb = np.zeros(N)
-    for i, (bar, g, style) in enumerate(C.VIOLIN_PLACES):
-        if style == "solo":
-            x = V.ensemble(C.VIOLIN_HOOK, C.SPB, seed=100 + i, octave=-1, solo=True)
-            sd, sr_ = 0.3, 0.75
-        elif style == "teaser":
-            x = V.ensemble(C.VIOLIN_HOOK, C.SPB, seed=100 + i)
+    for i, (bar, g, style) in enumerate(C.STRINGS_PLACES):
+        x = S.phrase(C.STRINGS_CHORDS, C.SPB, style=style, seed=200 + i)
+        if style == "teaser":
             x = np.array([lp(c, 1800) for c in x])
-            sd, sr_ = 0.5, 0.7
+            sr_ = 0.7
+        elif style == "soft":
+            sr_ = 0.65
         else:
-            x = V.ensemble(C.VIOLIN_HOOK, C.SPB, seed=100 + i)
-            sd, sr_ = 0.22, 0.3
-        x = x / (np.max(np.abs(x)) + 1e-9) * g
+            sr_ = 0.42
+        x = np.array([hp(c, 110) for c in x]) * g        # Platz fuer Sub und Rumble
         add(out, x, bar * 4, 1.0)
-        add(dly, x * sd, bar * 4, 1.0)
         tmp = np.zeros(N)
         add(tmp, 0.5 * (x[0] + x[1]) * sr_, bar * 4, 1.0)
         verb += tmp
-    dl, dr = tape(dly[0], dly[1], 0.75, 1.5, 0.3, 0.42, 0.55, 1.1, 1.0)
-    rv = reverb(verb, size=0.88, damp=0.45, predelay_ms=25)
-    return out + np.array([hp(dl, 300), hp(dr, 300)]) * 0.5 + rv * 0.75
+    rv = reverb(verb, size=0.93, damp=0.4, predelay_ms=28)     # Konzertsaal
+    return out + rv * 0.8
 
 
 # ====================================================================== ATMOS (Drone mit Pitch-Riser)
@@ -843,7 +839,7 @@ def main(ref_path):
     fx, ris = render_fx(kick, stems["07 RIFF"])
     stems["10 FX"] = fx
     stems["11 RISER"] = ris
-    stems["12 VIOLIN"] = render_violin()
+    stems["12 STRINGS"] = render_strings()
     print("synths/fx/vocal", round(time.time() - t0), flush=True)
 
     scs = {d: sidechain(d) for d in set(SC.values())}
@@ -860,15 +856,15 @@ def main(ref_path):
     col = C.color_lp(BEAT_AT)
     for k in ("04 HATS", "06 PERC", "07 RIFF", "08 DUB STAB"):
         stems[k] = np.array([svf(c, col, 0.1, 0) for c in stems[k]])
-    # Violinen-Pegel: im Peak 3 dB unter der Kick (RMS) -> der Hook liegt klar vorne
+    # Streicher-Pegel: im Peak 3 dB unter der Kick (RMS) -> der Hook liegt klar vorne
     s0, s1 = smp(114 * 4), smp(130 * 4)
-    vr = np.sqrt(np.mean(stems["12 VIOLIN"][..., s0:s1] ** 2))
+    vr = np.sqrt(np.mean(stems["12 STRINGS"][..., s0:s1] ** 2))
     kr = np.sqrt(np.mean(stems["01 KICK"][s0:s1] ** 2))
     if vr > 0:
-        stems["12 VIOLIN"] = stems["12 VIOLIN"] * (kr * db(-3.0) / vr)
-        stems["12 VIOLIN"] = soft_clip(stems["12 VIOLIN"], np.max(np.abs(stems["01 KICK"])) * db(-1.0))
+        stems["12 STRINGS"] = stems["12 STRINGS"] * (kr * db(-3.0) / vr)
+        stems["12 STRINGS"] = soft_clip(stems["12 STRINGS"], np.max(np.abs(stems["01 KICK"])) * db(-1.0))
     # Platz fuer die Geige: Riff, Perc, Hats, Dub-Stab, Atmos ducken langsam (bis -3 dB), solange sie spielt
-    vm = np.abs(0.5 * (stems["12 VIOLIN"][0] + stems["12 VIOLIN"][1]))
+    vm = np.abs(0.5 * (stems["12 STRINGS"][0] + stems["12 STRINGS"][1]))
     venv = smooth(vm, int(0.05 * SR))
     thr = np.percentile(venv[venv > 1e-6], 90) if np.any(venv > 1e-6) else 1.0
     duckg = smooth(1.0 - 0.3 * np.clip(venv / (0.3 * thr), 0.0, 1.0), int(0.3 * SR))
@@ -890,19 +886,19 @@ def main(ref_path):
         bgdb = np.where((BAR_AT >= a) & (BAR_AT < b), d0 + (d1 - d0) * u ** 1.5, bgdb)
     bg = smooth(10 ** (bgdb / 20), SR // 4)
     for k in stems:
-        if k not in ("11 RISER", "10 FX", "12 VIOLIN"):
+        if k not in ("11 RISER", "10 FX", "12 STRINGS"):
             stems[k] = stems[k] * bg
-    # Geigen-Solo im Breakdown: etwas zurueck (intim), aber der Gaensehaut-Moment bleibt
+    # Streicher im Breakdown leise (soft) -> der Drop knallt
     vdb = np.zeros(N)
     for a, b, d in ((96.6, 110.0, -10.0),):          # pro Takt gemessen: -5 dB war fuer den Drop-Sprung zu laut
         vdb = np.where((BAR_AT >= a) & (BAR_AT < b), d, vdb)
-    stems["12 VIOLIN"] = stems["12 VIOLIN"] * smooth(10 ** (vdb / 20), SR // 2)
+    stems["12 STRINGS"] = stems["12 STRINGS"] * smooth(10 ** (vdb / 20), SR // 2)
     # Letzter Takt vor dem Drop: auch Riser, FX und Atem treten zurueck -> fast Stille, dann der Schlag
     ddb = np.zeros(N)
     for a, b, d in ((47.0, 48.0 - pre, -4.0), (113.0, 114.0 - pre, -6.0)):
         ddb = np.where((BAR_AT >= a) & (BAR_AT < b), d, ddb)
     duck = smooth(10 ** (ddb / 20), SR // 4)
-    for k in ("10 FX", "11 RISER", "12 VIOLIN"):
+    for k in ("10 FX", "11 RISER", "12 STRINGS"):
         stems[k] = stems[k] * duck
     print("edits", round(time.time() - t0), flush=True)
 
