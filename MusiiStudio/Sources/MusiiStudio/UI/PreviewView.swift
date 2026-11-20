@@ -219,63 +219,77 @@ struct TransportBar: View {
     @ObservedObject var clock: PlaybackClock
 
     var body: some View {
-        HStack(spacing: 10) {
-            Text("\(formatTime(clock.time)) / \(formatTime(editor.duration))")
-                .font(.system(size: 12, design: .monospaced))
-                .foregroundColor(.white.opacity(0.85))
-                .frame(width: 170, alignment: .leading)
-            Spacer()
-            IconButton(symbol: "backward.end.fill", help: "Zum Anfang (Pos1)") { editor.jumpToStart() }
-            IconButton(symbol: "backward.frame.fill", help: "Ein Bild zurück (←)") { editor.step(frames: -1) }
-            Button {
-                editor.togglePlay()
-            } label: {
-                Image(systemName: editor.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: 16))
-                    .frame(width: 40, height: 30)
-                    .background(Circle().fill(Theme.accent))
-                    .foregroundColor(.black)
-            }
-            .buttonStyle(.plain)
-            .help("Abspielen / Pause (Leertaste)")
-            IconButton(symbol: "forward.frame.fill", help: "Ein Bild vor (→)") { editor.step(frames: 1) }
-            IconButton(symbol: "forward.end.fill", help: "Zum Ende (Ende)") { editor.jumpToEnd() }
-            Spacer()
-            Menu {
-                ForEach(PreviewQuality.allCases) { q in
-                    Button {
-                        editor.previewQuality = q
-                    } label: {
-                        Text((editor.previewQuality == q ? "✓ " : "   ") + q.title)
-                    }
+        GeometryReader { geo in
+            let compact = geo.size.width < 640
+            HStack(spacing: compact ? 4 : 10) {
+                Text(compact ? formatTime(clock.time) : "\(formatTime(clock.time)) / \(formatTime(editor.duration))")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.85))
+                    .lineLimit(1)
+                    .fixedSize()
+                Spacer(minLength: 4)
+                if !compact {
+                    IconButton(symbol: "backward.end.fill", help: "Zum Anfang (Pos1)") { editor.jumpToStart() }
                 }
-            } label: {
-                Text("Vorschau: \(editor.previewQuality.title)").font(.system(size: 11))
-            }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-            Menu {
-                ForEach(AspectPreset.allCases) { a in
-                    Button {
-                        editor.update { $0.aspect = a }
-                    } label: {
-                        Text((editor.project.aspect == a ? "✓ " : "   ") + "\(a.title)  –  \(a.subtitle)")
-                    }
+                IconButton(symbol: "backward.frame.fill", help: "Ein Bild zurück (←)") { editor.step(frames: -1) }
+                Button {
+                    editor.togglePlay()
+                } label: {
+                    Image(systemName: editor.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 16))
+                        .frame(width: 40, height: 30)
+                        .background(Circle().fill(Theme.accent))
+                        .foregroundColor(.black)
                 }
-            } label: {
-                Label(editor.project.aspect.title, systemImage: "aspectratio").font(.system(size: 11))
+                .buttonStyle(.plain)
+                .help("Abspielen / Pause (Leertaste)")
+                IconButton(symbol: "forward.frame.fill", help: "Ein Bild vor (→)") { editor.step(frames: 1) }
+                if !compact {
+                    IconButton(symbol: "forward.end.fill", help: "Zum Ende (Ende)") { editor.jumpToEnd() }
+                }
+                Spacer(minLength: 4)
+                Menu {
+                    Section(header: Text("Vorschauqualität")) {
+                        ForEach(PreviewQuality.allCases) { q in
+                            Button {
+                                editor.previewQuality = q
+                            } label: {
+                                Text((editor.previewQuality == q ? "✓ " : "   ") + q.title)
+                            }
+                        }
+                    }
+                    Section(header: Text("Format")) {
+                        ForEach(AspectPreset.allCases) { a in
+                            Button {
+                                editor.update { $0.aspect = a }
+                            } label: {
+                                Text((editor.project.aspect == a ? "✓ " : "   ") + "\(a.title)  –  \(a.subtitle)")
+                            }
+                        }
+                    }
+                    Divider()
+                    Button("Aktuelles Bild speichern …") { saveFrame() }
+                } label: {
+                    Label(compact ? editor.project.aspect.title : "\(editor.project.aspect.title) · \(editor.previewQuality.title)", systemImage: "slider.horizontal.3")
+                        .font(.system(size: 11))
+                }
+                .menuStyle(.borderlessButton)
+                .fixedSize()
+                if !compact {
+                    IconButton(symbol: "camera", help: "Aktuelles Bild als PNG speichern") { saveFrame() }
+                }
             }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-            IconButton(symbol: "camera", help: "Aktuelles Bild als PNG speichern") {
-                let panel = NSSavePanel()
-                panel.allowedContentTypes = [.png, .jpeg]
-                panel.nameFieldStringValue = "\(editor.project.name) Standbild.png"
-                if panel.runModal() == .OK, let url = panel.url { editor.exportFrame(to: url) }
-            }
+            .padding(.horizontal, 10)
+            .frame(width: geo.size.width, height: 40)
         }
-        .padding(.horizontal, 12)
         .frame(height: 40)
         .background(Theme.panel)
+    }
+
+    private func saveFrame() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.png, .jpeg]
+        panel.nameFieldStringValue = "\(editor.project.name) Standbild.png"
+        if panel.runModal() == .OK, let url = panel.url { editor.exportFrame(to: url) }
     }
 }

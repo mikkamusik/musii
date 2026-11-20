@@ -139,6 +139,8 @@ struct ExportSheet: View {
         }
         .padding(20)
         .frame(width: 460)
+        .background(Theme.panel)
+        .preferredColorScheme(.dark)
         .onAppear { editor.pause() }
     }
 

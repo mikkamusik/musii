@@ -8,6 +8,7 @@ struct LibraryPanel: View {
 
     var body: some View {
         HStack(spacing: 0) {
+            ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 2) {
                 ForEach(LeftTab.allCases) { tab in
                     Button {
@@ -17,17 +18,18 @@ struct LibraryPanel: View {
                             Image(systemName: tab.symbol).font(.system(size: 16))
                             Text(tab.title).font(.system(size: 9))
                         }
-                        .frame(width: 62, height: 50)
+                        .frame(width: 62, height: 46)
                         .foregroundColor(editor.leftTab == tab ? Theme.accent : .white.opacity(0.75))
                         .background(RoundedRectangle(cornerRadius: 8).fill(editor.leftTab == tab ? Theme.accent.opacity(0.12) : Color.clear))
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
-                Spacer()
             }
             .padding(.vertical, 8)
             .padding(.horizontal, 4)
+            }
+            .frame(width: 70)
             .background(Theme.panel)
             Divider().background(Theme.border)
             Group {

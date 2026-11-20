@@ -110,6 +110,7 @@ struct HomeView: View {
                 }
             }
             .padding(20)
+            .preferredColorScheme(.dark)
         }
         .alert(item: $deleting) { s in
             Alert(title: Text("„\(s.name)“ löschen?"),

@@ -13,16 +13,21 @@ struct EditorView: View {
             GeometryReader { geo in
                 VStack(spacing: 0) {
                     HStack(spacing: 0) {
+                        let narrow = geo.size.width < 1360
                         LibraryPanel(editor: editor)
-                            .frame(width: 360)
+                            .frame(width: narrow ? 300 : 360)
+                            .clipped()
                         Divider().background(Theme.border)
                         PreviewArea(editor: editor)
-                            .frame(maxWidth: .infinity)
+                            .frame(minWidth: 200, maxWidth: .infinity)
+                            .clipped()
                         Divider().background(Theme.border)
                         InspectorPanel(editor: editor)
-                            .frame(width: 310)
+                            .frame(width: narrow ? 280 : 310)
+                            .clipped()
                     }
-                    .frame(height: max(260, geo.size.height - timelineHeight))
+                    .frame(width: geo.size.width, height: max(260, geo.size.height - timelineHeight))
+                    .clipped()
                     SplitterBar(height: $timelineHeight, total: geo.size.height)
                     TimelinePanel(editor: editor)
                         .frame(height: min(max(160, timelineHeight), geo.size.height - 260))
