@@ -358,11 +358,11 @@ VIOLIN_HOOK = [
 # ---------------------------------------------------------------- STREICHER-SHORTS (v17)
 # Dramatisch wie im Orchester: Cis-Moll -> A -> D (Neapolitaner) -> E; die Oberstimme der
 # 1. Violinen steigt E6 -> E6 -> Fis6 -> Gis6 (Spannung), Crescendo ueber 4 Takte.
-STRINGS_CHORDS = [
-    {"v1": (88, 85, 80), "v2": 73, "va": 68, "vc": 49},   # Cis-Moll: E6 Cis6 Gis5 | Cis5 | Gis4 | Cis3
-    {"v1": (88, 85, 81), "v2": 76, "va": 69, "vc": 45},   # A-Dur:    E6 Cis6 A5   | E5   | A4   | A2
-    {"v1": (90, 86, 81), "v2": 74, "va": 69, "vc": 50},   # D-Dur:    Fis6 D6 A5   | D5   | A4   | D3
-    {"v1": (92, 88, 83), "v2": 76, "va": 71, "vc": 52},   # E-Dur:    Gis6 E6 H5   | E5   | H4   | E3
+STRINGS_CHORDS = [   # v19: dunkel - Cis-Moll mit phrygischem D ueber Cis-Orgelpunkt, eine Oktave tiefer
+    {"v1": (76, 73, 68), "v2": 64, "va": 56, "vc": 49},   # Cis-Moll:  E5 Cis5 Gis4 | E4  | Gis3 | Celli Cis3 + Cis2
+    {"v1": (76, 73, 68), "v2": 64, "va": 56, "vc": 49},   # Cis-Moll
+    {"v1": (78, 74, 69), "v2": 66, "va": 57, "vc": 49},   # D/Cis:     Fis5 D5 A4   | Fis4 | A3   | Cis-Orgelpunkt
+    {"v1": (76, 73, 68), "v2": 64, "va": 56, "vc": 49},   # Cis-Moll
 ]
 STRINGS_PLACES = [
     (36, 0.55, "teaser"),

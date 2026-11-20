@@ -66,16 +66,12 @@ def section_bus(events, name, length, rng):
     return np.array(out) * gain / players
 
 
-# 2-Takt-Motiv (tanzbar, Ruf & Antwort) in 16teln: (Schritt, Laenge s, Akzent)
-#   Takt A: DAMM . . DA . . DA . . . . . . . . .   (Tresillo, Luft danach)
-#   Takt B: . . da . . . da . . . da . . . DA .    (Offbeats, Auftakt in den naechsten Takt)
-MOTIF_A = [(0, 0.30, 1.0), (3, 0.16, 0.8), (6, 0.16, 0.85)]
-MOTIF_B = [(2, 0.14, 0.6), (6, 0.14, 0.62), (10, 0.14, 0.66), (14, 0.18, 0.9)]
-
-
 def phrase(chords, spb, style="full", seed=0, crescendo=True):
-    """4-Takt-Phrase, tanzbar: Akkord-Stabs (Vl1-Oberstimme, Vl2, Va) im Tresillo-Motiv,
-    Celli ein DUM auf jeder Eins, Tutti-Schlag auf der ersten Eins.
+    """4-Takt-Phrase, dunkel und ernst (v19):
+    - Celli in Oktaven: schweres Marcato-DUM auf jeder Eins (Orgelpunkt aus den Akkorden)
+    - Bratschen + 2. Violinen: leiser, gerader Achtel-Puls (treibt, ohne zu huepfen)
+    - 1. Violinen: Sforzando-Akkord auf der Eins von Takt 1 und 3, langer Saal
+    - Tutti-Schlag auf der ersten Eins (der Drop)
     chords: pro Takt dict mit 'v1' (hi, mid, lo), 'v2', 'va', 'vc' (MIDI)."""
     rng = np.random.default_rng(seed)
     s16 = spb / 4.0
@@ -87,22 +83,23 @@ def phrase(chords, spb, style="full", seed=0, crescendo=True):
         if style == "soft":
             dyn *= 0.55
         hi, mid, lo = ch["v1"]
-        if style == "soft":                                    # Breakdown: nur ein langer Akkord pro Takt
-            motif = [(0, 0.45, 1.0)]
-        else:
-            motif = MOTIF_A if bi % 2 == 0 else MOTIF_B
-        for st, dur, accv in motif:
-            t0 = (bi * 16 + st) * s16
-            v = accv * dyn
-            ev["vln1"].append((t0, hi, dur, v))
-            ev["vln1"].append((t0, mid, dur, v * 0.8))
-            ev["vln2"].append((t0, ch["v2"], dur, v * 0.9))
-            ev["vla"].append((t0, ch["va"], dur, v * 0.85))
-        ev["vc"].append((bi * 16 * s16, ch["vc"], 0.42, 1.0 * dyn))     # DUM auf der Eins
-    # Tutti-Schlag auf der ersten Eins der Phrase (der Drop)
+        t_bar = bi * 16 * s16
+        ev["vc"].append((t_bar, ch["vc"], 0.55, 1.0 * dyn))            # DUM, Oktave
+        ev["vc"].append((t_bar, ch["vc"] - 12, 0.55, 0.85 * dyn))
+        if style == "soft":
+            for name, m in (("vln1", hi), ("vln1", mid), ("vln2", ch["v2"]), ("vla", ch["va"])):
+                ev[name].append((t_bar, m, 0.6, 0.8 * dyn))
+            continue
+        for st in range(0, 16, 2):                                     # gerader Achtel-Puls, leise
+            v = (0.62 if st in (0, 6, 12) else 0.42) * dyn
+            ev["vla"].append((t_bar + st * s16, ch["va"], 0.13, v))
+            ev["vln2"].append((t_bar + st * s16, ch["v2"], 0.13, v * 0.85))
+        if bi % 2 == 0:                                                # Sforzando-Akkord
+            for m, v in ((hi, 1.0), (mid, 0.85), (lo, 0.75)):
+                ev["vln1"].append((t_bar, m, 0.6, v * dyn))
     c0 = chords[0]
     for name, m in (("vln1", c0["v1"][0]), ("vln2", c0["v2"]), ("vla", c0["va"]), ("vc", c0["vc"])):
-        ev[name].append((0.0, m, 0.5, 1.3 if style != "soft" else 0.8))
+        ev[name].append((0.0, m, 0.6, 1.3 if style != "soft" else 0.8))
     names = ["vln1"] if style == "teaser" else ["vln1", "vln2", "vla", "vc"]
     out = np.zeros((2, length))
     for name in names:

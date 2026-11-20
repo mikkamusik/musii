@@ -18,7 +18,7 @@ import export_midi as M
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Wahrscheinlichster Ort nach dem Entpacken der Chat-ZIP (Fallback: relativer Pfad)
-ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v18")
+ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v19")
 
 
 class Ids:
@@ -294,7 +294,7 @@ AUDIO = [  # Stem, Farbe, Volume, Pan, Info
     ("09 ATMOS", 41, 1.0, 0, "Drone in Break 1 und Breakdown."),
     ("10 FX", 1, 1.0, 0, "Highlights: Reverse-Crashes, Crashes, Sub-Drops, Pings, Downlifter, Wand-Sweeps."),
     ("11 RISER", 1, 1.0, 0, "Weicher Riser vor dem grossen Drop."),
-    ("12 STRINGS", 60, 1.0, 0, "Dramatisches Streichorchester mit Shorts: 1. Violinen 16tel-Spiccato (3-3-2-Akzente), 2. Violinen + Bratschen Achtel, Celli Marcato, Tutti-Schlag; Cis-Moll - A - D - E, Crescendo, Konzertsaal."),
+    ("12 STRINGS", 60, 1.0, 0, "Dunkle Orchester-Streicher: Celli-Oktaven DUM auf der Eins (Cis-Orgelpunkt), leiser Achtel-Puls Va/Vl2, Sforzando-Akkorde Vl1; Cis-Moll + phrygisches D; ta-DAMM in die Drops, Sidechain, Konzertsaal."),
 ]
 
 MIDI = [  # Name, Datei-Key, Farbe, Info

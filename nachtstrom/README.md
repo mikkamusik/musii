@@ -1,6 +1,14 @@
-# NACHTSTROM v18 – 147 BPM · Cis · ein durchgehender Track, reiner Sub, tanzbare Orchester-Shorts mit Drop
+# NACHTSTROM v19 – 147 BPM · Cis · ein durchgehender Track, reiner Sub, dunkle Orchester-Streicher mit Drop
 
 Gebaut nach dem vermessenen Bauplan deiner Referenz, die Details stehen in `REFERENZ_ANALYSE.md`.
+
+## Neu in v19: Dunkel und ernst statt verspielt
+- **Harmonie:** nur noch Cis-Moll, mit dem düsteren phrygischen D (D/Cis), über einem durchgehenden **Cis-Orgelpunkt**. Keine hellen Dur-Akkorde mehr.
+- **Lage:** alles eine Oktave tiefer. Die Oberstimme liegt bei E5/Fis5 statt Gis6, keine schrillen Höhen.
+- **Celli:** schweres, tiefes Marcato-**DUM in Oktaven** (Cis3 + Cis2) auf jeder Eins.
+- **Bratschen und 2. Violinen:** leiser, **gerader Achtel-Puls**, der treibt, ohne zu hüpfen.
+- **1. Violinen:** nur noch **Sforzando-Akkorde** auf der Eins von Takt 1 und 3, mit langem Saal-Nachhall.
+- **Drop wie gehabt:** „ta–DAMM“ mit Auftakt im Beat-Cut und Tutti-Schlag, Sidechain an die Kick.
 
 ## Neu in v18: Tanzbar statt hektisch, die Streicher droppen
 - **Kein 16tel-Gefiedel mehr.** Die Streicher spielen jetzt **Akkord-Stabs** in einem 2-Takt-Motiv mit Ruf und Antwort und viel Luft zwischen den Kicks:
@@ -150,9 +158,9 @@ Neu in v11, nicht mehr progressiv und nicht mehr „wie 3 Tracks gleichzeitig“
 - **Vocals:** auf **Spanisch** („Corriente nocturna“, „Más profundo“, „Déjate caer“, „Sigue“). Die Plätze im Arrangement stehen, die Shots kommen von ElevenLabs. Die alten deutschen Shots liegen in `Samples/Vocals/alt_deutsch/`.
 
 ## In Ableton öffnen
-1. `NACHTSTROM_v18.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v18/`.
-2. `NACHTSTROM_v18/NACHTSTROM.als` öffnen.
-3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v18` → **Los** → **Sichern**, dann **Cmd+S**.
+1. `NACHTSTROM_v19.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v19/`.
+2. `NACHTSTROM_v19/NACHTSTROM.als` öffnen.
+3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v19` → **Los** → **Sichern**, dann **Cmd+S**.
 4. A/B-Vergleich: **00 REFERENZ** und **00 MASTER BOUNCE** abwechselnd solo hören.
 
 ## Highlights (Takt-Nummern wie in Ableton)
