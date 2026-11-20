@@ -1,0 +1,17 @@
+MUSII STUDIO – INSTALLATION
+===========================
+
+1. Ziehe "Musii Studio" auf den Ordner "Programme (Applications)".
+
+2. Erster Start (nur einmal nötig):
+   Öffne den Ordner "Programme", klicke mit der RECHTEN Maustaste
+   (oder Ctrl + Klick) auf "Musii Studio" und wähle "Öffnen".
+   Bestätige im Dialog nochmals mit "Öffnen".
+
+   Falls macOS den Start trotzdem blockiert:
+   Systemeinstellungen › Sicherheit › Allgemein › "Dennoch öffnen".
+
+3. Fertig! Ab jetzt startet die App ganz normal per Doppelklick.
+
+Läuft auf macOS 12 Monterey (inkl. 12.7.6) und neuer,
+auf Intel-Macs und Apple-Silicon-Macs (M1/M2/M3/M4).

@@ -1,0 +1,88 @@
+name: Musii Studio (macOS-App)
+
+on:
+  push:
+    paths:
+      - 'MusiiStudio/**'
+      - '.github/workflows/musii-studio.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: musii-studio-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Werkzeuge
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: App bauen (Universal, ab macOS 12)
+        working-directory: MusiiStudio
+        env:
+          VERSION: 1.0.${{ github.run_number }}
+          BUILD: ${{ github.run_number }}
+        run: ./scripts/build-app.sh
+
+      - name: Selbsttest der Video-Engine
+        timeout-minutes: 15
+        run: |
+          "MusiiStudio/build/Musii Studio.app/Contents/MacOS/MusiiStudio" --selftest "$RUNNER_TEMP/selftest"
+
+      - name: Oberflächen-Schnappschüsse
+        continue-on-error: true
+        run: |
+          mkdir -p "$RUNNER_TEMP/snapshots"
+          MUSII_SNAPSHOT_DIR="$RUNNER_TEMP/snapshots" MUSII_DEMO_DIR="$RUNNER_TEMP/selftest/medien" \
+            "MusiiStudio/build/Musii Studio.app/Contents/MacOS/MusiiStudio" > "$RUNNER_TEMP/snapshots/log.txt" 2>&1 &
+          PID=$!
+          for i in $(seq 1 90); do
+            if ! kill -0 $PID 2>/dev/null; then break; fi
+            sleep 1
+          done
+          kill $PID 2>/dev/null || true
+          ls -la "$RUNNER_TEMP/snapshots"
+          tail -50 "$RUNNER_TEMP/snapshots/log.txt" || true
+
+      - name: DMG hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: MusiiStudio-dmg
+          path: |
+            MusiiStudio/build/MusiiStudio.dmg
+            MusiiStudio/build/MusiiStudio-App.zip
+
+      - name: Testergebnisse hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MusiiStudio-tests
+          path: |
+            ${{ runner.temp }}/snapshots
+            ${{ runner.temp }}/selftest/*.png
+            ${{ runner.temp }}/selftest/export-h264.mp4
+            ${{ runner.temp }}/selftest/export.gif
+          if-no-files-found: ignore
+
+      - name: Release veröffentlichen
+        if: contains(github.event.head_commit.message, '[release]')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: musii-studio-v1.0.${{ github.run_number }}
+          name: Musii Studio 1.0.${{ github.run_number }} (macOS 12+)
+          body_path: MusiiStudio/RELEASE_NOTES.md
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          files: |
+            MusiiStudio/build/MusiiStudio.dmg
+            MusiiStudio/build/MusiiStudio-App.zip
