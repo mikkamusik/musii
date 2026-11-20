@@ -375,17 +375,17 @@ def hook_riff_notes(bar):
 
 
 # Vocal-Shots (ElevenLabs, eigene Woerter) – (Shot, Beat, Pegel, Stil)
-VOCAL_EVENTS = [
-    ("VOX_ES_1_CORRIENTE", 28 * 4 + 1.0, 0.8, "whisper"),       # Vorbote vor dem Drive
-    ("VOX_ES_2_MAS_PROFUNDO", 44 * 4 + 2.0, 0.9, "deep"),             # Break 1, zwischen den Kick-Teasern
-    ("VOX_ES_4_SIGUE", 79 * 4 + 0.9, 1.0, "deep"),             # im 2-Takt-Stopp, bevor die Kick zurueckkommt
-    ("VOX_ES_3_DEJATE_CAER", 105 * 4 + 0.0, 0.9, "whisper"),  # Breakdown, grosser Raum
-
-    ("VOX_ES_4_SIGUE", 129 * 4 + 1.9, 0.9, "deep"),            # im Stopp bei Takt 130
-    ("CHOP", 137 * 4 + 2.5, 0.7, "chop"),                    # "Nacht"-Chop als Call im Peak B
+VOCAL_EVENTS = [   # gesprochen, gehaucht (Samples/Vocals/spoken, siehe spoken.py)
+    ("SPK_CORRIENTE", 28 * 4 + 1.0, 0.8, "whisper"),     # Vorbote vor dem Drive
+    ("SPK_PROFUNDO", 44 * 4 + 2.0, 0.9, "deep"),         # Break 1, zwischen den Kick-Teasern
+    ("SPK_NOPARES", 79 * 4 + 0.9, 1.0, "close"),         # im 2-Takt-Stopp, ganz nah am Ohr
+    ("SPK_SIGUE", 129 * 4 + 1.9, 0.9, "close"),          # im Stopp bei Takt 130
+    ("CHOP", 137 * 4 + 2.5, 0.7, "chop"),                # "Ven"-Chop als Call im Peak B
     ("CHOP", 141 * 4 + 2.5, 0.7, "chop"),
-    ("VOX_ES_1_CORRIENTE", 166 * 4 + 0.0, 0.75, "whisper"),     # Abschied im Outro
+    ("SPK_CORRIENTE", 166 * 4 + 0.0, 0.75, "whisper"),   # Abschied im Outro
 ]
+# Gesprochener Hook an jedem HOOK_PLACE: "Ven... dejate caer." auf der Eins, zwei Takte spaeter "Mas profundo."
+SPOKEN_HOOK = [("SPK_DEJATE", 0.0), ("SPK_PROFUNDO", 8.0)]
 
 
 # Wand-Solo mit Resonanz-Sweep in den Stopps (Referenz: Wand liegt frei)

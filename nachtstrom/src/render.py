@@ -15,7 +15,7 @@ import soundfile as sf
 from scipy.signal import resample_poly, firwin2, oaconvolve, minimum_phase
 
 import compose as C
-from dsp import (SR, saw, pulse, svf, lp, hp, bp, reverb, compressor, db,
+from dsp import (SR, saw, pulse, svf, lp, hp, bp, reverb, compressor, db, fold,
                  tape_delay, phaser, smooth, limiter_fast, onepole_lp, ladder, analog_drift, chorus, pulse_pwm)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -435,39 +435,63 @@ def load_shot(name):
     return x if x.ndim == 1 else x.mean(1)
 
 
+def load_spoken(name):
+    path = f"{ROOT}/Samples/Vocals/spoken/{name}.flac"
+    if not os.path.exists(path):
+        return None
+    x, _ = sf.read(path)
+    return x if x.ndim == 1 else x.mean(1)
+
+
 def pitch_down(x, semis):
     """Tonhoehe runter per Resampling (wird dabei etwas laenger – gewollt, dunkler)."""
     up, down = {2: (449, 400), 3: (238, 200)}[semis]
     return resample_poly(x, up, down)
 
 
+def vdist(x, amt):
+    """Parallele Verzerrung: Mitten hart angezerrt (Roehre + Wavefolder), die saubere,
+    gehauchte Stimme bleibt darunter -> dreckig, aber sexy und verstaendlich."""
+    if amt <= 0:
+        return x
+    b = hp(lp(x, 5000), 250)
+    d = tube_os(b / (np.sqrt(np.mean(b ** 2)) + 1e-9) * 0.5 * (1 + 4 * amt), 2.8, 0.18)
+    d = fold(d * (1 + amt), 0.9)
+    d = lp(hp(d, 200), 6500)
+    d = d / (np.sqrt(np.mean(d ** 2)) + 1e-9) * np.sqrt(np.mean(x ** 2))
+    return (1 - 0.5 * amt) * x + 0.85 * amt * d
+
+
 def render_vocal():
+    """Gesprochene, gehauchte Stimme (spoken.py) – nah, intim, verzerrt, mit Dub-Echo und Raum."""
     out = np.zeros((2, N))
-    shots = {k: load_shot(k) for k in ("VOX_ES_1_CORRIENTE", "VOX_ES_2_MAS_PROFUNDO", "VOX_ES_3_DEJATE_CAER", "VOX_ES_4_SIGUE")}
-    have_shots = not any(v is None for v in shots.values())
     dly = np.zeros((2, N))
     verb = np.zeros(N)
-    for name, b, g, style in (C.VOCAL_EVENTS if have_shots else []):
-        if style == "chop":
-            x = shots["VOX_ES_1_CORRIENTE"][: int(0.30 * SR)].copy()
-            x[-300:] *= np.linspace(1, 0, 300)
-            x = hp(x, 250)
-            send_d, send_r = 0.9, 0.25
-        elif style == "deep":
-            x = pitch_down(shots[name], 2)
-            x = tube_os(hp(x, 90), 1.4, 0.05)
-            send_d, send_r = 0.55, 0.35
-        else:
-            x = hp(shots[name], 180)
-            send_d, send_r = 0.7, 0.6
-        x = lp(x, 9000)
+
+    def place(x, b, g, send_d, send_r, p=0.0, dist=0.7):
+        x = vdist(x, dist)
         x = x / (np.max(np.abs(x)) + 1e-9) * g
-        dry = pan(x, 0.0)
+        dry = pan(x, p)
         add(out, dry, b, 1.0)
         add(dly, dry * send_d, b, 1.0)
         tmp = np.zeros(N)
         add(tmp, x * send_r, b, 1.0)
-        verb += tmp
+        verb[:] += tmp
+
+    spk = {k: load_spoken(k) for k in ("SPK_DEJATE", "SPK_PROFUNDO", "SPK_CORRIENTE", "SPK_SIGUE", "SPK_NOPARES")}
+    if any(v is None for v in spk.values()):
+        return out
+    for name, b, g, style in C.VOCAL_EVENTS:
+        if style == "chop":
+            x = spk["SPK_DEJATE"][: int(0.28 * SR)].copy()
+            x[-300:] *= np.linspace(1, 0, 300)
+            place(hp(x, 250), b, g, 0.9, 0.25, dist=1.0)
+        elif style == "deep":
+            place(spk[name], b, g, 0.55, 0.35, dist=0.9)
+        elif style == "close":
+            place(spk[name], b, g, 0.35, 0.12, dist=0.55)   # trocken, ganz nah am Ohr
+        else:                                                # whisper
+            place(lp(spk[name], 9000), b, g, 0.6, 0.6, dist=0.45)
     # Atem: Einatmen endet genau auf dem Einsatz, Ausatmen beginnt dort
     for kind, b, g in C.BREATHS:
         br = load_shot("BREATH_IN" if kind == "in" else "BREATH_OUT")
@@ -480,31 +504,20 @@ def render_vocal():
         tmp = np.zeros(N)
         add(tmp, x * 0.35, start, 1.0)
         verb += tmp
-    # Viraler Hook (gesungen, auf die Melodie gestimmt) – falls vorhanden
-    hp_ = f"{ROOT}/Samples/Vocals/HOOK_ES.flac"
-    if os.path.exists(hp_):
-        hk, _ = sf.read(hp_)
-        hk = hk if hk.ndim == 1 else hk.mean(1)
-        for bar, g, style in C.HOOK_PLACES:
-            x = hp(hk, 150)
+    # Gesprochener Hook
+    for bar, g, style in C.HOOK_PLACES:
+        for name, off in C.SPOKEN_HOOK:
+            x = spk[name]
             if style == "teaser":
-                x = lp(x, 1500)
-                sd_, sr_ = 0.6, 0.6
+                place(lp(vdist(x, 0.7), 1500), bar * 4 + off, g, 0.6, 0.6, dist=0.0)
             elif style == "acapella":
-                sd_, sr_ = 0.45, 0.7
+                place(x, bar * 4 + off, g, 0.45, 0.55, dist=0.5)
             else:
-                x = lp(tube_os(x * 1.6, 1.8, 0.05), 6500)      # dunkler & angezerrt statt Pop-Glanz
-                sd_, sr_ = 0.35, 0.22
-            x = x / (np.max(np.abs(x)) + 1e-9) * g
-            dry = pan(x, 0.0)
-            add(out, dry, bar * 4, 1.0)
-            add(dly, dry * sd_, bar * 4, 1.0)
-            tmp = np.zeros(N)
-            add(tmp, x * sr_, bar * 4, 1.0)
-            verb += tmp
-    dl, dr = tape(dly[0], dly[1], 0.75, 2.0, 0.35, 0.5, 0.5, 1.3, 1.0)
-    rv = reverb(verb, size=0.9, damp=0.45, predelay_ms=30)
-    return out + np.array([hp(dl, 250), hp(dr, 250)]) * 0.7 + rv * 0.8
+                place(x, bar * 4 + off, g, 0.3, 0.18, dist=0.7)
+    # Dub-Echos ebenfalls angezerrt (Bandsaettigung hochgedreht)
+    dl, dr = tape(dly[0], dly[1], 0.75, 2.0, 0.35, 0.5, 0.5, 2.4, 1.0)
+    rv = reverb(verb, size=0.86, damp=0.5, predelay_ms=25)
+    return out + np.array([hp(dl, 250), hp(dr, 250)]) * 0.6 + rv * 0.7
 
 
 # ====================================================================== ATMOS (Drone mit Pitch-Riser)
@@ -920,7 +933,7 @@ def main(ref_path):
             stems[k] = stems[k] * bg
     # Vocal in den Breaks nicht mit Peak-Pegel (sonst EDM-A-cappella): intim und im Raum.
     vdb = np.zeros(N)
-    for a, b, d in ((40.6, 47.5, -9.0), (96.6, 110.0, -13.0)):
+    for a, b, d in ((40.6, 47.5, -7.0), (96.6, 110.0, -9.0)):
         vdb = np.where((BAR_AT >= a) & (BAR_AT < b), d, vdb)
     stems["12 VOCAL"] = stems["12 VOCAL"] * smooth(10 ** (vdb / 20), SR // 2)
     # Letzter Takt vor dem Drop: auch Riser, FX und Atem treten zurueck -> fast Stille, dann der Schlag
