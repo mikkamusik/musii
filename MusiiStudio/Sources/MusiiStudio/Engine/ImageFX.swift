@@ -237,9 +237,9 @@ enum Grain {
         let noise = CIFilter(name: "CIRandomGenerator")?.outputImage ?? CIImage.empty()
         let gray = noise.transformed(by: CGAffineTransform(translationX: dx, y: dy))
             .applyingFilter("CIColorMatrix", parameters: [
-                "inputRVector": CIVector(x: 1, y: 0, z: 0, w: 0),
-                "inputGVector": CIVector(x: 1, y: 0, z: 0, w: 0),
-                "inputBVector": CIVector(x: 1, y: 0, z: 0, w: 0),
+                "inputRVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+                "inputGVector": CIVector(x: 0, y: 0, z: 0, w: 1),
+                "inputBVector": CIVector(x: 0, y: 0, z: 0, w: 1),
                 "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 0),
                 "inputBiasVector": CIVector(x: 0, y: 0, z: 0, w: CGFloat(amount * 0.35)),
             ])
@@ -467,11 +467,12 @@ enum EffectFX {
         let threshold = 0.9985 - amount * 0.004
         let gain = 1.0 / (1 - threshold)
         let b = CGFloat(-threshold * gain)
-        // Alpha bleibt 1, damit beim Vormultiplizieren keine negativen Werte entstehen
+        // Zufallswert aus dem Alphakanal (Farbkanäle werden von Core Image durch Alpha geteilt
+        // und wären dadurch nicht gleichverteilt). Ausgabe-Alpha bleibt 1.
         let gray = noise.applyingFilter("CIColorMatrix", parameters: [
-            "inputRVector": CIVector(x: CGFloat(gain), y: 0, z: 0, w: 0),
-            "inputGVector": CIVector(x: CGFloat(gain), y: 0, z: 0, w: 0),
-            "inputBVector": CIVector(x: CGFloat(gain), y: 0, z: 0, w: 0),
+            "inputRVector": CIVector(x: 0, y: 0, z: 0, w: CGFloat(gain)),
+            "inputGVector": CIVector(x: 0, y: 0, z: 0, w: CGFloat(gain)),
+            "inputBVector": CIVector(x: 0, y: 0, z: 0, w: CGFloat(gain)),
             "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 0),
             "inputBiasVector": CIVector(x: b, y: b, z: b, w: 1),
         ]).applyingFilter("CIColorClamp", parameters: [
