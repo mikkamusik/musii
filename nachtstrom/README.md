@@ -1,6 +1,35 @@
-# NACHTSTROM v13 – 147 BPM · Cis · ein durchgehender Track, dirty Sub, spanischer Vocal-Hook
+# NACHTSTROM v14 – 147 BPM · Cis · ein durchgehender Track, dirty Sub, sexy gesprochene, verzerrte Stimme
 
 Gebaut nach dem vermessenen Bauplan deiner Referenz, die Details stehen in `REFERENZ_ANALYSE.md`.
+
+## Neu in v14: Sexy gesprochen und verzerrt statt gesungen
+Der gesungene, auf eine Melodie gestimmte Hook ist raus. Stattdessen spricht eine **tiefe, warme spanische Frauenstimme**, gehaucht und nah am Ohr, mit Verzerrung.
+- **Stimme:** Piper TTS „es_AR-daniela-high“, lokal und kostenlos erzeugt (`src/spoken_tts.py`).
+  - Datensatz: OpenSLR 61, Lizenz CC BY-SA 4.0.
+  - Für eine kommerzielle Veröffentlichung bitte die Lizenz beachten. Alternativ die Zeilen neu einsprechen und die Dateien in `Samples/Vocals/spoken/` ersetzen; Arrangement und Effekte bleiben gleich.
+- **Sexy-Kette** (`src/spoken.py`):
+  - einen Halbton tiefer
+  - eine LPC-Flüsterstimme mit gleicher Artikulation als Hauch darunter
+  - Luft über 9 kHz
+  - Nahbesprechungs-Wärme
+  - weiches S: Zischlaute bleiben 24 dB unter dem lautesten Vokal
+  - Kompressor, der Atem und Nähe nach vorne holt
+- **Verzerrung parallel:** Die Mitten laufen hart angezerrt durch Röhre und Wavefolder, die saubere, gehauchte Stimme bleibt darunter. So klingt es dreckig, bleibt aber sexy und verständlich. Auch die Dub-Echos sind angezerrt.
+
+| Takt | Stimme |
+|---|---|
+| 29 | „Corriente nocturna“ geflüstert |
+| 37 | Teaser: „Ven… déjate caer“ / „Más profundo“, gefiltert und weit weg |
+| 45 | „Más profundo“, stark verzerrt (Break 1) |
+| 57, 61 | „Ven… déjate caer“ auf der Eins, zwei Takte später „Más profundo“ |
+| 80 | „No pares“ im Stopp, ganz nah |
+| 106 | Breakdown: intim, viel Raum, weniger verzerrt |
+| 115–130 | alle 4 Takte im Peak |
+| 130 | „Sigue“ im Stopp |
+| 138, 142 | „Ven“-Chops als Call |
+| 151, 167 | Main 3 und Outro, dazu „Corriente nocturna“ zum Abschied |
+
+Die einzelnen Phrasen liegen in `Samples/Vocals/spoken/`, eine Hörprobe der Stimme in `bounce/NACHTSTROM_vocal_preview.mp3`. Der alte gesungene Hook liegt noch in `Samples/Vocals/`, wird aber nicht mehr verwendet.
 
 ## Neu in v13: Studio-Klang
 Alles ist hier im Chat gerechnet, ohne Bezahldienste und ohne fremde Plugins.
@@ -41,9 +70,9 @@ Neu in v11, nicht mehr progressiv und nicht mehr „wie 3 Tracks gleichzeitig“
 - **Vocals:** auf **Spanisch** („Corriente nocturna“, „Más profundo“, „Déjate caer“, „Sigue“). Die Plätze im Arrangement stehen, die Shots kommen von ElevenLabs. Die alten deutschen Shots liegen in `Samples/Vocals/alt_deutsch/`.
 
 ## In Ableton öffnen
-1. `NACHTSTROM_v13.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v13/`.
-2. `NACHTSTROM_v13/NACHTSTROM.als` öffnen.
-3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v13` → **Los** → **Sichern**, dann **Cmd+S**.
+1. `NACHTSTROM_v14.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v14/`.
+2. `NACHTSTROM_v14/NACHTSTROM.als` öffnen.
+3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v14` → **Los** → **Sichern**, dann **Cmd+S**.
 4. A/B-Vergleich: **00 REFERENZ** und **00 MASTER BOUNCE** abwechselnd solo hören.
 
 ## Highlights (Takt-Nummern wie in Ableton)
@@ -63,7 +92,7 @@ Neu in v11, nicht mehr progressiv und nicht mehr „wie 3 Tracks gleichzeitig“
 | 131–146 | Dub-Stabs alle 2 Takte |
 | alle 8 Takte | ein Fill im Wechsel: Tom-Fill, ausgelassene Kick, Hat-Roll, Reverse-Becken |
 
-## Der spanische Vocal-Hook (neu in v12)
+## Alter gesungener Hook (v12/v13, ersetzt in v14)
 **„Dé-ja-te ca-er / dé-ja-te ca-er / más pro-fun-do“**: ein hypnotischer Sprechgesang statt einer Pop-Melodie.
 - **Tonraum:** eng um Cis, D und E, mit dem phrygischen D als dunkler Farbe.
 - **Rhythmus:** Die Silben sitzen im 3-3-2-Groove.
@@ -91,6 +120,7 @@ Neu in v11, nicht mehr progressiv und nicht mehr „wie 3 Tracks gleichzeitig“
 
 ## Neu rendern
 ```
-pip install numpy numba scipy soundfile pyloudnorm
-cd src && python3 render.py /pfad/zur/referenz.mp3 && python3 export_midi.py && python3 build_als.py
+pip install numpy numba scipy soundfile pyloudnorm librosa piper-tts
+cd src && python3 spoken_tts.py <piper-modelle> /tmp/tts && python3 spoken.py /tmp/tts ../Samples/Vocals/spoken
+python3 render.py /pfad/zur/referenz.mp3 && python3 export_midi.py && python3 build_als.py
 ```
