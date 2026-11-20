@@ -14,6 +14,10 @@ class GainEnvelopeProcessor(
     private val fadeInUs: Long,
     private val fadeOutUs: Long,
     private val durationUs: Long,
+    /** Vorschau: Lautstärke live lesen (Clip-ID) */
+    private val liveClipId: String? = null,
+    private val extraFadeInUs: Long = 0,
+    private val extraFadeOutUs: Long = 0,
 ) : BaseAudioProcessor() {
     private var frames = 0L
 
@@ -26,8 +30,17 @@ class GainEnvelopeProcessor(
 
     private fun gainAt(tUs: Long): Float {
         var g = volume
-        if (fadeInUs > 0 && tUs < fadeInUs) g *= tUs.toFloat() / fadeInUs
-        if (fadeOutUs > 0 && tUs > durationUs - fadeOutUs) g *= max(0f, (durationUs - tUs).toFloat() / fadeOutUs)
+        var fi = fadeInUs
+        var fo = fadeOutUs
+        if (liveClipId != null) {
+            LiveProject.clip(liveClipId)?.let { c ->
+                g = if (c.muted) 0f else c.volume
+                fi = max(c.fadeInUs, extraFadeInUs)
+                fo = max(c.fadeOutUs, extraFadeOutUs)
+            }
+        }
+        if (fi > 0 && tUs < fi) g *= tUs.toFloat() / fi
+        if (fo > 0 && tUs > durationUs - fo) g *= max(0f, (durationUs - tUs).toFloat() / fo)
         return min(4f, max(0f, g))
     }
 

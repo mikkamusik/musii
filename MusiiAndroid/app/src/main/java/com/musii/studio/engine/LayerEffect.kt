@@ -41,6 +41,8 @@ data class LayerSpec(
     val transIn: TransRole? = null,
     val transOut: TransRole? = null,
     val spacer: Boolean = false,
+    /** true = Vorschau: Farb-/Effektwerte live aus LiveProject lesen */
+    val live: Boolean = false,
 )
 
 /** Media3-Effekt: rendert einen Clip (oder einen transparenten Platzhalter) auf Canvas-Größe. */
@@ -113,6 +115,17 @@ class LayerShaderProgram(private val spec: LayerSpec, useHdr: Boolean) : BaseGlS
             return
         }
         program.f("uSpacer", 0f)
+        val liveClip = if (spec.live) LiveProject.clip(clip.id) else null
+        if (liveClip != null && liveClip.mediaId == clip.mediaId) {
+            setClipUniforms(liveClip, media, ptsUs, if (spec.live) LiveProject.project?.background?.takeIf { spec.background != null } ?: spec.background else spec.background)
+        } else {
+            setClipUniforms(clip, media, ptsUs, spec.background)
+        }
+    }
+
+    private fun setClipUniforms(clip: Clip, media: MediaFile, ptsUs: Long, background: CanvasBackground?) {
+        val W = spec.canvasW.toFloat()
+        val H = spec.canvasH.toFloat()
         val dispW = if (preRot == 90 || preRot == 270) inH.toFloat() else inW.toFloat()
         val dispH = if (preRot == 90 || preRot == 270) inW.toFloat() else inH.toFloat()
         program.fv("uInSize", floatArrayOf(inW.toFloat(), inH.toFloat()))
@@ -168,7 +181,7 @@ class LayerShaderProgram(private val spec: LayerSpec, useHdr: Boolean) : BaseGlS
         program.f("uAlpha", (tr.opacity * an.opacity * ts.alpha).toFloat().coerceIn(0f, 1f))
 
         // Hintergrund
-        val bg = spec.background
+        val bg = background
         if (bg == null) {
             program.f("uBgMode", 0f)
         } else if (bg.mode == BackgroundMode.COLOR) {

@@ -23,9 +23,13 @@ class ProjectEffect(
     val effects: List<EffectClip>,
     /** Versatz, falls die Zeitstempel nicht bei 0 beginnen */
     val timeOffsetUs: Long = 0,
+    /** Vorschau: Texte/Effekte live aus LiveProject lesen */
+    val live: Boolean = false,
 ) : GlEffect {
     override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram = ProjectShaderProgram(this, useHdr)
-    override fun isNoOp(inputWidth: Int, inputHeight: Int): Boolean = texts.isEmpty() && effects.isEmpty()
+    override fun isNoOp(inputWidth: Int, inputHeight: Int): Boolean = !live && texts.isEmpty() && effects.isEmpty()
+    fun currentTexts(): List<TextClip> = if (live) LiveProject.project?.texts ?: texts else texts
+    fun currentEffects(): List<EffectClip> = if (live) LiveProject.project?.effects ?: effects else effects
 }
 
 class ProjectShaderProgram(private val fx: ProjectEffect, useHdr: Boolean) : BaseGlShaderProgram(useHdr, 1) {
@@ -47,7 +51,7 @@ class ProjectShaderProgram(private val fx: ProjectEffect, useHdr: Boolean) : Bas
     override fun configure(inputWidth: Int, inputHeight: Int): Size {
         w = inputWidth
         h = inputHeight
-        if (fx.texts.isNotEmpty()) {
+        if (fx.texts.isNotEmpty() || fx.live) {
             bitmap?.recycle()
             bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             lastKey = null
@@ -75,12 +79,13 @@ class ProjectShaderProgram(private val fx: ProjectEffect, useHdr: Boolean) : Bas
             var hasText = false
             val bmp = bitmap
             if (bmp != null) {
-                val key = TextRasterizer.visibleKey(fx.texts, t)
+                val texts = fx.currentTexts()
+                val key = TextRasterizer.visibleKey(texts, t)
                 if (key.isNotEmpty()) {
                     hasText = true
                     val tex = ensureTexture()
                     if (key != lastKey) {
-                        TextRasterizer.render(bmp, fx.texts, t)
+                        TextRasterizer.render(bmp, texts, t)
                         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, tex)
                         GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bmp, 0)
                         lastKey = key
@@ -96,7 +101,7 @@ class ProjectShaderProgram(private val fx: ProjectEffect, useHdr: Boolean) : Bas
             val amts = FloatArray(4)
             val times = FloatArray(4)
             var n = 0
-            for (e in fx.effects.sortedBy { it.lane }) {
+            for (e in fx.currentEffects().sortedBy { it.lane }) {
                 if (n >= 4) break
                 if (t >= e.startUs && t < e.endUs) {
                     codes[n] = e.kind.code.toFloat()

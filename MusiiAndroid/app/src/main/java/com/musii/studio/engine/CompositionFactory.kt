@@ -95,7 +95,7 @@ object CompositionFactory {
 
     private fun visualItem(
         ctx: Context, p: Project, clip: Clip, media: MediaFile, itemStartUs: Long, spec: LayerSpec,
-        fadeInUs: Long, fadeOutUs: Long,
+        fadeInUs: Long, fadeOutUs: Long, live: Boolean, extraIn: Long = 0, extraOut: Long = 0,
     ): Pair<EditedMediaItem, Boolean> {
         val uri = Uri.fromFile(File(media.path))
         return if (media.kind == MediaKind.IMAGE) {
@@ -128,7 +128,7 @@ object CompositionFactory {
                     video.add(pair.second)
                 }
                 val vol = if (clip.muted) 0f else clip.volume
-                audio.add(GainEnvelopeProcessor(vol, fadeInUs, fadeOutUs, clip.durationUs))
+                audio.add(GainEnvelopeProcessor(vol, fadeInUs, fadeOutUs, clip.durationUs, if (live) clip.id else null, extraIn, extraOut))
             } else if (speedChanged) {
                 video.add(SpeedChangeEffect(clip.speed))
             }
@@ -139,7 +139,7 @@ object CompositionFactory {
         }
     }
 
-    private fun audioItem(clip: Clip, media: MediaFile): EditedMediaItem {
+    private fun audioItem(clip: Clip, media: MediaFile, live: Boolean): EditedMediaItem {
         val uri = Uri.fromFile(File(media.path))
         val end = (clip.sourceStartUs + clip.sourceDurationUs).coerceAtMost(media.durationUs)
         val mi = MediaItem.Builder()
@@ -155,7 +155,7 @@ object CompositionFactory {
         if (kotlin.math.abs(clip.speed - 1f) > 0.001f) {
             audio.add(Effects.createExperimentalSpeedChangingEffect(ConstantSpeed(clip.speed)).first)
         }
-        audio.add(GainEnvelopeProcessor(if (clip.muted) 0f else clip.volume, clip.fadeInUs, clip.fadeOutUs, clip.durationUs))
+        audio.add(GainEnvelopeProcessor(if (clip.muted) 0f else clip.volume, clip.fadeInUs, clip.fadeOutUs, clip.durationUs, if (live) clip.id else null))
         val b = EditedMediaItem.Builder(mi)
             .setDurationUs(media.durationUs.coerceAtLeast(1))
             .setEffects(Effects(audio, emptyList()))
@@ -166,7 +166,7 @@ object CompositionFactory {
     /**
      * @param renderW/renderH Ausgabegröße (Canvas, ggf. skaliert)
      */
-    fun build(ctx: Context, p: Project, renderW: Int, renderH: Int, extraEffects: List<Effect> = emptyList()): BuiltComposition? {
+    fun build(ctx: Context, p: Project, renderW: Int, renderH: Int, extraEffects: List<Effect> = emptyList(), live: Boolean = false): BuiltComposition? {
         val total = snap(p.durationUs)
         if (total < 100_000) return null
         val slots = p.mainSlots
@@ -182,8 +182,8 @@ object CompositionFactory {
                 val start = snap(c.startUs)
                 if (start < lv.cursorUs) continue // überlappt auf gleicher Spur
                 lv.gapTo(start)
-                val spec = LayerSpec(c, m, m.rotation, lv.cursorUs, c.durationUs, renderW, renderH, null)
-                val (item, hasAudio) = visualItem(ctx, p, c, m, lv.cursorUs, spec, c.fadeInUs, c.fadeOutUs)
+                val spec = LayerSpec(c, m, m.rotation, lv.cursorUs, c.durationUs, renderW, renderH, null, live = live)
+                val (item, hasAudio) = visualItem(ctx, p, c, m, lv.cursorUs, spec, c.fadeInUs, c.fadeOutUs, live)
                 lv.add(item, c.durationUs, hasAudio)
             }
             lv.padTo(total)
@@ -205,9 +205,9 @@ object CompositionFactory {
             val prevKind = if (i > 0) p.main[i - 1].transition?.kind else null
             val transIn = if (slot.transitionInUs > 0 && prevKind != null) TransRole(prevKind, slot.transitionInUs, isTop) else null
             val transOut = if (slot.transitionOutUs > 0 && c.transition != null) TransRole(c.transition.kind, slot.transitionOutUs, isTop) else null
-            val spec = LayerSpec(c, m, m.rotation, lv.cursorUs, c.durationUs, renderW, renderH, p.background, transIn, transOut)
+            val spec = LayerSpec(c, m, m.rotation, lv.cursorUs, c.durationUs, renderW, renderH, p.background, transIn, transOut, live = live)
             val (item, hasAudio) = visualItem(ctx, p, c, m, lv.cursorUs, spec,
-                max(c.fadeInUs, slot.transitionInUs), max(c.fadeOutUs, slot.transitionOutUs))
+                max(c.fadeInUs, slot.transitionInUs), max(c.fadeOutUs, slot.transitionOutUs), live, slot.transitionInUs, slot.transitionOutUs)
             lv.add(item, c.durationUs, hasAudio)
         }
         for (lv in mainLanes.reversed()) {
@@ -235,7 +235,7 @@ object CompositionFactory {
                 val start = snap(c.startUs)
                 if (start < cursor) continue
                 if (start - cursor >= MIN_GAP_US) b.addGap(start - cursor)
-                b.addItem(audioItem(c, m))
+                b.addItem(audioItem(c, m, live))
                 cursor = start + c.durationUs
                 count++
             }
@@ -247,7 +247,7 @@ object CompositionFactory {
 
         val compBuilder = Composition.Builder(sequences)
         val compEffects = ArrayList<Effect>(extraEffects)
-        if (p.texts.isNotEmpty() || p.effects.isNotEmpty()) compEffects.add(ProjectEffect(p.texts, p.effects))
+        if (live || p.texts.isNotEmpty() || p.effects.isNotEmpty()) compEffects.add(ProjectEffect(p.texts, p.effects, live = live))
         if (compEffects.isNotEmpty()) compBuilder.setEffects(Effects(emptyList(), compEffects))
         return BuiltComposition(compBuilder.build(), total, renderW, renderH, max(1, videoSequences))
     }
