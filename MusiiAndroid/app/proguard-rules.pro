@@ -1,0 +1,4 @@
+-keep class com.musii.studio.model.** { *; }
+-keepattributes *Annotation*, InnerClasses
+-dontwarn org.checkerframework.**
+-dontwarn com.google.errorprone.**
