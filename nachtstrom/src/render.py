@@ -15,8 +15,8 @@ import soundfile as sf
 from scipy.signal import resample_poly, firwin2, oaconvolve, minimum_phase
 
 import compose as C
-from dsp import (SR, saw, pulse, svf, lp, hp, bp, reverb, compressor, db, fold,
-                 tape_delay, phaser, smooth, limiter_fast, onepole_lp, ladder, analog_drift, chorus, pulse_pwm)
+from dsp import (SR, saw, pulse, svf, lp, hp, bp, reverb, compressor, db,
+                 tape_delay, phaser, smooth, limiter_fast, onepole_lp, ladder, analog_drift, chorus, pulse_pwm, _moddelay)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RNG = np.random.default_rng(147)
@@ -447,28 +447,48 @@ def pitch_down(x, semis):
     return resample_poly(x, up, down)
 
 
-def vdist(x, amt):
-    """Parallele Verzerrung: Mitten hart angezerrt (Roehre + Wavefolder), die saubere,
-    gehauchte Stimme bleibt darunter -> dreckig, aber sexy und verstaendlich."""
-    if amt <= 0:
-        return x
-    b = hp(lp(x, 5000), 250)
-    d = tube_os(b / (np.sqrt(np.mean(b ** 2)) + 1e-9) * 0.5 * (1 + 4 * amt), 2.8, 0.18)
-    d = fold(d * (1 + amt), 0.9)
-    d = lp(hp(d, 200), 6500)
-    d = d / (np.sqrt(np.mean(d ** 2)) + 1e-9) * np.sqrt(np.mean(x ** 2))
-    return (1 - 0.5 * amt) * x + 0.85 * amt * d
+def verspult(x, stretch=False, seed=0):
+    """Verspult statt verzerrt: Tape-Leiern (Wow + Flutter), leiser Oktav-Schatten, langsamer
+    Phaser, auf Wunsch das letzte Wort gedehnt ("caeeer...")."""
+    import librosa
+    rng = np.random.default_rng(seed)
+    if stretch:
+        k = int(len(x) * 0.62)
+        xf = int(0.03 * SR)
+        tail = librosa.effects.time_stretch(x[k - xf:], rate=0.55)
+        tail[:xf] = tail[:xf] * np.linspace(0, 1, xf) + x[k - xf:k] * np.linspace(1, 0, xf)
+        x = np.concatenate([x[:k - xf], tail])
+        fo = int(0.15 * SR)
+        x[-fo:] *= np.linspace(1, 0, fo)
+    pad = np.concatenate([x, np.zeros(int(0.06 * SR))])
+    w = _moddelay(pad, 6.0, 12.0, 0.45, rng.uniform(0, 6.28))       # Wow: ca. +-25 Cent, langsam
+    w = _moddelay(w, 1.0, 0.15, 5.5, rng.uniform(0, 6.28))          # Flutter
+    sub = lp(librosa.effects.pitch_shift(w, sr=SR, n_steps=-12), 1200)
+    y = w + 0.22 * sub
+    return 0.6 * y + 0.4 * phaser(y, 0.13, 250.0, 3500.0, 0.55, 6, rng.uniform(0, 6.28))
+
+
+def preverb(x, size=0.9):
+    """Reverse-Hall: saugt die Phrase an (endet genau auf ihrem Einsatz)."""
+    tail = reverb(np.concatenate([x, np.zeros(int(1.5 * SR))]), size=size, damp=0.45, predelay_ms=0)
+    r = tail[:, ::-1][:, -int(1.6 * SR):].copy()
+    fi = int(0.4 * SR)
+    r[:, :fi] *= np.linspace(0, 1, fi)
+    return r
 
 
 def render_vocal():
-    """Gesprochene, gehauchte Stimme (spoken.py) – nah, intim, verzerrt, mit Dub-Echo und Raum."""
+    """Gesprochene, gehauchte Stimme (spoken.py) – verspult: leiert, schwebt, Reverse-Hall, Dub-Echo, Raum."""
     out = np.zeros((2, N))
     dly = np.zeros((2, N))
     verb = np.zeros(N)
 
-    def place(x, b, g, send_d, send_r, p=0.0, dist=0.7):
-        x = vdist(x, dist)
+    def place(x, b, g, send_d, send_r, p=0.0, stretch=False, pre=0.0, seed=0):
+        x = verspult(x, stretch=stretch, seed=seed)
         x = x / (np.max(np.abs(x)) + 1e-9) * g
+        if pre > 0:
+            r = preverb(x)
+            add(out, r * pre, b - r.shape[1] / SR / C.SPB, 1.0)
         dry = pan(x, p)
         add(out, dry, b, 1.0)
         add(dly, dry * send_d, b, 1.0)
@@ -483,13 +503,13 @@ def render_vocal():
         if style == "chop":
             x = spk["SPK_DEJATE"][: int(0.28 * SR)].copy()
             x[-300:] *= np.linspace(1, 0, 300)
-            place(hp(x, 250), b, g, 0.9, 0.25, dist=1.0)
+            place(hp(x, 250), b, g, 0.9, 0.25, seed=int(b))
         elif style == "deep":
-            place(spk[name], b, g, 0.55, 0.35, dist=0.9)
+            place(spk[name], b, g, 0.55, 0.4, stretch=True, pre=0.5, seed=int(b))
         elif style == "close":
-            place(spk[name], b, g, 0.35, 0.12, dist=0.55)   # trocken, ganz nah am Ohr
+            place(spk[name], b, g, 0.35, 0.15, seed=int(b))  # nah am Ohr, nur leicht verspult
         else:                                                # whisper
-            place(lp(spk[name], 9000), b, g, 0.6, 0.6, dist=0.45)
+            place(lp(spk[name], 9000), b, g, 0.6, 0.6, pre=0.6, seed=int(b))
     # Atem: Einatmen endet genau auf dem Einsatz, Ausatmen beginnt dort
     for kind, b, g in C.BREATHS:
         br = load_shot("BREATH_IN" if kind == "in" else "BREATH_OUT")
@@ -506,15 +526,16 @@ def render_vocal():
     for bar, g, style in C.HOOK_PLACES:
         for name, off in C.SPOKEN_HOOK:
             x = spk[name]
+            sd = int(bar * 10 + off)
             if style == "teaser":
-                place(lp(vdist(x, 0.7), 1500), bar * 4 + off, g, 0.6, 0.6, dist=0.0)
+                place(lp(x, 1500), bar * 4 + off, g, 0.6, 0.6, stretch=True, pre=0.6, seed=sd)
             elif style == "acapella":
-                place(x, bar * 4 + off, g, 0.45, 0.55, dist=0.5)
+                place(x, bar * 4 + off, g, 0.5, 0.6, stretch=True, pre=0.7, seed=sd)
             else:
-                place(x, bar * 4 + off, g, 0.3, 0.18, dist=0.7)
-    # Dub-Echos ebenfalls angezerrt (Bandsaettigung hochgedreht)
-    dl, dr = tape(dly[0], dly[1], 0.75, 2.0, 0.35, 0.5, 0.5, 2.4, 1.0)
-    rv = reverb(verb, size=0.86, damp=0.5, predelay_ms=25)
+                place(x, bar * 4 + off, g, 0.4, 0.3, stretch=True, pre=0.45, seed=sd)
+    # Dub-Echos: mehr Leiern und Feedback, sauber (nicht angezerrt) -> schwebt
+    dl, dr = tape(dly[0], dly[1], 0.75, 4.0, 0.3, 0.58, 0.55, 1.2, 1.0)
+    rv = reverb(verb, size=0.9, damp=0.45, predelay_ms=25)
     return out + np.array([hp(dl, 250), hp(dr, 250)]) * 0.6 + rv * 0.7
 
 
