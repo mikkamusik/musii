@@ -18,7 +18,7 @@ import export_midi as M
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Wahrscheinlichster Ort nach dem Entpacken der Chat-ZIP (Fallback: relativer Pfad)
-ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v14")
+ABS_GUESS = os.environ.get("NACHTSTROM_ABS", "/Users/mikkamusik/Downloads/NACHTSTROM_v15")
 
 
 class Ids:
@@ -285,7 +285,7 @@ def master_track(n_scenes):
 AUDIO = [  # Stem, Farbe, Volume, Pan, Info
     ("01 KICK", 14, 1.0, 0, "Tiefe, runde Kick (Fit an Referenz), lange Sub-Fahne."),
     ("02 RUMBLE", 14, 1.0, 0, "Kick-Hall-Rumble im Offbeat-Fenster (FDN-Hall): Sub mono, ab 150 Hz breit."),
-    ("03 BASS", 12, 1.0, 0, "Dreckiger Offbeat-Sub auf Cis: Sinus-Sub + Saw, Saettigung und paralleler Grit-Layer (100-900 Hz)."),
+    ("03 BASS", 12, 1.0, 0, "Reiner Offbeat-Sub auf Cis: Sinus mit sanfter Saettigung, ueber 190 Hz nichts - gefuehlt statt gehoert."),
     ("04 HATS", 26, 1.0, 0, "Offbeat-Hat kurz->mittel->offen, Tick, Shaker (Main 1, Main 3), Ride (Peak)."),
     ("05 CLAP", 26, 1.0, 0, "Clap auf 2 & 4."),
     ("06 PERC", 22, 1.0, 0, "Identitaet je Section: Tribal-Toms, Halbtempo-Toms + Tom-Roll (Break 1), Congas, Rim, Metall-3/16-Loop."),
@@ -294,7 +294,7 @@ AUDIO = [  # Stem, Farbe, Volume, Pan, Info
     ("09 ATMOS", 41, 1.0, 0, "Drone in Break 1 und Breakdown."),
     ("10 FX", 1, 1.0, 0, "Highlights: Reverse-Crashes, Crashes, Sub-Drops, Pings, Downlifter, Wand-Sweeps."),
     ("11 RISER", 1, 1.0, 0, "Weicher Riser vor dem grossen Drop."),
-    ("12 VOCAL", 60, 1.0, 0, "Sexy gesprochene, gehauchte Stimme (Spanisch): 'Ven... dejate caer' / 'Mas profundo', Shots 'No pares', 'Sigue', 'Corriente nocturna'; Atem. Einzelne Phrasen in Samples/Vocals/spoken."),
+    ("12 VOCAL", 60, 1.0, 0, "Sexy gesprochene, gehauchte, verspulte Stimme (Spanisch): 'Ven... dejate caer' / 'Mas profundo', Shots 'No pares', 'Sigue', 'Corriente nocturna'; Tape-Leiern, Reverse-Hall, Dub-Echos; Atem. Einzelne Phrasen in Samples/Vocals/spoken."),
 ]
 
 MIDI = [  # Name, Datei-Key, Farbe, Info
