@@ -894,7 +894,7 @@ def main(ref_path):
             stems[k] = stems[k] * bg
     # Geigen-Solo im Breakdown: etwas zurueck (intim), aber der Gaensehaut-Moment bleibt
     vdb = np.zeros(N)
-    for a, b, d in ((96.6, 110.0, -5.0),):
+    for a, b, d in ((96.6, 110.0, -10.0),):          # pro Takt gemessen: -5 dB war fuer den Drop-Sprung zu laut
         vdb = np.where((BAR_AT >= a) & (BAR_AT < b), d, vdb)
     stems["12 VIOLIN"] = stems["12 VIOLIN"] * smooth(10 ** (vdb / 20), SR // 2)
     # Letzter Takt vor dem Drop: auch Riser, FX und Atem treten zurueck -> fast Stille, dann der Schlag
