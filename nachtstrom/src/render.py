@@ -911,7 +911,7 @@ def main(ref_path):
     bgdb = np.zeros(N)
     for a, b, d in ((40.6, 44.0, -7.5), (78.6, 80.0, -6.5), (96.6, 104.0, -6.0), (104.0, 110.0, -9.5)):
         bgdb = np.where((BAR_AT >= a) & (BAR_AT < b), d, bgdb)
-    for a, b, d0, d1 in ((44.0, 48.0 - pre, -7.5, -5.0), (110.0, 114.0 - pre, -9.5, -6.0)):
+    for a, b, d0, d1 in ((44.0, 48.0 - pre, -7.5, -5.0), (110.0, 114.0 - pre, -9.5, -8.0)):
         u = np.clip((BAR_AT - a) / (b - a), 0, 1)
         bgdb = np.where((BAR_AT >= a) & (BAR_AT < b), d0 + (d1 - d0) * u ** 1.5, bgdb)
     bg = smooth(10 ** (bgdb / 20), SR // 4)
@@ -920,9 +920,16 @@ def main(ref_path):
             stems[k] = stems[k] * bg
     # Vocal in den Breaks nicht mit Peak-Pegel (sonst EDM-A-cappella): intim und im Raum.
     vdb = np.zeros(N)
-    for a, b, d in ((40.6, 44.5, -9.0), (96.6, 110.0, -9.5)):
+    for a, b, d in ((40.6, 47.5, -9.0), (96.6, 110.0, -13.0)):
         vdb = np.where((BAR_AT >= a) & (BAR_AT < b), d, vdb)
     stems["12 VOCAL"] = stems["12 VOCAL"] * smooth(10 ** (vdb / 20), SR // 2)
+    # Letzter Takt vor dem Drop: auch Riser, FX und Atem treten zurueck -> fast Stille, dann der Schlag
+    ddb = np.zeros(N)
+    for a, b, d in ((47.0, 48.0 - pre, -4.0), (113.0, 114.0 - pre, -6.0)):
+        ddb = np.where((BAR_AT >= a) & (BAR_AT < b), d, ddb)
+    duck = smooth(10 ** (ddb / 20), SR // 4)
+    for k in ("10 FX", "11 RISER", "12 VOCAL"):
+        stems[k] = stems[k] * duck
     print("edits", round(time.time() - t0), flush=True)
 
     ref = ref_main_levels(ref_path)
