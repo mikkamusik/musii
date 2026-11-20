@@ -465,7 +465,7 @@ def verspult(x, stretch=False, seed=0):
     w = _moddelay(w, 1.0, 0.15, 5.5, rng.uniform(0, 6.28))          # Flutter
     sub = lp(librosa.effects.pitch_shift(w, sr=SR, n_steps=-12), 1200)
     y = w + 0.22 * sub
-    return 0.6 * y + 0.4 * phaser(y, 0.13, 250.0, 3500.0, 0.55, 6, rng.uniform(0, 6.28))
+    return 0.75 * y + 0.25 * phaser(y, 0.13, 250.0, 3500.0, 0.55, 6, rng.uniform(0, 6.28))
 
 
 def preverb(x, size=0.9):
@@ -534,6 +534,7 @@ def render_vocal():
             else:
                 place(x, bar * 4 + off, g, 0.4, 0.3, stretch=True, pre=0.45, seed=sd)
     # Dub-Echos: mehr Leiern und Feedback, sauber (nicht angezerrt) -> schwebt
+    out = np.array([c + (db(3.5) - 1) * bp(c, 2600, 0.35) for c in out])   # Praesenz: Worte kommen durch
     dl, dr = tape(dly[0], dly[1], 0.75, 4.0, 0.3, 0.58, 0.55, 1.2, 1.0)
     rv = reverb(verb, size=0.9, damp=0.45, predelay_ms=25)
     return out + np.array([hp(dl, 250), hp(dr, 250)]) * 0.6 + rv * 0.7
@@ -930,8 +931,16 @@ def main(ref_path):
     vr = np.sqrt(np.mean(stems["12 VOCAL"][..., s0:s1] ** 2))
     kr = np.sqrt(np.mean(stems["01 KICK"][s0:s1] ** 2))
     if vr > 0:
-        stems["12 VOCAL"] = stems["12 VOCAL"] * (kr * db(-2.0) / vr)
-        stems["12 VOCAL"] = soft_clip(stems["12 VOCAL"], np.max(np.abs(stems["01 KICK"])) * db(-2.0))
+        # v15: Stimme deutlich nach vorn (vorher ging sie im Riff/Perc-Band unter: ~15 % der Energie 0.7-3 kHz)
+        stems["12 VOCAL"] = stems["12 VOCAL"] * (kr * db(3.0) / vr)
+        stems["12 VOCAL"] = soft_clip(stems["12 VOCAL"], np.max(np.abs(stems["01 KICK"])) * db(0.0))
+    # Ducking: Sobald sie spricht, machen Riff, Perc, Hats, Dub-Stab und Atmos Platz (bis -4 dB)
+    vm = np.abs(0.5 * (stems["12 VOCAL"][0] + stems["12 VOCAL"][1]))
+    venv = smooth(vm, int(0.03 * SR))
+    thr = np.percentile(venv[venv > 1e-6], 90) if np.any(venv > 1e-6) else 1.0
+    duckg = smooth(1.0 - 0.37 * np.clip(venv / (0.35 * thr), 0.0, 1.0), int(0.12 * SR))
+    for k in ("07 RIFF", "06 PERC", "04 HATS", "08 DUB STAB", "09 ATMOS"):
+        stems[k] = stems[k] * duckg
     for k in EDITED:
         stems[k] = apply_edits(stems[k])
     # Spannungsbogen: Break leise & dunkel -> Crescendo im Aufbau -> Drop
