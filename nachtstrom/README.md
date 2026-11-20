@@ -1,6 +1,31 @@
-# NACHTSTROM v16 – 147 BPM · Cis · ein durchgehender Track, reiner Sub, Violine als viraler Hook
+# NACHTSTROM v17 – 147 BPM · Cis · ein durchgehender Track, reiner Sub, dramatische Orchester-Shorts
 
 Gebaut nach dem vermessenen Bauplan deiner Referenz, die Details stehen in `REFERENZ_ANALYSE.md`.
+
+## Neu in v17: Dramatisches Streichorchester mit Shorts
+Die Solo-Violine ist raus. Jetzt spielt ein **Streichorchester kurze Noten (Shorts)**, dramatisch wie in Film- und Trailer-Musik (`src/strings.py`, ganz ohne Samples synthetisiert).
+- **Besetzung im Orchester-Setup:**
+  - 1. Violinen links (6 Spieler), 2. Violinen halblinks (6), Bratschen halbrechts (4), Celli rechts (4).
+  - Jeder Spieler ist leicht verstimmt und minimal versetzt, dadurch klingt es wie eine echte Gruppe.
+- **Spieltechnik:**
+  - 1. Violinen: treibendes **16tel-Spiccato**, akzentuiert im 3-3-2-Groove.
+  - 2. Violinen und Bratschen: Achtel-Puls.
+  - Celli: wuchtiges **Marcato** „DUM . . DUM . . DUM .“
+  - Ein **Tutti-Schlag** auf der ersten Eins jeder Phrase.
+- **Harmonie:** Cis-Moll → A → D (der dunkle Neapolitaner) → E. Die Oberstimme steigt E6 → E6 → Fis6 → Gis6, dazu ein Crescendo über 4 Takte: Die Spannung wächst, dann geht es zurück auf Cis-Moll.
+- **Klang:** Bogen-Biss und Korpus-Resonanzen je nach Instrumentengröße, großer Konzertsaal-Hall. Unter 110 Hz bleibt Platz für Sub und Rumble.
+- **MIDI:** Alle Streicher liegen als **12b STRINGS MIDI** im Set, zum Beispiel für BBC Symphony Orchestra Discover oder Spitfire LABS (Spiccato/Staccato).
+
+| Takt | Streicher |
+|---|---|
+| 37 | Teaser: nur 1. Violinen, gefiltert |
+| 57–64 | volles Orchester |
+| 106 | Breakdown: leise, viel Saal |
+| 115–130 | volles Orchester, 16 Takte |
+| 151 | Main 3 |
+| 167 | Teaser im Outro |
+
+Hörprobe: `bounce/NACHTSTROM_strings_preview.mp3`.
 
 ## Neu in v16: Violine statt Stimme
 Die Stimme ist komplett raus, Atemgeräusche inklusive. Der virale Hook ist jetzt eine **Violine**.
@@ -105,9 +130,9 @@ Neu in v11, nicht mehr progressiv und nicht mehr „wie 3 Tracks gleichzeitig“
 - **Vocals:** auf **Spanisch** („Corriente nocturna“, „Más profundo“, „Déjate caer“, „Sigue“). Die Plätze im Arrangement stehen, die Shots kommen von ElevenLabs. Die alten deutschen Shots liegen in `Samples/Vocals/alt_deutsch/`.
 
 ## In Ableton öffnen
-1. `NACHTSTROM_v16.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v16/`.
-2. `NACHTSTROM_v16/NACHTSTROM.als` öffnen.
-3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v16` → **Los** → **Sichern**, dann **Cmd+S**.
+1. `NACHTSTROM_v17.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v17/`.
+2. `NACHTSTROM_v17/NACHTSTROM.als` öffnen.
+3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v17` → **Los** → **Sichern**, dann **Cmd+S**.
 4. A/B-Vergleich: **00 REFERENZ** und **00 MASTER BOUNCE** abwechselnd solo hören.
 
 ## Highlights (Takt-Nummern wie in Ableton)
