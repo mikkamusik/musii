@@ -466,16 +466,19 @@ enum EffectFX {
         let noise = CIFilter(name: "CIRandomGenerator")?.outputImage ?? CIImage.empty()
         let threshold = 0.9985 - amount * 0.004
         let gain = 1.0 / (1 - threshold)
-        var dots = noise.applyingFilter("CIColorMatrix", parameters: [
+        let b = CGFloat(-threshold * gain)
+        // Alpha bleibt 1, damit beim Vormultiplizieren keine negativen Werte entstehen
+        let gray = noise.applyingFilter("CIColorMatrix", parameters: [
             "inputRVector": CIVector(x: CGFloat(gain), y: 0, z: 0, w: 0),
             "inputGVector": CIVector(x: CGFloat(gain), y: 0, z: 0, w: 0),
             "inputBVector": CIVector(x: CGFloat(gain), y: 0, z: 0, w: 0),
-            "inputAVector": CIVector(x: CGFloat(gain), y: 0, z: 0, w: 0),
-            "inputBiasVector": CIVector(x: CGFloat(-threshold * gain), y: CGFloat(-threshold * gain), z: CGFloat(-threshold * gain), w: CGFloat(-threshold * gain)),
+            "inputAVector": CIVector(x: 0, y: 0, z: 0, w: 0),
+            "inputBiasVector": CIVector(x: b, y: b, z: b, w: 1),
         ]).applyingFilter("CIColorClamp", parameters: [
             "inputMinComponents": CIVector(x: 0, y: 0, z: 0, w: 0),
             "inputMaxComponents": CIVector(x: 1, y: 1, z: 1, w: 1),
         ])
+        var dots = gray.applyingFilter("CIMaskToAlpha")
         if streak {
             dots = dots.transformed(by: CGAffineTransform(scaleX: 2.0 * ref, y: 28 * ref).concatenating(CGAffineTransform(rotationAngle: 0.12)))
             dots = dots.transformed(by: CGAffineTransform(translationX: 0, y: CGFloat(-time * 1400 * ref)))
