@@ -1,6 +1,35 @@
-# NACHTSTROM v15 – 147 BPM · Cis · ein durchgehender Track, reiner Sub, sexy gesprochene, verspulte Stimme
+# NACHTSTROM v16 – 147 BPM · Cis · ein durchgehender Track, reiner Sub, Violine als viraler Hook
 
 Gebaut nach dem vermessenen Bauplan deiner Referenz, die Details stehen in `REFERENZ_ANALYSE.md`.
+
+## Neu in v16: Violine statt Stimme
+Die Stimme ist komplett raus, Atemgeräusche inklusive. Der virale Hook ist jetzt eine **Violine**.
+- **Melodie** (4 Takte, Cis-phrygisch wie das Riff): **Cis–H–Cis–E | D–Cis–H | Gis–A–H–Cis | D–Cis**.
+  - Die Melodie beginnt hoch auf dem Grundton und steigt zur kleinen Terz.
+  - Sie endet mit der phrygischen Kadenz D → Cis, einem dunklen, orientalischen Ohrwurm.
+  - Rhythmus: punktierte Viertel, Achtel, Viertel, Viertel. Gesanglich und leicht nachzupfeifen.
+- **Klang** (`src/violin.py`), ganz ohne Samples synthetisiert:
+  - eine gestrichene Saite (bandbegrenzter Sägezahn mit Perioden-Jitter)
+  - Geigenkorpus-Resonanzen (280 Hz, 460 Hz, 1 kHz, Bridge Hill 2,5–3,3 kHz)
+  - Slides zwischen den Tönen und ein kleiner Scoop in jeden Ton
+  - verzögert einsetzendes Vibrato (5,6 Hz)
+  - Bogenwechsel, Bogen-Biss im Anschlag und Bogengeräusch
+- **Besetzung:**
+  - Im Main und Peak spielt ein Geigen-Pult: Hauptgeige, zwei leicht verstimmte Pulte links und rechts, leise Bratsche eine Oktave tiefer.
+  - Im Breakdown spielt eine Solo-Geige eine Oktave tiefer, mit viel Raum: der Gänsehaut-Moment.
+- **Im Mix:** Riff, Percussion, Hats, Dub-Stab und Atmos treten langsam bis zu 3 dB zurück, solange die Geige spielt.
+- **Eigene Violine:** Die Melodie liegt auch als MIDI-Spur **12b VIOLIN MIDI** im Set. Damit kannst du sie mit einer echten Violin-Library spielen.
+
+| Takt | Violine |
+|---|---|
+| 37 | Teaser, gefiltert und weit weg |
+| 57, 61 | voller Hook, zweimal |
+| 106 | Solo im Breakdown, eine Oktave tiefer |
+| 115–130 | viermal im Peak |
+| 151 | Main 3 |
+| 167 | Teaser im Outro |
+
+Hörprobe der Violine allein: `bounce/NACHTSTROM_violin_preview.mp3`. Die alten Vocal-Dateien liegen noch in `Samples/Vocals/`, werden aber nicht mehr verwendet.
 
 ## Neu in v15: Sub-Bass und verspulte Stimme
 - **Bass = reiner Sub, nicht EDM:** Saw-Anteil und Mitten-Grit (100–900 Hz) sind raus. Ein Sinus-Sub mit sanfter Sättigung, über 190 Hz ist nichts mehr, steil abgeschnitten. Man fühlt ihn mehr, als man ihn hört. Das Rumble bleibt.
@@ -76,9 +105,9 @@ Neu in v11, nicht mehr progressiv und nicht mehr „wie 3 Tracks gleichzeitig“
 - **Vocals:** auf **Spanisch** („Corriente nocturna“, „Más profundo“, „Déjate caer“, „Sigue“). Die Plätze im Arrangement stehen, die Shots kommen von ElevenLabs. Die alten deutschen Shots liegen in `Samples/Vocals/alt_deutsch/`.
 
 ## In Ableton öffnen
-1. `NACHTSTROM_v15.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v15/`.
-2. `NACHTSTROM_v15/NACHTSTROM.als` öffnen.
-3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v15` → **Los** → **Sichern**, dann **Cmd+S**.
+1. `NACHTSTROM_v16.zip` aus dem Chat im Ordner **Downloads** doppelklicken. Es entsteht `Downloads/NACHTSTROM_v16/`.
+2. `NACHTSTROM_v16/NACHTSTROM.als` öffnen.
+3. Falls „Sample Offline“ erscheint: rechts **Ordner wählen** → `NACHTSTROM_v16` → **Los** → **Sichern**, dann **Cmd+S**.
 4. A/B-Vergleich: **00 REFERENZ** und **00 MASTER BOUNCE** abwechselnd solo hören.
 
 ## Highlights (Takt-Nummern wie in Ableton)
