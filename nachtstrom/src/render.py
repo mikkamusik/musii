@@ -807,7 +807,7 @@ def apply_fir(x, taps, minphase=False):
 TARGET = {
     "01 KICK": -9.0, "02 RUMBLE": -17.5, "03 BASS": -10.0, "04 HATS": -21.0,
     "05 CLAP": -21.0, "06 PERC": -25.0, "07 RIFF": -21.5, "08 DUB STAB": -24.0,
-    "09 ATMOS": -27.0, "10 FX": -31.0, "11 RISER": -24.0,
+    "09 ATMOS": -27.0, "10 FX": -31.0, "11 RISER": -30.0,
 }
 REGION = {"08 DUB STAB": (130, 146), "09 ATMOS": (96, 114), "10 FX": (0, 178), "11 RISER": (112, 114)}
 CREST = {"04 HATS": 12.0, "05 CLAP": 14.0, "06 PERC": 13.0, "07 RIFF": 11.0, "08 DUB STAB": 14.0,
@@ -903,22 +903,25 @@ def main(ref_path):
     for k in EDITED:
         stems[k] = apply_edits(stems[k])
     # Spannungsbogen: Break leise & dunkel -> Crescendo im Aufbau -> Drop
-    # v13: Breaks tiefer (wie Referenz: Breakdown ~14 dB unter dem Drop) -> der Drop knallt
+    # v13: Spannungsbogen wie die Referenz (pro Takt in LUFS vermessen):
+    # Break/Breakdown deutlich unter dem Drop, der Aufbau bleibt GEDAEMPFT (kein EDM-Crescendo),
+    # erst der Drop springt voll rein. Die Stufe liegt kurz VOR der Eins (im Beat-Cut), damit die
+    # erste Drop-Kick ungedaempft kommt (smooth() verschmiert +-0.125 s).
+    pre = 0.125 / (4 * C.SPB)
     bgdb = np.zeros(N)
-    for a, b, d in ((40.6, 44.0, -8.5), (78.6, 80.0, -6.5), (96.6, 110.0, -9.5)):
+    for a, b, d in ((40.6, 44.0, -7.5), (78.6, 80.0, -6.5), (96.6, 104.0, -6.0), (104.0, 110.0, -9.5)):
         bgdb = np.where((BAR_AT >= a) & (BAR_AT < b), d, bgdb)
-    for a, b, d in ((44.0, 48.0, -8.5), (110.0, 114.0, -9.5)):
+    for a, b, d0, d1 in ((44.0, 48.0 - pre, -7.5, -5.0), (110.0, 114.0 - pre, -9.5, -6.0)):
         u = np.clip((BAR_AT - a) / (b - a), 0, 1)
-        bgdb = np.where((BAR_AT >= a) & (BAR_AT < b), d + (-1.0 - d) * u ** 1.5, bgdb)
+        bgdb = np.where((BAR_AT >= a) & (BAR_AT < b), d0 + (d1 - d0) * u ** 1.5, bgdb)
     bg = smooth(10 ** (bgdb / 20), SR // 4)
     for k in stems:
         if k not in ("11 RISER", "10 FX", "12 VOCAL"):
             stems[k] = stems[k] * bg
-    # Vocal in den Breaks nicht mit Peak-Pegel (sonst EDM-A-cappella): -4.5 dB, mehr "im Raum".
-    # Das grosse Einatmen im Beat-Cut vor dem Drop (ab Takt 110) bleibt voll.
+    # Vocal in den Breaks nicht mit Peak-Pegel (sonst EDM-A-cappella): intim und im Raum.
     vdb = np.zeros(N)
-    for a, b in ((40.6, 44.5), (96.6, 110.0)):
-        vdb = np.where((BAR_AT >= a) & (BAR_AT < b), -4.5, vdb)
+    for a, b, d in ((40.6, 44.5, -9.0), (96.6, 110.0, -9.5)):
+        vdb = np.where((BAR_AT >= a) & (BAR_AT < b), d, vdb)
     stems["12 VOCAL"] = stems["12 VOCAL"] * smooth(10 ** (vdb / 20), SR // 2)
     print("edits", round(time.time() - t0), flush=True)
 

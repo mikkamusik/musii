@@ -6,10 +6,12 @@ Gebaut nach dem vermessenen Bauplan deiner Referenz, die Details stehen in `REFE
 Alles ist hier im Chat gerechnet, ohne Bezahldienste und ohne fremde Plugins.
 - **Studio-Hall statt Metall-Hall:** Ein modulierender 8-Kanal-FDN-Hall (Feedback Delay Network) ersetzt den alten Freeverb. Die Hallfahne ist dicht, nicht metallisch, links und rechts unkorreliert (Korrelation ≈ 0) und hat frequenzabhängige Dämpfung. Pegel und Nachhallzeit sind auf den alten Hall eingemessen, die Proportionen im Mix bleiben also gleich.
 - **Punch:** Der Match-EQ auf die Referenz arbeitet jetzt **minimalphasig**. Die alte linearphasige Version legte vor jeden Transienten ein leises Vorecho (am Impuls gemessen −26 dB). Das ist jetzt weg, der Frequenzgang bleibt identisch. Ergebnis: Der Crest-Faktor (Abstand zwischen Spitze und Mittelwert, also die Wucht) liegt im Peak bei **7,1 dB** und damit praktisch auf dem Niveau der Referenz (7,2 dB). v12 hatte 6,4 dB.
-- **Tiefere Breaks, härtere Drops:** In der Referenz liegt der Breakdown rund 14 dB unter dem Drop, bei v12 waren es nur 7,6 dB. Grund war vor allem das A-cappella-Vocal, das fast mit Peak-Pegel im Breakdown stand. Das wirkt EDM-artig. Jetzt gilt:
-  - Die Breaks gehen tiefer (Break 1 −8,5 dB, Breakdown −9,5 dB).
-  - Das Vocal sitzt in den Breaks 4,5 dB weiter hinten im Raum.
-  - Das große Einatmen vor dem Drop bleibt voll.
+- **Spannungsbögen wie in der Referenz, kein EDM-Crescendo:** Ich habe beide Tracks Takt für Takt in LUFS vermessen. Bei v12 war der Takt vor dem großen Drop (Takt 114) **lauter als der Drop selbst**: Riser und Atem wurden immer lauter, also klassisch EDM. In der Referenz ist dieser Takt fast still, und dann schlägt der Drop rund 13 LU drauf. Jetzt gilt:
+  - Die erste Breakdown-Hälfte ist etwas voller.
+  - Das A cappella ist ein leiser, intimer Moment im Raum, kein EDM-A-cappella auf Peak-Pegel.
+  - Der Aufbau bleibt gedämpft, Riser und Atem sind hörbar, aber leiser.
+  - Erst der Drop springt voll rein. Die Pegelstufe liegt kurz vor der Eins im Beat-Cut, damit die erste Drop-Kick ungebremst kommt.
+  - Break 1 ist genauso gebaut.
 - **Riff wie ein echter Analog-Synth:**
   - drei Saw-VCOs pro Seite, jeder mit eigener langsamer Tonhöhen-Drift (±3,5 Cent)
   - PWM-Sub-Oszillator

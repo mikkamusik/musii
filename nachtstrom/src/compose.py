@@ -357,7 +357,7 @@ HOOK_PLACES = [
 # Atem: Einatmen vor jedem Hook-Einsatz (endet auf der Eins), grosses Einatmen im Beat-Cut vor dem Drop,
 # Ausatmen zu Beginn des Breakdowns. (Art, Beat an dem der Atem ENDET bzw. BEGINNT, Pegel)
 _B = {("in", bar * 4): 0.8 for bar, g, st in HOOK_PLACES if st != "teaser"}
-_B[("in", 114 * 4)] = 1.0                       # grosses Einatmen im Beat-Cut vor dem Drop
+_B[("in", 114 * 4)] = 0.45                      # Einatmen im Beat-Cut vor dem Drop (hoerbar, aber leiser als der Drop)
 _B[("out", 96 * 4 + 0.5)] = 0.8                 # Ausatmen: Breakdown beginnt
 _B[("out", 41 * 4)] = 0.6                       # Ausatmen nach dem Tape-Stopp in Break 1
 BREATHS = sorted((k, b, v) for (k, b), v in _B.items())
