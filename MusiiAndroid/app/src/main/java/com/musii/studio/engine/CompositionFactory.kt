@@ -52,7 +52,6 @@ object CompositionFactory {
     private class VideoLane(val ctx: Context, val fps: Int, val canvasW: Int, val canvasH: Int) {
         val items = ArrayList<EditedMediaItem>()
         var cursorUs = 0L
-        var hasAudio = false
 
         fun spacer(durationUs: Long) {
             val ms = max(1L, durationUs / 1000)
@@ -76,27 +75,20 @@ object CompositionFactory {
             if (gap >= MIN_GAP_US) spacer(gap)
         }
 
-        fun add(item: EditedMediaItem, durationUs: Long, withAudio: Boolean) {
+        fun add(item: EditedMediaItem, durationUs: Long) {
             items.add(item)
             cursorUs += durationUs
-            if (withAudio) hasAudio = true
         }
 
         fun padTo(totalUs: Long) {
             if (totalUs - cursorUs >= MIN_GAP_US) spacer(totalUs - cursorUs)
         }
 
-        fun build(): EditedMediaItemSequence {
-            val b = EditedMediaItemSequence.Builder(items)
-            if (hasAudio) b.experimentalSetForceAudioTrack(true)
-            return b.build()
-        }
+        fun build(): EditedMediaItemSequence = EditedMediaItemSequence.Builder(items).build()
     }
 
-    private fun visualItem(
-        ctx: Context, p: Project, clip: Clip, media: MediaFile, itemStartUs: Long, spec: LayerSpec,
-        fadeInUs: Long, fadeOutUs: Long, live: Boolean, extraIn: Long = 0, extraOut: Long = 0,
-    ): Pair<EditedMediaItem, Boolean> {
+    /** Bild-/Videoelement einer Bildspur – ohne Ton (der Ton läuft auf eigenen Tonspuren). */
+    private fun visualItem(p: Project, clip: Clip, media: MediaFile, spec: LayerSpec): EditedMediaItem {
         val uri = Uri.fromFile(File(media.path))
         return if (media.kind == MediaKind.IMAGE) {
             val ms = max(1L, clip.durationUs / 1000)
@@ -105,45 +97,23 @@ object CompositionFactory {
                 .setDurationUs(ms * 1000)
                 .setFrameRate(p.fps)
                 .setEffects(Effects(emptyList(), listOf(LayerEffect(spec))))
-                .build() to false
-        } else {
-            val end = (clip.sourceStartUs + clip.sourceDurationUs).coerceAtMost(media.durationUs)
-            val mi = MediaItem.Builder()
-                .setUri(uri)
-                .setClippingConfiguration(
-                    MediaItem.ClippingConfiguration.Builder()
-                        .setStartPositionUs(clip.sourceStartUs.coerceAtLeast(0))
-                        .setEndPositionUs(end)
-                        .build()
-                )
                 .build()
-            val audio = ArrayList<AudioProcessor>()
+        } else {
             val video = ArrayList<Effect>()
             video.add(LayerEffect(spec))
-            val speedChanged = kotlin.math.abs(clip.speed - 1f) > 0.001f
-            if (media.hasAudio) {
-                if (speedChanged) {
-                    val pair = Effects.createExperimentalSpeedChangingEffect(ConstantSpeed(clip.speed))
-                    audio.add(pair.first)
-                    video.add(pair.second)
-                }
-                val vol = if (clip.muted) 0f else clip.volume
-                audio.add(GainEnvelopeProcessor(vol, fadeInUs, fadeOutUs, clip.durationUs, if (live) clip.id else null, extraIn, extraOut))
-            } else if (speedChanged) {
-                video.add(SpeedChangeEffect(clip.speed))
-            }
-            EditedMediaItem.Builder(mi)
+            if (kotlin.math.abs(clip.speed - 1f) > 0.001f) video.add(SpeedChangeEffect(clip.speed))
+            EditedMediaItem.Builder(clipped(clip, media))
                 .setDurationUs(media.durationUs.coerceAtLeast(1))
-                .setEffects(Effects(audio, video))
-                .build() to media.hasAudio
+                .setRemoveAudio(true)
+                .setEffects(Effects(emptyList(), video))
+                .build()
         }
     }
 
-    private fun audioItem(clip: Clip, media: MediaFile, live: Boolean): EditedMediaItem {
-        val uri = Uri.fromFile(File(media.path))
+    private fun clipped(clip: Clip, media: MediaFile): MediaItem {
         val end = (clip.sourceStartUs + clip.sourceDurationUs).coerceAtMost(media.durationUs)
-        val mi = MediaItem.Builder()
-            .setUri(uri)
+        return MediaItem.Builder()
+            .setUri(Uri.fromFile(File(media.path)))
             .setClippingConfiguration(
                 MediaItem.ClippingConfiguration.Builder()
                     .setStartPositionUs(clip.sourceStartUs.coerceAtLeast(0))
@@ -151,12 +121,40 @@ object CompositionFactory {
                     .build()
             )
             .build()
+    }
+
+    /** Tonspur, auf der Elemente mit Startzeiten liegen; Lücken bleiben still. */
+    private class AudioLane {
+        private val builder = EditedMediaItemSequence.Builder()
+        var cursorUs = 0L
+        var count = 0
+
+        fun add(startUs: Long, item: EditedMediaItem, durationUs: Long): Boolean {
+            if (startUs < cursorUs) return false
+            if (startUs - cursorUs >= MIN_GAP_US) builder.addGap(startUs - cursorUs)
+            builder.addItem(item)
+            cursorUs = startUs + durationUs
+            count++
+            return true
+        }
+
+        fun build(): EditedMediaItemSequence? {
+            if (count == 0) return null
+            builder.experimentalSetForceAudioTrack(true)
+            return builder.build()
+        }
+    }
+
+    private fun audioItem(
+        clip: Clip, media: MediaFile, live: Boolean,
+        fadeInUs: Long = clip.fadeInUs, fadeOutUs: Long = clip.fadeOutUs, extraIn: Long = 0, extraOut: Long = 0,
+    ): EditedMediaItem {
         val audio = ArrayList<AudioProcessor>()
         if (kotlin.math.abs(clip.speed - 1f) > 0.001f) {
             audio.add(Effects.createExperimentalSpeedChangingEffect(ConstantSpeed(clip.speed)).first)
         }
-        audio.add(GainEnvelopeProcessor(if (clip.muted) 0f else clip.volume, clip.fadeInUs, clip.fadeOutUs, clip.durationUs, if (live) clip.id else null))
-        val b = EditedMediaItem.Builder(mi)
+        audio.add(GainEnvelopeProcessor(if (clip.muted) 0f else clip.volume, fadeInUs, fadeOutUs, clip.durationUs, if (live) clip.id else null, extraIn, extraOut))
+        val b = EditedMediaItem.Builder(clipped(clip, media))
             .setDurationUs(media.durationUs.coerceAtLeast(1))
             .setEffects(Effects(audio, emptyList()))
         if (media.kind == MediaKind.VIDEO) b.setRemoveVideo(true)
@@ -174,7 +172,9 @@ object CompositionFactory {
 
         // Überlagerungen (oberste Ebene zuerst)
         val overlayLanes = p.overlays.filter { p.media(it.mediaId)?.isVisual == true }.map { it.lane }.distinct().sortedDescending()
+        val clipAudio = ArrayList<AudioLane>()
         for (lane in overlayLanes) {
+            val al = AudioLane()
             val lv = VideoLane(ctx, p.fps, renderW, renderH)
             for (c in p.overlays.filter { it.lane == lane }.sortedBy { it.startUs }) {
                 val m = p.media(c.mediaId) ?: continue
@@ -183,17 +183,19 @@ object CompositionFactory {
                 if (start < lv.cursorUs) continue // überlappt auf gleicher Spur
                 lv.gapTo(start)
                 val spec = LayerSpec(c, m, m.rotation, lv.cursorUs, c.durationUs, renderW, renderH, null, live = live)
-                val (item, hasAudio) = visualItem(ctx, p, c, m, lv.cursorUs, spec, c.fadeInUs, c.fadeOutUs, live)
-                lv.add(item, c.durationUs, hasAudio)
+                if (m.hasAudio) al.add(lv.cursorUs, audioItem(c, m, live), c.durationUs)
+                lv.add(visualItem(p, c, m, spec), c.durationUs)
             }
             lv.padTo(total)
             if (lv.items.isNotEmpty()) sequences.add(lv.build())
+            clipAudio.add(al)
         }
 
         // Hauptspur: bei Übergängen abwechselnd auf zwei Spuren (B oben, A unten)
         val hasTransitions = (0 until p.main.size - 1).any { p.transitionUs(it) > 0 }
         val laneCount = if (hasTransitions) 2 else 1
         val mainLanes = List(laneCount) { VideoLane(ctx, p.fps, renderW, renderH) }
+        val mainAudio = List(laneCount) { AudioLane() }
         p.main.forEachIndexed { i, c ->
             val m = p.media(c.mediaId) ?: return@forEachIndexed
             if (!File(m.path).exists()) return@forEachIndexed
@@ -206,10 +208,13 @@ object CompositionFactory {
             val transIn = if (slot.transitionInUs > 0 && prevKind != null) TransRole(prevKind, slot.transitionInUs, isTop) else null
             val transOut = if (slot.transitionOutUs > 0 && c.transition != null) TransRole(c.transition.kind, slot.transitionOutUs, isTop) else null
             val spec = LayerSpec(c, m, m.rotation, lv.cursorUs, c.durationUs, renderW, renderH, p.background, transIn, transOut, live = live)
-            val (item, hasAudio) = visualItem(ctx, p, c, m, lv.cursorUs, spec,
-                max(c.fadeInUs, slot.transitionInUs), max(c.fadeOutUs, slot.transitionOutUs), live, slot.transitionInUs, slot.transitionOutUs)
-            lv.add(item, c.durationUs, hasAudio)
+            if (m.hasAudio) {
+                mainAudio[laneIdx].add(lv.cursorUs, audioItem(c, m, live,
+                    max(c.fadeInUs, slot.transitionInUs), max(c.fadeOutUs, slot.transitionOutUs), slot.transitionInUs, slot.transitionOutUs), c.durationUs)
+            }
+            lv.add(visualItem(p, c, m, spec), c.durationUs)
         }
+        clipAudio.addAll(mainAudio)
         for (lv in mainLanes.reversed()) {
             if (lv.items.isEmpty()) continue
             lv.padTo(total)
@@ -223,26 +228,19 @@ object CompositionFactory {
             sequences.add(lv.build())
         }
 
-        // Audiospuren
+        // Ton der Video-Clips
+        clipAudio.forEach { al -> al.build()?.let { sequences.add(it) } }
+
+        // Audiospuren (Musik, Sprache, Effekte)
         val audioLanes = p.audio.map { it.lane }.distinct().sorted()
         for (lane in audioLanes) {
-            val b = EditedMediaItemSequence.Builder()
-            var cursor = 0L
-            var count = 0
+            val al = AudioLane()
             for (c in p.audio.filter { it.lane == lane }.sortedBy { it.startUs }) {
                 val m = p.media(c.mediaId) ?: continue
                 if (!m.hasAudio || !File(m.path).exists()) continue
-                val start = snap(c.startUs)
-                if (start < cursor) continue
-                if (start - cursor >= MIN_GAP_US) b.addGap(start - cursor)
-                b.addItem(audioItem(c, m, live))
-                cursor = start + c.durationUs
-                count++
+                al.add(snap(c.startUs), audioItem(c, m, live), c.durationUs)
             }
-            if (count > 0) {
-                b.experimentalSetForceAudioTrack(true)
-                sequences.add(b.build())
-            }
+            al.build()?.let { sequences.add(it) }
         }
 
         val compBuilder = Composition.Builder(sequences)

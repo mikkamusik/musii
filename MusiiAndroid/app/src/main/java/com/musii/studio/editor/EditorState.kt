@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.SurfaceView
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -187,9 +188,13 @@ class EditorState(private val ctx: Context, initial: Project, private val store:
     }
 
     fun attachSurface(view: SurfaceView?) {
+        val previous = surfaceView
         surfaceView = view
         val pl = player ?: return
-        if (view != null) pl.setVideoSurfaceView(view) else pl.clearVideoSurface()
+        runCatching {
+            // CompositionPlayer verlangt beim Freigeben genau die Fläche, die gerade verbunden ist
+            if (view != null) pl.setVideoSurfaceView(view) else if (previous != null) pl.clearVideoSurfaceView(previous)
+        }.onFailure { Log.w("Musii", "Vorschaufläche: ${it.message}") }
     }
 
     private fun scheduleRebuild(delayMs: Long) {

@@ -129,6 +129,17 @@ class EngineTest {
             "F-text-effekt" to base.copy(main = listOf(va), texts = listOf(TextClip(text = "Hallo", startUs = 0, durationUs = 1_000_000)), effects = listOf(EffectClip(kind = EffectKind.VHS, startUs = 0, durationUs = 1_000_000))),
             "G-tempo" to base.copy(main = listOf(va.copy(speed = 2f))),
             "H-hochkant" to base.copy(main = listOf(Clip(mediaId = b.id, sourceDurationUs = 2_000_000))),
+            "I-video-luecke-video" to base.copy(main = listOf(Clip(mediaId = c.id, sourceDurationUs = 2_500_000)),
+                overlays = listOf(Clip(mediaId = a.id, sourceDurationUs = 1_000_000, startUs = 0, transform = Transform2D(scale = 0.5f)),
+                    Clip(mediaId = a.id, sourceStartUs = 1_000_000, sourceDurationUs = 1_000_000, startUs = 1_200_000, transform = Transform2D(scale = 0.5f)))),
+            "J-drei-uebergaenge" to base.copy(main = listOf(
+                Clip(mediaId = a.id, sourceDurationUs = 1_000_000, transition = TransitionSetting(TransitionKind.DISSOLVE, 400_000)),
+                Clip(mediaId = c.id, sourceDurationUs = 1_000_000, transition = TransitionSetting(TransitionKind.WIPE_LEFT, 400_000)),
+                Clip(mediaId = a.id, sourceStartUs = 1_000_000, sourceDurationUs = 1_000_000))),
+            "K-fuenf-uebergaenge" to base.copy(main = (0 until 5).map { i ->
+                Clip(mediaId = if (i % 2 == 0) a.id else c.id, sourceDurationUs = 1_000_000,
+                    transition = if (i < 4) TransitionSetting(TransitionKind.entries[1 + i], 400_000) else null)
+            }),
         )
         val report = StringBuilder()
         for ((name, p) in cases) {
