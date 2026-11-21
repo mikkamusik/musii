@@ -118,12 +118,18 @@ class ExportJob(private val context: Context) {
             )
             .setEnableFallback(true)
             .build()
-        val decoderBuilder = DefaultDecoderFactory.Builder(context).setEnableDecoderFallback(true)
-        if (softwareDecoders) {
-            decoderBuilder.setMediaCodecSelector { mime, secure, tunneling ->
-                MediaCodecUtil.getDecoderInfos(mime, secure, tunneling).sortedBy { if (it.softwareOnly) 0 else 1 }
+        val decoderBuilder = DefaultDecoderFactory.Builder(context)
+            .setEnableDecoderFallback(true)
+            .setMediaCodecSelector { mime, secure, tunneling ->
+                MediaCodecUtil.getDecoderInfos(mime, secure, tunneling).sortedBy { info ->
+                    when {
+                        softwareDecoders -> if (info.softwareOnly) 0 else 1
+                        // Emulator-Decoder („goldfish“) hängen oft – nur als letzte Wahl verwenden
+                        info.name.contains("goldfish", ignoreCase = true) -> 1
+                        else -> 0
+                    }
+                }
             }
-        }
         val t = Transformer.Builder(context)
             .setVideoMimeType(settings.codec.mime)
             .setAudioMimeType(MimeTypes.AUDIO_AAC)

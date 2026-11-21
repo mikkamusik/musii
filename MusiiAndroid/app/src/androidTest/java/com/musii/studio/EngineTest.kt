@@ -20,14 +20,17 @@ import com.musii.studio.engine.Tools
 import com.musii.studio.model.*
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.runners.MethodSorters
 import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class EngineTest {
     private val inst = InstrumentationRegistry.getInstrumentation()
     private val ctx: Context = inst.targetContext
@@ -85,10 +88,24 @@ class EngineTest {
     private fun export(p: Project, settings: ExportSettings, file: File, limitFps: Boolean = true): Result<File> {
         val latch = CountDownLatch(1)
         var result: Result<File> = Result.failure(IllegalStateException("Zeitüberschreitung"))
+        var job: ExportJob? = null
+        val started = System.currentTimeMillis()
+        var lastLogged = -10
         inst.runOnMainSync {
-            ExportJob(ctx).start(p, settings, file, onProgress = {}, limitFps = limitFps) { r -> result = r; latch.countDown() }
+            job = ExportJob(ctx).also { j ->
+                j.start(p, settings, file, onProgress = { pr ->
+                    if (pr >= lastLogged + 10 || pr < lastLogged) {
+                        lastLogged = pr
+                        Log.i("MusiiTest", "Export ${file.name}: $pr % nach ${(System.currentTimeMillis() - started) / 1000} s")
+                    }
+                }, limitFps = limitFps) { r -> result = r; latch.countDown() }
+            }
         }
-        latch.await(240, TimeUnit.SECONDS)
+        if (!latch.await(600, TimeUnit.SECONDS)) {
+            // Hängenden Export abbrechen, damit er die folgenden Tests nicht ausbremst
+            inst.runOnMainSync { job?.cancel() }
+        }
+        Log.i("MusiiTest", "Export ${file.name} beendet nach ${(System.currentTimeMillis() - started) / 1000} s: ${if (result.isSuccess) "OK" else "Fehler"}")
         result.exceptionOrNull()?.let { Log.e("MusiiTest", "Export ${file.name} fehlgeschlagen: ${describe(it)}", it) }
         return result
     }
@@ -188,9 +205,13 @@ class EngineTest {
         assertTrue("Export fehlgeschlagen: ${describe(r.exceptionOrNull())}", r.isSuccess)
         val mr = MediaMetadataRetriever()
         mr.setDataSource(f.absolutePath)
-        val w = mr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)!!.toInt()
-        val h = mr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)!!.toInt()
+        val cw = mr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)!!.toInt()
+        val ch = mr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)!!.toInt()
+        val rot = mr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
         mr.release()
+        // Der Encoder darf quer kodieren und die Drehung als Metadaten speichern – angezeigt wird hochkant
+        val (w, h) = if (rot % 180 != 0) ch to cw else cw to ch
+        Log.i("MusiiTest", "Hochkant-Export: ${cw}x$ch rot=$rot → ${w}x$h")
         assertEquals(720, w)
         assertEquals(1280, h)
         contactSheet(f, "sheet-9x16.png", (0 until 12).map { it * 450_000L + 100_000 })
