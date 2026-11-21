@@ -246,20 +246,24 @@ class EngineTest {
         contactSheet(f, "sheet-alle.png", (0 until 16).map { it * 650_000L + 200_000 })
     }
 
+    /** Läuft zuletzt (Name), damit die Vorschau im Emulator keine Exporte ausbremst. */
     @Test
-    fun editorScreenshots() {
+    fun zEditorScreenshots() {
         val items = media()
         val store = ProjectStore(ctx)
         val p = demoProject(items, AspectPreset.R9x16).copy(name = "Demo-Projekt")
         store.save(p)
         val intent = Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        inst.startActivitySync(intent)
+        val home = inst.startActivitySync(intent)
         Thread.sleep(4000)
         save(inst.uiAutomation.takeScreenshot(), "ui-1-start.png")
         val intent2 = Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK).putExtra("projectId", p.id)
-        inst.startActivitySync(intent2)
+        val editor = inst.startActivitySync(intent2)
         Thread.sleep(9000)
         save(inst.uiAutomation.takeScreenshot(), "ui-2-editor.png")
+        // Editor schließen und die Vorschau freigeben
+        inst.runOnMainSync { editor.finish(); home.finish() }
+        Thread.sleep(2000)
     }
 
     private fun save(b: Bitmap?, name: String) {
