@@ -11,6 +11,10 @@ import android.provider.MediaStore
 import androidx.media3.common.MimeTypes
 import androidx.media3.effect.FrameDropEffect
 import androidx.media3.transformer.Composition
+import androidx.media3.common.util.Clock
+import androidx.media3.exoplayer.mediacodec.MediaCodecUtil
+import androidx.media3.transformer.DefaultAssetLoaderFactory
+import androidx.media3.transformer.DefaultDecoderFactory
 import androidx.media3.transformer.DefaultEncoderFactory
 import androidx.media3.transformer.ExportException
 import androidx.media3.transformer.ExportResult
@@ -53,12 +57,46 @@ class ExportJob(private val context: Context) {
         }
     }
 
+    @Volatile private var cancelled = false
+
     fun start(
         project: Project,
         settings: ExportSettings,
         output: File,
         onProgress: (Int) -> Unit,
         limitFps: Boolean = true,
+        onDone: (Result<File>) -> Unit,
+    ) {
+        cancelled = false
+        attempt(project, settings, output, onProgress, limitFps, softwareDecoders = false) { r ->
+            val e = r.exceptionOrNull()
+            if (e != null && !cancelled && isDecoderProblem(e)) {
+                // Zweiter Versuch mit Software-Decodern (z.B. bei hängenden Hardware-Decodern)
+                onProgress(0)
+                attempt(project, settings, output, onProgress, limitFps, softwareDecoders = true, onDone = onDone)
+            } else {
+                onDone(r)
+            }
+        }
+    }
+
+    private fun isDecoderProblem(e: Throwable): Boolean {
+        val ex = e as? ExportException ?: return true
+        return ex.errorCode == ExportException.ERROR_CODE_MUXING_TIMEOUT ||
+            ex.errorCode == ExportException.ERROR_CODE_DECODER_INIT_FAILED ||
+            ex.errorCode == ExportException.ERROR_CODE_DECODING_FAILED ||
+            ex.errorCode == ExportException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED ||
+            ex.errorCode == ExportException.ERROR_CODE_VIDEO_FRAME_PROCESSING_FAILED ||
+            ex.errorCode == ExportException.ERROR_CODE_UNSPECIFIED
+    }
+
+    private fun attempt(
+        project: Project,
+        settings: ExportSettings,
+        output: File,
+        onProgress: (Int) -> Unit,
+        limitFps: Boolean,
+        softwareDecoders: Boolean,
         onDone: (Result<File>) -> Unit,
     ) {
         val (w, h) = CompositionFactory.exportSize(project, settings.resolution.shortSide)
@@ -80,10 +118,18 @@ class ExportJob(private val context: Context) {
             )
             .setEnableFallback(true)
             .build()
+        val decoderBuilder = DefaultDecoderFactory.Builder(context).setEnableDecoderFallback(true)
+        if (softwareDecoders) {
+            decoderBuilder.setMediaCodecSelector { mime, secure, tunneling ->
+                MediaCodecUtil.getDecoderInfos(mime, secure, tunneling).sortedBy { if (it.softwareOnly) 0 else 1 }
+            }
+        }
         val t = Transformer.Builder(context)
             .setVideoMimeType(settings.codec.mime)
             .setAudioMimeType(MimeTypes.AUDIO_AAC)
             .setEncoderFactory(encoderFactory)
+            .setAssetLoaderFactory(DefaultAssetLoaderFactory(context, decoderBuilder.build(), Clock.DEFAULT, null))
+            .setMaxDelayBetweenMuxerSamplesMs(60_000)
             .addListener(object : Transformer.Listener {
                 override fun onCompleted(composition: Composition, exportResult: ExportResult) {
                     stopProgress()
@@ -104,7 +150,7 @@ class ExportJob(private val context: Context) {
             override fun run() {
                 val state = t.getProgress(holder)
                 if (state == Transformer.PROGRESS_STATE_AVAILABLE) onProgress(holder.progress)
-                if (state != Transformer.PROGRESS_STATE_NOT_STARTED || true) handler.postDelayed(this, 250)
+                handler.postDelayed(this, 250)
             }
         }
         progressRunnable = r
@@ -117,6 +163,7 @@ class ExportJob(private val context: Context) {
     }
 
     fun cancel() {
+        cancelled = true
         stopProgress()
         transformer?.cancel()
     }
