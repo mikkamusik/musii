@@ -218,6 +218,7 @@ class EditorState(private val ctx: Context, initial: Project, private val store:
         } ?: run { isPlaying = false; playerVersion++; return }
         val pl = CompositionPlayer.Builder(ctx)
             .setVideoGraphFactory(MultipleInputVideoGraph.Factory())
+            .experimentalSetEnableReplayableCache(true)
             .build()
         pl.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
@@ -252,7 +253,11 @@ class EditorState(private val ctx: Context, initial: Project, private val store:
 
     private fun refreshFrame() {
         val pl = player ?: return
-        pl.seekTo(timeUs / 1000)
+        try {
+            pl.experimentalRedrawLastFrame()
+        } catch (_: Exception) {
+            pl.seekTo(timeUs / 1000)
+        }
     }
 
     fun togglePlay() = if (isPlaying) pause() else play()
