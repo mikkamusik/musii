@@ -68,7 +68,7 @@ jobs:
             adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
             adb shell am instrument -w -r com.musii.studio.test/androidx.test.runner.AndroidJUnitRunner | tee test-log.txt
             mkdir -p test-out && adb pull /sdcard/Android/data/com.musii.studio/files/test-out ./test-out || true
-            adb logcat -d -s MusiiTest:* AndroidRuntime:E Transformer:* ExoPlayerImplInternal:E > test-out/logcat.txt || true
+            adb logcat -d '*:W' MusiiTest:V > test-out/logcat.txt || true
             adb install -r app/build/outputs/apk/release/app-release.apk
             adb shell am start -W -n com.musii.studio/.MainActivity
             sleep 5

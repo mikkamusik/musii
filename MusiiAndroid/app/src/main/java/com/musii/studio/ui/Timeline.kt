@@ -67,6 +67,7 @@ fun Timeline(editor: EditorState, actions: EditorActions, modifier: Modifier, op
     val haptic = LocalHapticFeedback.current
     val tm = rememberTextMeasurer()
     var vScroll by remember { mutableFloatStateOf(0f) }
+    var userScrolled by remember { mutableStateOf(false) }
     var dragSel by remember { mutableStateOf<Sel?>(null) }
     var dragDx by remember { mutableFloatStateOf(0f) }
     var dragDy by remember { mutableFloatStateOf(0f) }
@@ -117,6 +118,10 @@ fun Timeline(editor: EditorState, actions: EditorActions, modifier: Modifier, op
     }
     p.effects.forEach { e -> items.add(TItem(Sel.Effect(e.id), e.startUs, e.endUs, rowIndex(RowType.EFFECT, e.lane), C.effect, "✦ " + e.kind.title, null)) }
 
+    // Hauptspur automatisch sichtbar halten, solange nicht manuell gescrollt wurde
+    val autoScroll = max(0f, rows[mainRow].y + mainH + gap + laneH + 6 * dp - size.height)
+    val scrollY = if (userScrolled) vScroll else autoScroll
+    val scrollState = rememberUpdatedState(scrollY)
     val itemsState = rememberUpdatedState(items)
     val rowsState = rememberUpdatedState(rows)
     val ppsState = rememberUpdatedState(pps)
@@ -125,7 +130,7 @@ fun Timeline(editor: EditorState, actions: EditorActions, modifier: Modifier, op
     fun xOf(t: Long, w: Float) = w / 2 + (t - editor.timeUs) / 1e6f * ppsState.value
 
     fun hitItem(pos: Offset, w: Float): TItem? {
-        val yy = pos.y + vScroll
+        val yy = pos.y + scrollState.value
         return itemsState.value.lastOrNull { it ->
             val r = rowsState.value.getOrNull(it.row) ?: return@lastOrNull false
             yy >= r.y && yy <= r.y + r.h && pos.x >= xOf(it.startUs, w) && pos.x <= xOf(it.endUs, w)
@@ -136,7 +141,7 @@ fun Timeline(editor: EditorState, actions: EditorActions, modifier: Modifier, op
         val sel = editor.selection ?: return null
         val it = itemsState.value.firstOrNull { it.sel == sel } ?: return null
         val r = rowsState.value.getOrNull(it.row) ?: return null
-        val yy = pos.y + vScroll
+        val yy = pos.y + scrollState.value
         if (yy < r.y - 6 * dp || yy > r.y + r.h + 6 * dp) return null
         val x0 = xOf(it.startUs, w)
         val x1 = xOf(it.endUs, w)
@@ -222,7 +227,10 @@ fun Timeline(editor: EditorState, actions: EditorActions, modifier: Modifier, op
                                 totalDy += delta.y
                                 when (mode) {
                                     Mode.SCRUB -> editor.seek((startTime - totalDx / ppsState.value * 1e6f).toLong())
-                                    Mode.VSCROLL -> vScroll = (vScroll - delta.y).coerceIn(0f, max(0f, contentHState.value - size.height))
+                                    Mode.VSCROLL -> {
+                                        if (!userScrolled) { vScroll = scrollState.value; userScrolled = true }
+                                        vScroll = (vScroll - delta.y).coerceIn(0f, max(0f, contentHState.value - size.height))
+                                    }
                                     Mode.MOVE -> { dragDx = totalDx; dragDy = totalDy }
                                     Mode.TRIM -> trimDx = totalDx
                                     else -> {}
@@ -237,7 +245,7 @@ fun Timeline(editor: EditorState, actions: EditorActions, modifier: Modifier, op
                                 val pos = down.position
                                 // Übergangs-Marker / Plus-Knopf
                                 val mainR = rowsState.value[mainRow]
-                                val yy = pos.y + vScroll
+                                val yy = pos.y + scrollState.value
                                 var handled = false
                                 if (yy >= mainR.y && yy <= mainR.y + mainR.h) {
                                     val sl = editor.mainSlots
@@ -331,11 +339,11 @@ fun Timeline(editor: EditorState, actions: EditorActions, modifier: Modifier, op
             clipRect(0f, rulerH, w, this.size.height) {
                 // Spuren
                 for (r in rows) {
-                    drawRect(Color.White.copy(alpha = if (r.type == RowType.MAIN) 0.04f else 0.02f), Offset(0f, r.y - vScroll), Size(w, r.h))
+                    drawRect(Color.White.copy(alpha = if (r.type == RowType.MAIN) 0.04f else 0.02f), Offset(0f, r.y - scrollY), Size(w, r.h))
                 }
                 if (p.audio.isEmpty()) {
                     val r = rows.last()
-                    drawText(tm, "♪  Musik hinzufügen: unten „Audio“", Offset(x(0) + 8 * dp, r.y - vScroll + r.h / 2 - 7 * dp), TextStyle(fontSize = 10.sp, color = C.text2))
+                    drawText(tm, "♪  Musik hinzufügen: unten „Audio“", Offset(x(0) + 8 * dp, r.y - scrollY + r.h / 2 - 7 * dp), TextStyle(fontSize = 10.sp, color = C.text2))
                 }
                 // Elemente
                 val sel = editor.selection
@@ -343,7 +351,7 @@ fun Timeline(editor: EditorState, actions: EditorActions, modifier: Modifier, op
                     val r = rows.getOrNull(it.row) ?: continue
                     var x0 = x(it.startUs)
                     var x1 = x(it.endUs)
-                    var yy = r.y - vScroll
+                    var yy = r.y - scrollY
                     val isDrag = dragSel == it.sel
                     if (isDrag) { x0 += dragDx; x1 += dragDx; yy += dragDy }
                     if (trimSel == it.sel) { if (trimLeft) x0 = min(x1 - 4 * dp, x0 + trimDx) else x1 = max(x0 + 4 * dp, x1 + trimDx) }
@@ -353,7 +361,7 @@ fun Timeline(editor: EditorState, actions: EditorActions, modifier: Modifier, op
                 }
                 // Übergangs-Marker und Plus-Knopf
                 val mr = rows[mainRow]
-                val my = mr.y - vScroll
+                val my = mr.y - scrollY
                 val sl = slots
                 for (i in 0 until sl.size - 1) {
                     val jx = x((sl[i].endUs + sl[i + 1].startUs) / 2)

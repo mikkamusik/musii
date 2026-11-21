@@ -58,12 +58,14 @@ class ExportJob(private val context: Context) {
         settings: ExportSettings,
         output: File,
         onProgress: (Int) -> Unit,
+        limitFps: Boolean = true,
         onDone: (Result<File>) -> Unit,
     ) {
         val (w, h) = CompositionFactory.exportSize(project, settings.resolution.shortSide)
         val p = project.copy(fps = settings.fps)
         // Bildrate begrenzen
-        val built = CompositionFactory.build(context, p, w, h, listOf(FrameDropEffect.createDefaultFrameDropEffect(settings.fps.toFloat())))
+        val extra = if (limitFps) listOf(FrameDropEffect.createDefaultFrameDropEffect(settings.fps.toFloat())) else emptyList()
+        val built = CompositionFactory.build(context, p, w, h, extra)
         if (built == null) {
             onDone(Result.failure(IllegalStateException("Das Projekt ist leer.")))
             return

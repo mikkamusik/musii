@@ -69,14 +69,59 @@ class EngineTest {
         )
     }
 
-    private fun export(p: Project, settings: ExportSettings, file: File): Result<File> {
+    private fun describe(e: Throwable?): String {
+        val sb = StringBuilder()
+        var c = e
+        var depth = 0
+        while (c != null && depth < 8) {
+            sb.append(c.javaClass.simpleName).append(": ").append(c.message).append(" | ")
+            if (c is androidx.media3.transformer.ExportException) sb.append("code=").append(c.errorCodeName).append(" | ")
+            c = c.cause
+            depth++
+        }
+        return sb.toString()
+    }
+
+    private fun export(p: Project, settings: ExportSettings, file: File, limitFps: Boolean = true): Result<File> {
         val latch = CountDownLatch(1)
         var result: Result<File> = Result.failure(IllegalStateException("Zeitüberschreitung"))
         inst.runOnMainSync {
-            ExportJob(ctx).start(p, settings, file, onProgress = {}) { r -> result = r; latch.countDown() }
+            ExportJob(ctx).start(p, settings, file, onProgress = {}, limitFps = limitFps) { r -> result = r; latch.countDown() }
         }
         latch.await(240, TimeUnit.SECONDS)
+        result.exceptionOrNull()?.let { Log.e("MusiiTest", "Export ${file.name} fehlgeschlagen: ${describe(it)}", it) }
         return result
+    }
+
+    @Test
+    fun aExportMatrix() {
+        val items = media()
+        val (a, b, c, d) = items
+        val base = Project(name = "Matrix", aspect = AspectPreset.R16x9, media = items)
+        val va = Clip(mediaId = a.id, sourceDurationUs = 2_000_000)
+        val img = Clip(mediaId = c.id, sourceDurationUs = 1_000_000)
+        val cases = linkedMapOf(
+            "A-ein-video" to base.copy(main = listOf(va)),
+            "A2-ohne-framedrop" to base.copy(main = listOf(va)),
+            "B-video-bild" to base.copy(main = listOf(va, img)),
+            "B2-nur-bild" to base.copy(main = listOf(img)),
+            "C-uebergang" to base.copy(main = listOf(va.copy(transition = TransitionSetting(TransitionKind.DISSOLVE, 500_000)), img.copy(id = newId()))),
+            "D-overlay" to base.copy(main = listOf(va), overlays = listOf(Clip(mediaId = c.id, sourceDurationUs = 1_000_000, startUs = 500_000, transform = Transform2D(scale = 0.4f)))),
+            "E-musik" to base.copy(main = listOf(va), audio = listOf(Clip(mediaId = d.id, sourceDurationUs = 1_500_000, startUs = 0))),
+            "E2-musik-spaeter" to base.copy(main = listOf(va), audio = listOf(Clip(mediaId = d.id, sourceDurationUs = 1_000_000, startUs = 500_000))),
+            "F-text-effekt" to base.copy(main = listOf(va), texts = listOf(TextClip(text = "Hallo", startUs = 0, durationUs = 1_000_000)), effects = listOf(EffectClip(kind = EffectKind.VHS, startUs = 0, durationUs = 1_000_000))),
+            "G-tempo" to base.copy(main = listOf(va.copy(speed = 2f))),
+            "H-hochkant" to base.copy(main = listOf(Clip(mediaId = b.id, sourceDurationUs = 2_000_000))),
+        )
+        val report = StringBuilder()
+        for ((name, p) in cases) {
+            val f = File(out, "matrix-$name.mp4")
+            val r = export(p, ExportSettings(resolution = ExportResolution.P480, fps = 30), f, limitFps = name != "A2-ohne-framedrop")
+            val line = "$name: " + (if (r.isSuccess) "OK (${f.length()} Bytes)" else "FEHLER " + describe(r.exceptionOrNull()))
+            Log.i("MusiiTest", line)
+            report.append(line).append('\n')
+        }
+        File(out, "matrix.txt").writeText(report.toString())
     }
 
     private fun contactSheet(video: File, name: String, times: List<Long>) {
@@ -119,7 +164,7 @@ class EngineTest {
         val expected = p.durationUs
         val f = File(out, "export-16x9.mp4")
         val r = export(p, ExportSettings(resolution = ExportResolution.P720, fps = 30), f)
-        assertTrue("Export fehlgeschlagen: ${r.exceptionOrNull()}", r.isSuccess)
+        assertTrue("Export fehlgeschlagen: ${describe(r.exceptionOrNull())}", r.isSuccess)
         val mr = MediaMetadataRetriever()
         mr.setDataSource(f.absolutePath)
         val dur = mr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)!!.toLong() * 1000
@@ -140,7 +185,7 @@ class EngineTest {
         val p = demoProject(media(), AspectPreset.R9x16)
         val f = File(out, "export-9x16.mp4")
         val r = export(p, ExportSettings(resolution = ExportResolution.P720, fps = 30), f)
-        assertTrue("Export fehlgeschlagen: ${r.exceptionOrNull()}", r.isSuccess)
+        assertTrue("Export fehlgeschlagen: ${describe(r.exceptionOrNull())}", r.isSuccess)
         val mr = MediaMetadataRetriever()
         mr.setDataSource(f.absolutePath)
         val w = mr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)!!.toInt()
@@ -165,7 +210,7 @@ class EngineTest {
         val p = Project(name = "Alle", aspect = AspectPreset.R1x1, media = items, main = clips, effects = effects)
         val f = File(out, "export-alle.mp4")
         val r = export(p, ExportSettings(resolution = ExportResolution.P480, fps = 25), f)
-        assertTrue("Export fehlgeschlagen: ${r.exceptionOrNull()}", r.isSuccess)
+        assertTrue("Export fehlgeschlagen: ${describe(r.exceptionOrNull())}", r.isSuccess)
         contactSheet(f, "sheet-alle.png", (0 until 16).map { it * 650_000L + 200_000 })
     }
 
