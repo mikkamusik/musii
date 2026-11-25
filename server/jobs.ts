@@ -134,12 +134,14 @@ function candidateModels(job: Job): ModelDef[] {
   if (req.task === 'image-to-video' && !req.image) list = rankModels('text-to-video', req);
   if (!list.length) {
     throw new ProviderError(
-      `Kein verbundenes Modell kann „${req.task}“${req.endImage ? ' mit Endframe' : ''}${req.mask ? ' mit Maske' : ''}. Verbinde unter „Verbindungen“ einen passenden Anbieter.`,
+      db.settings.routing === 'free'
+        ? `Im Gratis-Modus ist kein kostenloses Modell für „${req.task}“ verbunden. Unter „Gratis-KI“ lassen sich kostenlose Anbieter mit einem Klick aktivieren.`
+        : `Kein verbundenes Modell kann „${req.task}“${req.endImage ? ' mit Endframe' : ''}${req.mask ? ' mit Maske' : ''}. Verbinde unter „Verbindungen“ einen passenden Anbieter.`,
       400,
       false,
     );
   }
-  return wantsFallback ? list.slice(0, 4) : list.slice(0, 1);
+  return wantsFallback ? list.slice(0, 6) : list.slice(0, 1);
 }
 
 async function runJob(job: Job) {

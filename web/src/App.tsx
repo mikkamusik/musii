@@ -8,6 +8,7 @@ import { AvatarStudio } from './pages/AvatarStudio';
 import { Characters } from './pages/Characters';
 import { Connections } from './pages/Connections';
 import { EditStudio } from './pages/EditStudio';
+import { Free } from './pages/Free';
 import { Home } from './pages/Home';
 import { ImageStudio } from './pages/ImageStudio';
 import { Library } from './pages/Library';
@@ -26,6 +27,7 @@ const NAV: { group?: string; page: Page; label: string; icon: string; title: str
   { page: 'workflows', label: 'Workflows', icon: 'flow', title: 'Workflows', sub: 'Mehrstufige Produktionen auf Knopfdruck' },
   { page: 'characters', label: 'Charaktere', icon: 'users', title: 'Charaktere', sub: 'Konsistente Personen & Produkte über alle Medien' },
   { group: 'Verwalten', page: 'library', label: 'Bibliothek', icon: 'grid', title: 'Bibliothek', sub: 'Alle Bilder, Videos und Audios' },
+  { page: 'free', label: 'Gratis-KI', icon: 'bolt', title: 'Gratis-KI', sub: 'Gute Modelle kostenlos nutzen – mit einem Klick eingerichtet' },
   { page: 'connections', label: 'Verbindungen', icon: 'plug', title: 'KI-Verbindungen', sub: 'Anbieter, Modelle, Smart-Router und Kosten' },
 ];
 
@@ -75,6 +77,7 @@ export function App() {
         <Icon name={n.icon} />
         {n.label}
         {n.page === 'connections' && <span className={`badge ${connected ? 'ok' : 'warn'}`}>{connected}</span>}
+        {n.page === 'free' && (state?.settings.routing === 'free' || state?.settings.routing === 'free-first') && <span className="badge ok">an</span>}
       </button>
     </div>
   ));
@@ -137,6 +140,7 @@ export function App() {
               {page === 'workflows' && <Workflows />}
               {page === 'characters' && <Characters />}
               {page === 'library' && <Library />}
+              {page === 'free' && <Free />}
               {page === 'connections' && <Connections />}
             </>
           )}

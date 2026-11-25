@@ -1,7 +1,8 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
-import { allModels, availableModels, connectionFor, isAvailable, isDisabled, refreshDynamic } from './catalog.js';
+import { allModels, availableModels, connectionFor, isAvailable, isDisabled, isFree, refreshDynamic } from './catalog.js';
+import { applyPreset, COMFY_TEMPLATES, FREE_PRESETS, HF_SPACES, presetStatus } from './free.js';
 import { APP_PASSWORD, HOST, MEDIA_DIR, PORT, PUBLIC_URL_ENV, WEB_DIST } from './config.js';
 import { addClient } from './events.js';
 import { deleteAssetFile, getAsset, guessMimeFromName, mediaInput, writeAsset } from './files.js';
@@ -458,6 +459,34 @@ app.post(
 );
 app.get('/api/pipelines', wrap(async () => [...db.pipelines].reverse().slice(0, 100)));
 
+// ---------------- Gratis-Assistent ----------------
+app.get(
+  '/api/free',
+  wrap(async () => {
+    const counts: Record<string, number> = {};
+    for (const m of availableModels()) if (isFree(m) && m.provider !== 'demo') counts[m.task] = (counts[m.task] || 0) + 1;
+    return {
+      presets: FREE_PRESETS,
+      status: presetStatus(),
+      spaces: HF_SPACES,
+      comfyTemplates: COMFY_TEMPLATES.map(({ workflow: _w, ...t }) => t),
+      freeCounts: counts,
+    };
+  }),
+);
+app.post(
+  '/api/free/apply',
+  wrap(async (req) => applyPreset(req.body || {})),
+);
+app.get(
+  '/api/free/comfy/:id',
+  wrap(async (req) => {
+    const t = COMFY_TEMPLATES.find((x) => x.id === param(req, 'id'));
+    if (!t) throw new ProviderError('Vorlage nicht gefunden', 404, false);
+    return t;
+  }),
+);
+
 // ---------------- Stimmen ----------------
 const OPENAI_VOICES = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer', 'verse'];
 const GEMINI_VOICES = ['Kore', 'Puck', 'Charon', 'Fenrir', 'Aoede', 'Leda', 'Orus', 'Zephyr', 'Sulafat', 'Achird'];
@@ -470,7 +499,7 @@ app.get(
       if (!c) return [];
       return listElevenVoices(c.baseUrl, decrypt(c.apiKey));
     }
-    if (provider === 'openai' || provider === 'openai-compatible') return OPENAI_VOICES.map((v) => ({ id: v, name: v }));
+    if (provider === 'openai' || provider === 'openai-compatible' || provider === 'pollinations') return OPENAI_VOICES.map((v) => ({ id: v, name: v }));
     if (provider === 'google') return GEMINI_VOICES.map((v) => ({ id: v, name: v }));
     return [];
   }),

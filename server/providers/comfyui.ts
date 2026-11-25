@@ -110,6 +110,8 @@ export const comfyAdapter: ProviderAdapter = {
           quality: Number(conn.options?.quality ?? 75),
           speed: 3,
           cost: 0,
+          free: 'local',
+          freeNote: 'Eigene Hardware – unbegrenzt',
           features: { refs: false, negative: true, endFrame: true, inputImage: true, inputVideo: true },
         }),
       );

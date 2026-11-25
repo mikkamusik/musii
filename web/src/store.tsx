@@ -13,6 +13,7 @@ export type Page =
   | 'workflows'
   | 'characters'
   | 'library'
+  | 'free'
   | 'connections';
 
 export interface Handoff {
@@ -58,7 +59,7 @@ const Ctx = createContext<Store | null>(null);
 
 function pageFromHash(): Page {
   const h = location.hash.replace(/^#\/?/, '') as Page;
-  const valid: Page[] = ['home', 'image', 'video', 'edit', 'avatar', 'audio', 'arena', 'workflows', 'characters', 'library', 'connections'];
+  const valid: Page[] = ['home', 'image', 'video', 'edit', 'avatar', 'audio', 'arena', 'workflows', 'characters', 'library', 'free', 'connections'];
   return valid.includes(h) ? h : 'home';
 }
 

@@ -54,6 +54,11 @@ export const openrouterAdapter: ProviderAdapter = {
   async llm(conn: Connection, apiKey: string, model: ModelDef, call: LlmCall, signal?: AbortSignal) {
     return chatCompletion(conn.baseUrl || OR_BASE, apiKey, model.model, call, { headers: OR_HEADERS, signal });
   },
+  async listModels(conn) {
+    // Alle aktuell kostenlosen Modelle (Preis 0, Suffix :free) automatisch anbieten
+    const j = await httpJson(`${(conn.baseUrl || OR_BASE).replace(/\/$/, '')}/models`, { timeoutMs: 20_000 });
+    return parseOpenRouterFree(j?.data || [], conn.id);
+  },
   async test(conn, apiKey) {
     const j = await httpJson(`${(conn.baseUrl || OR_BASE).replace(/\/$/, '')}/key`, {
       headers: { Authorization: `Bearer ${apiKey}` },
@@ -63,6 +68,34 @@ export const openrouterAdapter: ProviderAdapter = {
     return `Verbunden${d?.label ? ' (' + d.label + ')' : ''}${d?.limit_remaining != null ? ` – Restlimit ${d.limit_remaining}` : ''}`;
   },
 };
+
+export function parseOpenRouterFree(data: any[], connectionId: string): ModelDef[] {
+  const out: ModelDef[] = [];
+  for (const m of data) {
+    const p = m?.pricing || {};
+    const free = String(m?.id || '').endsWith(':free') || (p.prompt === '0' && p.completion === '0' && (p.request ?? '0') === '0');
+    const outMods: string[] = m?.architecture?.output_modalities || ['text'];
+    const inMods: string[] = m?.architecture?.input_modalities || ['text'];
+    if (!free || !outMods.includes('text') || outMods.length > 1) continue;
+    const size = Number(String(m.id).match(/(\d+)b\b/i)?.[1] || 0);
+    const quality = Math.min(90, 70 + Math.round(Math.log2(Math.max(1, size)) * 2) + (/ultra|pro|large|super/i.test(m.id) ? 4 : 0));
+    out.push({
+      id: `openrouter-free:${m.id}`,
+      provider: 'openrouter',
+      connectionId,
+      task: 'llm',
+      label: `${m.name || m.id} (gratis)`,
+      model: m.id,
+      quality,
+      speed: 3,
+      cost: 0,
+      free: 'quota',
+      freeNote: 'OpenRouter :free – ca. 50 Anfragen/Tag (1.000 nach einmaliger Aufladung)',
+      features: { vision: inMods.includes('image') },
+    });
+  }
+  return out.slice(0, 40);
+}
 
 // ---------------- Ollama (lokal) ----------------
 const OLLAMA_BASE = 'http://127.0.0.1:11434';
@@ -96,6 +129,8 @@ export const ollamaAdapter: ProviderAdapter = {
         quality: 60,
         speed: 3,
         cost: 0,
+        free: 'local',
+        freeNote: 'Läuft lokal auf deinem Rechner',
         features: { vision: /llava|vision|gemma3|qwen2\.5vl|qwen-vl|minicpm-v|llama3\.2-vision/i.test(m.name) },
       }),
     );

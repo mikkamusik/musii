@@ -77,11 +77,16 @@ export function Home() {
           </div>
           <div className="grow">
             <b>Demo-Modus aktiv</b>
-            <div className="muted">Alles funktioniert bereits offline mit Platzhaltern und Local Motion. Für echte Ergebnisse einen Schlüssel hinterlegen – z. B. fal.ai (Video) + Google (Bild) + Claude (Regie).</div>
+            <div className="muted">Alles funktioniert bereits offline mit Platzhaltern und Local Motion. Echte KI-Ergebnisse gibt es sofort kostenlos (Pollinations, Hugging-Face-Spaces mit Gratis-GPU, Cloudflare, Gemini Free Tier) – oder mit eigenen Schlüsseln für Premium-Modelle wie Veo, Kling & Sora.</div>
           </div>
-          <button className="btn primary" onClick={() => go('connections')}>
-            Jetzt verbinden
-          </button>
+          <div className="row">
+            <button className="btn primary" onClick={() => go('free')}>
+              <Icon name="bolt" size={15} /> Gratis-KI aktivieren
+            </button>
+            <button className="btn" onClick={() => go('connections')}>
+              Eigene Schlüssel
+            </button>
+          </div>
         </div>
       )}
 

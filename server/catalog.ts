@@ -4,6 +4,10 @@ import { ADAPTERS } from './providers/index.js';
 
 type Extra = Partial<Omit<ModelDef, 'provider' | 'task' | 'model' | 'label' | 'quality' | 'speed' | 'cost'>>;
 
+export function isFree(mod: ModelDef): boolean {
+  return !!mod.free || mod.provider === 'demo';
+}
+
 function m(
   provider: ProviderType,
   task: Task,
@@ -14,7 +18,8 @@ function m(
   cost: number,
   extra: Extra = {},
 ): ModelDef {
-  return { id: `${provider}:${task}:${model}`, provider, task, model, label, quality, speed, cost, ...extra };
+  const freeDefault = provider === 'demo' ? { free: 'local' as const, freeNote: 'Offline-Demo' } : {};
+  return { id: `${provider}:${task}:${model}`, provider, task, model, label, quality, speed, cost, ...freeDefault, ...extra };
 }
 
 const F = (f: ModelFeatures) => ({ features: f });
@@ -53,7 +58,8 @@ export const STATIC_MODELS: ModelDef[] = [
   m('google', 'image-to-video', 'veo-3.0-generate-001', 'Veo 3', 94, 1, 3.2, F({ audio: true, negative: true })),
   m('google', 'tts', 'gemini-2.5-flash-preview-tts', 'Gemini TTS', 84, 4, 0.01),
   m('google', 'llm', 'gemini-2.5-pro', 'Gemini 2.5 Pro', 92, 2, 0.01, F({ vision: true })),
-  m('google', 'llm', 'gemini-2.5-flash', 'Gemini 2.5 Flash', 86, 5, 0.002, F({ vision: true })),
+  m('google', 'llm', 'gemini-2.5-flash', 'Gemini 2.5 Flash', 86, 5, 0.002, { ...F({ vision: true }), free: 'quota', freeNote: 'Gemini Free Tier (AI-Studio-Schlüssel ohne Abrechnung)' }),
+  m('google', 'llm', 'gemini-2.5-flash-lite', 'Gemini 2.5 Flash-Lite', 80, 5, 0.001, { ...F({ vision: true }), free: 'quota', freeNote: 'Gemini Free Tier (AI-Studio-Schlüssel ohne Abrechnung)' }),
 
   // ================= Anthropic =================
   m('anthropic', 'llm', 'claude-opus-5-5', 'Claude Opus 5.5', 99, 3, 0.03, F({ vision: true })),
@@ -256,6 +262,39 @@ export const STATIC_MODELS: ModelDef[] = [
   m('openrouter', 'text-to-image', 'google/gemini-2.5-flash-image', 'Gemini 2.5 Flash Image (OpenRouter)', 90, 4, 0.04),
   m('openrouter', 'image-edit', 'google/gemini-2.5-flash-image', 'Gemini 2.5 Flash Image Edit (OpenRouter)', 93, 4, 0.04, F({ refs: true, maxRefs: 3 })),
 
+  // ================= Cloudflare Workers AI (10.000 Gratis-Neuronen/Tag) =================
+  m('cloudflare', 'text-to-image', '@cf/black-forest-labs/flux-1-schnell', 'FLUX.1 schnell (Cloudflare, gratis)', 80, 5, 0, {
+    params: { steps: 6 },
+    free: 'quota',
+    freeNote: '≈ 60 Neuronen/Bild → über 100 Bilder pro Tag gratis (nur quadratisch)',
+  }),
+  m('cloudflare', 'text-to-image', '@cf/leonardo/phoenix-1.0', 'Leonardo Phoenix 1.0 (Cloudflare)', 85, 4, 0, {
+    ...F({ negative: true }),
+    free: 'quota',
+    freeNote: 'Höherer Verbrauch – einige Bilder pro Tag gratis',
+  }),
+  m('cloudflare', 'text-to-image', '@cf/leonardo/lucid-origin', 'Leonardo Lucid Origin (Cloudflare)', 86, 4, 0, {
+    free: 'quota',
+    freeNote: 'Höherer Verbrauch – wenige Bilder pro Tag gratis',
+  }),
+  m('cloudflare', 'tts', '@cf/myshell-ai/melotts', 'MeloTTS (Cloudflare, gratis)', 58, 5, 0, {
+    free: 'quota',
+    freeNote: 'Sehr günstig – Englisch/Spanisch/Französisch/Chinesisch/Japanisch/Koreanisch (kein Deutsch)',
+  }),
+  m('cloudflare', 'llm', '@cf/nvidia/nemotron-3-120b-a12b', 'Nemotron 3 120B (Cloudflare, gratis)', 84, 4, 0, { free: 'quota', freeNote: 'Workers-AI Free-Plan' }),
+  m('cloudflare', 'llm', '@cf/google/gemma-4-26b-a4b-it', 'Gemma 4 26B (Cloudflare, gratis)', 80, 4, 0, { free: 'quota', freeNote: 'Workers-AI Free-Plan' }),
+
+  // ================= Pollinations (ohne Anmeldung) =================
+  m('pollinations', 'text-to-image', 'classic', 'Pollinations Classic (ohne Anmeldung)', 62, 3, 0, {
+    ...F({ batch: true }),
+    free: 'nokey',
+    freeNote: 'Komplett gratis ohne Konto – gedrosselt (~1 Bild / 45 s), max. ~768 px, kleines Wasserzeichen',
+  }),
+  m('pollinations', 'llm', 'classic-text', 'Pollinations Text (ohne Anmeldung)', 55, 3, 0, {
+    free: 'nokey',
+    freeNote: 'Gratis ohne Konto – gedrosselt',
+  }),
+
   // ================= Demo (offline) =================
   m('demo', 'text-to-image', 'demo-image', 'Demo Bild (offline)', 1, 5, 0, F({ batch: true, refs: true, maxRefs: 4 })),
   m('demo', 'image-edit', 'demo-edit', 'Demo Bearbeitung (offline)', 1, 5, 0, F({ refs: true, maxRefs: 4, mask: true })),
@@ -338,6 +377,10 @@ function score(mod: ModelDef, mode: RoutingMode): number {
       return -Math.log10(mod.cost + 0.001) * 25 + mod.quality * 0.4;
     case 'balanced':
       return mod.quality - Math.log10(1 + mod.cost * 10) * 8 + mod.speed * 1.5;
+    case 'free':
+      return mod.quality + mod.speed * 0.1;
+    case 'free-first':
+      return (isFree(mod) ? 1000 : 0) + mod.quality + mod.speed * 0.1;
     default:
       return mod.quality + mod.speed * 0.1;
   }
@@ -359,7 +402,8 @@ export function fits(mod: ModelDef, req: GenRequest): boolean {
 
 /** Smart-Router: sortierte Kandidatenliste (beste zuerst) für eine Aufgabe */
 export function rankModels(task: Task, req: GenRequest, mode: RoutingMode = db.settings.routing): ModelDef[] {
-  const cands = availableModels(task).filter((x) => fits(x, req));
+  let cands = availableModels(task).filter((x) => fits(x, req));
+  if (mode === 'free') cands = cands.filter(isFree);
   // Ton gewünscht -> Modelle mit Audio bevorzugen
   const bonus = (x: ModelDef) => (req.withAudio && x.features?.audio ? 6 : 0);
   return cands.sort((a, b) => score(b, mode) + bonus(b) - (score(a, mode) + bonus(a)));
@@ -367,8 +411,9 @@ export function rankModels(task: Task, req: GenRequest, mode: RoutingMode = db.s
 
 /** Bestes LLM für Prompt-Verbesserung/Jury */
 export function pickLlm(preferredId: string, needVision = false): ModelDef[] {
-  const all = availableModels('llm').filter((x) => !needVision || x.features?.vision || x.provider === 'demo');
-  const sorted = all.sort((a, b) => b.quality - a.quality);
+  let all = availableModels('llm').filter((x) => !needVision || x.features?.vision || x.provider === 'demo');
+  if (db.settings.routing === 'free') all = all.filter(isFree);
+  const sorted = all.sort((a, b) => (db.settings.routing === 'free-first' ? Number(isFree(b)) - Number(isFree(a)) : 0) || b.quality - a.quality);
   if (preferredId && preferredId !== 'auto') {
     const p = sorted.find((x) => x.id === preferredId);
     if (p) return [p, ...sorted.filter((x) => x !== p)];

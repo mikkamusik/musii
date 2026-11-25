@@ -46,6 +46,9 @@ export type ProviderType =
   | 'openai-compatible'
   | 'comfyui'
   | 'http'
+  | 'cloudflare'
+  | 'pollinations'
+  | 'hf-space'
   | 'demo';
 
 export interface Connection {
@@ -120,6 +123,9 @@ export interface ModelDef {
   };
   custom?: boolean;
   notes?: string;
+  /** Kostenlos nutzbar: local = eigene Hardware/Browser, nokey = ohne Anmeldung, quota = Gratis-Kontingent */
+  free?: 'local' | 'nokey' | 'quota';
+  freeNote?: string;
 }
 
 export interface GenRequest {
@@ -259,7 +265,7 @@ export interface LedgerEntry {
   jobId?: string;
 }
 
-export type RoutingMode = 'quality' | 'balanced' | 'speed' | 'cost';
+export type RoutingMode = 'quality' | 'balanced' | 'speed' | 'cost' | 'free' | 'free-first';
 
 export interface Settings {
   routing: RoutingMode;

@@ -22,6 +22,9 @@ const COLORS: Record<string, string> = {
   'openai-compatible': '#0ea5e9',
   comfyui: '#16a34a',
   http: '#db2777',
+  cloudflare: '#f38020',
+  pollinations: '#65a30d',
+  'hf-space': '#eab308',
   demo: '#8b5cf6',
 };
 
@@ -315,7 +318,7 @@ function ModelsTab() {
                   </div>
                 </td>
                 <td>{'●'.repeat(m.speed)}</td>
-                <td>{m.cost ? fmtMoney(m.cost) : 'gratis'}</td>
+                <td title={m.freeNote}>{m.free || m.provider === 'demo' ? <span className="badge ok">gratis</span> : m.cost ? fmtMoney(m.cost) : '–'}</td>
                 <td>{m.available ? <span className="badge ok">bereit</span> : <span className="badge">kein Schlüssel</span>}</td>
                 <td>
                   <div className="row" style={{ flexWrap: 'nowrap' }}>
@@ -522,6 +525,8 @@ function SettingsTab() {
               { value: 'balanced', label: '⚖️ Ausgewogen' },
               { value: 'speed', label: '⚡ Schnellste' },
               { value: 'cost', label: '💰 Günstigste' },
+              { value: 'free-first', label: '🆓 Gratis zuerst' },
+              { value: 'free', label: '🆓 Nur gratis' },
             ]}
           />
         </Field>

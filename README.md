@@ -38,9 +38,31 @@
 | **ComfyUI** | Eigene lokale Workflows (API-Format) mit Platzhaltern, damit läuft jedes lokale Modell |
 | **OpenAI-kompatibel** | xAI Grok, Mistral, DeepSeek, Groq, Together, Fireworks, Azure, LM Studio, vLLM … |
 | **Eigene HTTP-API** | Universeller REST-Adapter mit Body-Vorlage, Ergebnis-Pfad und Polling. Verbindet **jede** KI |
+| **Cloudflare Workers AI** | FLUX.1 schnell, Leonardo, offene Sprachmodelle, MeloTTS (Gratis-Kontingent) |
+| **Pollinations.ai** | Gratis-Bilder & Text ohne Konto. Mit Konto: aktuelle Bild-, Video- und Stimmmodelle |
+| **Hugging Face Spaces** | Jeder Gradio-Space auf Gratis-GPU (ZeroGPU), Schnittstelle wird automatisch erkannt |
 | **Demo** | Offline-Modus ohne Schlüssel. Testet alle Abläufe (Videos via ffmpeg, falls installiert) |
 
 > **Neue Modelle erscheinen ständig.** Unter *Verbindungen → Modelle → Eigenes Modell* fügst du jede Modell-ID hinzu (z. B. `fal-ai/…`, `owner/name` bei Replicate, neue OpenAI-/Google-Modellnamen). Der Smart-Router nutzt das Modell sofort. Qualitäts-Scores lassen sich pro Modell anpassen.
+
+## 🆓 Gute Modelle kostenlos nutzen
+
+Unter **Gratis-KI** lässt sich jede dieser Optionen mit einem Klick einrichten. Der Schalter **„Nur gratis“** bzw. **„Gratis zuerst“** sorgt dafür, dass der Smart-Router ausschließlich bzw. bevorzugt kostenlose Modelle nutzt. Ist ein Kontingent erschöpft, springt er automatisch zum nächsten Gratis-Anbieter.
+
+| Weg | Was du bekommst | Limit (Stand Nov. 2026, ohne Gewähr) |
+|---|---|---|
+| **Pollinations.ai** (ohne Konto) | Bilder + Text sofort | ca. 1 Bild/45 s, max. ~768 px, kleines Wasserzeichen. Mit kostenlosem Konto: Gen-API mit Pollen-Guthaben |
+| **Hugging Face Spaces** (ohne Konto) | Z-Image Turbo, FLUX.1 schnell, Qwen-Image-Edit, FLUX Kontext, **Wan 2.2 Bild→Video**, LTX-Video, Freistellen, ACE-Step-Musik auf Gratis-GPUs (ZeroGPU) | wenige GPU-Minuten/Tag anonym, mehr mit kostenlosem HF-Token. Jeder weitere Space lässt sich per ID hinzufügen, die Schnittstelle wird automatisch erkannt |
+| **Cloudflare Workers AI** | FLUX.1 schnell, Leonardo Phoenix/Lucid Origin, Nemotron/Gemma als KI-Regie, MeloTTS | 10.000 Neuronen/Tag gratis, das reicht für über 100 FLUX-Bilder |
+| **Google Gemini Free Tier** | Gemini Flash/Flash-Lite als KI-Regie und Vision-Jury | Tageslimits pro Projekt (AI-Studio-Schlüssel ohne Abrechnung) |
+| **OpenRouter `:free`** | alle aktuell kostenlosen Sprachmodelle, automatisch erkannt | ca. 50 Anfragen/Tag |
+| **Groq** | GPT-OSS 120B, extrem schnell | Free-Tier-Limits pro Modell |
+| **Ollama / LM Studio** (lokal) | jedes offene Sprachmodell | unbegrenzt |
+| **ComfyUI** (lokal) | fertige Workflows: FLUX.1 schnell, SDXL, Wan 2.2 5B (Bild/Text → Video) | unbegrenzt, eigene GPU |
+| **Kokoro TTS** (lokal) | natürliche Open-Source-Stimme | unbegrenzt |
+| **Local Motion** (eingebaut) | Kamerafahrten im Browser | unbegrenzt |
+
+Alle Wege sind legal: offizielle Gratis-Tarife, offene Modelle und deine eigene Hardware. Kein Credit-Farming, keine inoffiziellen Zugänge.
 
 ## Schnellstart
 

@@ -71,6 +71,8 @@ export interface Model {
   params?: Record<string, unknown>;
   inputMap?: Record<string, string>;
   custom?: boolean;
+  free?: 'local' | 'nokey' | 'quota';
+  freeNote?: string;
   available: boolean;
   disabled: boolean;
   connectionName?: string;
@@ -110,7 +112,7 @@ export interface Connection {
 }
 
 export interface Settings {
-  routing: 'quality' | 'balanced' | 'speed' | 'cost';
+  routing: 'quality' | 'balanced' | 'speed' | 'cost' | 'free' | 'free-first';
   llmModelId: string;
   judgeModelId: string;
   autoEnhance: boolean;
@@ -274,3 +276,5 @@ export interface AppState {
   tasks: Task[];
   env: { ffmpeg: boolean; publicUrl: string; passwordProtected: boolean };
 }
+
+export const isFreeModel = (m: Pick<Model, 'free' | 'provider'>) => !!m.free || m.provider === 'demo';
