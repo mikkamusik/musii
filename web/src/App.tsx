@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from './api';
+import { PhoneConnect } from './components/PhoneConnect';
 import { Queue, Toasts } from './components/Queue';
 import { Icon } from './components/ui';
 import { Arena } from './pages/Arena';
@@ -65,6 +66,7 @@ function Login() {
 
 export function App() {
   const { page, go, state, jobs, needsAuth } = useStore();
+  const [phone, setPhone] = useState(false);
   if (needsAuth) return <Login />;
   const active = jobs.filter((j) => j.status === 'running' || j.status === 'queued').length;
   const current = NAV.find((n) => n.page === page) || NAV[0];
@@ -97,7 +99,11 @@ export function App() {
           </div>
         </div>
         {navItems}
-        <div className="sidebar-foot">
+        <button className="nav-item" style={{ marginTop: 'auto' }} onClick={() => setPhone(true)}>
+          <Icon name="avatar" />
+          📱 Aufs Handy
+        </button>
+        <div className="sidebar-foot" style={{ marginTop: 0 }}>
           {active > 0 ? (
             <span className="row" style={{ gap: 8 }}>
               <span className="dot running" /> {active} Auftrag{active > 1 ? 'e' : ''} in Arbeit
@@ -148,6 +154,7 @@ export function App() {
       </div>
       <Queue />
       <Toasts />
+      {phone && <PhoneConnect onClose={() => setPhone(false)} />}
     </div>
   );
 }

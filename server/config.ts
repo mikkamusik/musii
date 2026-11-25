@@ -23,6 +23,8 @@ export const WEB_DIST = path.join(ROOT, 'dist', 'web');
 export const PORT = Number(process.env.PORT || 8787);
 export const HOST = process.env.HOST || '127.0.0.1';
 export const APP_PASSWORD = process.env.APP_PASSWORD || '';
+/** Anfragen direkt vom eigenen Rechner (127.0.0.1) ohne Passwort zulassen – wird vom Handy-Modus gesetzt */
+export const TRUST_LOCALHOST = process.env.MUSII_TRUST_LOCALHOST === '1';
 /** Öffentliche Basis-URL (z. B. https://studio.example.com), damit Provider Eingabedateien per URL laden können */
 export const PUBLIC_URL_ENV = process.env.PUBLIC_URL || '';
 

@@ -45,6 +45,8 @@
 
 > **Neue Modelle erscheinen ständig.** Unter *Verbindungen → Modelle → Eigenes Modell* fügst du jede Modell-ID hinzu (z. B. `fal-ai/…`, `owner/name` bei Replicate, neue OpenAI-/Google-Modellnamen). Der Smart-Router nutzt das Modell sofort. Qualitäts-Scores lassen sich pro Modell anpassen.
 
+> 📖 **Neu hier?** Die **[Schritt-für-Schritt-Anleitung für Mac & Handy](ANLEITUNG.md)** erklärt Installation per Doppelklick, Nutzung auf iPhone/Android (QR-Code, Home-Bildschirm), unterwegs mit Tailscale und „nur Handy“ über GitHub Codespaces.
+
 ## 🆓 Gute Modelle kostenlos nutzen
 
 Unter **Gratis-KI** lässt sich jede dieser Optionen mit einem Klick einrichten. Der Schalter **„Nur gratis“** bzw. **„Gratis zuerst“** sorgt dafür, dass der Smart-Router ausschließlich bzw. bevorzugt kostenlose Modelle nutzt. Ist ein Kontingent erschöpft, springt er automatisch zum nächsten Gratis-Anbieter.

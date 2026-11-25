@@ -3,7 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { allModels, availableModels, connectionFor, isAvailable, isDisabled, isFree, refreshDynamic } from './catalog.js';
 import { applyPreset, COMFY_TEMPLATES, FREE_PRESETS, HF_SPACES, presetStatus } from './free.js';
-import { APP_PASSWORD, HOST, MEDIA_DIR, PORT, PUBLIC_URL_ENV, WEB_DIST } from './config.js';
+import os from 'node:os';
+import QRCode from 'qrcode';
+import { APP_PASSWORD, HOST, MEDIA_DIR, PORT, PUBLIC_URL_ENV, TRUST_LOCALHOST, WEB_DIST } from './config.js';
 import { addClient } from './events.js';
 import { deleteAssetFile, getAsset, guessMimeFromName, mediaInput, writeAsset } from './files.js';
 import { cancelJob, createArena, createJob, createPipeline, getJob } from './jobs.js';
@@ -33,15 +35,46 @@ app.post('/api/login', (req, res) => {
   res.setHeader('Set-Cookie', `${COOKIE}=${authToken(APP_PASSWORD)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 30}`);
   res.json({ ok: true });
 });
+function isLocal(req: Request) {
+  const ip = req.socket.remoteAddress || '';
+  return TRUST_LOCALHOST && !req.headers['x-forwarded-for'] && (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1');
+}
+function authed(req: Request) {
+  return !APP_PASSWORD || isLocal(req) || readCookie(req, COOKIE) === authToken(APP_PASSWORD);
+}
 app.use((req: Request, res: Response, next: NextFunction) => {
-  if (!APP_PASSWORD) return next();
   if (!req.path.startsWith('/api') && !req.path.startsWith('/media')) return next();
   if (req.path === '/api/auth') return next();
-  if (readCookie(req, COOKIE) === authToken(APP_PASSWORD)) return next();
+  if (authed(req)) return next();
   res.status(401).json({ error: 'Anmeldung erforderlich', auth: true });
 });
 app.get('/api/auth', (req, res) => {
-  res.json({ required: !!APP_PASSWORD, ok: !APP_PASSWORD || readCookie(req, COOKIE) === authToken(APP_PASSWORD) });
+  res.json({ required: !!APP_PASSWORD, ok: authed(req) });
+});
+
+// ---------------- Handy verbinden (Netzwerk-Adressen & QR-Code) ----------------
+function lanAddresses() {
+  const out: { url: string; kind: 'wlan' | 'tailscale' }[] = [];
+  for (const list of Object.values(os.networkInterfaces())) {
+    for (const a of list || []) {
+      if (a.family !== 'IPv4' || a.internal) continue;
+      const [x, y] = a.address.split('.').map(Number);
+      if (x === 169 && y === 254) continue; // keine echte Netzwerkverbindung
+      const tailscale = x === 100 && y >= 64 && y <= 127;
+      out.push({ url: `http://${a.address}:${PORT}`, kind: tailscale ? 'tailscale' : 'wlan' });
+    }
+  }
+  return out;
+}
+app.get('/api/network', (_req, res) => {
+  const reachable = HOST === '0.0.0.0' || HOST === '::';
+  res.json({ host: HOST, port: PORT, reachable, addresses: reachable ? lanAddresses() : [], password: !!APP_PASSWORD });
+});
+app.get('/api/qr', async (req, res) => {
+  const text = String(req.query.text || '').slice(0, 500);
+  if (!/^https?:\/\//.test(text)) return res.status(400).json({ error: 'Ungültige Adresse' });
+  const svg = await QRCode.toString(text, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
+  res.type('image/svg+xml').send(svg);
 });
 
 // ---------------- Hilfen ----------------

@@ -1,0 +1,14 @@
+{
+  "name": "MUSII Studio",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "hostRequirements": { "cpus": 2 },
+  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg && npm install --no-fund --no-audit && npm run build",
+  "postStartCommand": "bash .devcontainer/start.sh",
+  "forwardPorts": [8787],
+  "portsAttributes": {
+    "8787": { "label": "MUSII Studio", "onAutoForward": "openBrowser" }
+  },
+  "customizations": {
+    "codespaces": { "openFiles": ["ANLEITUNG.md"] }
+  }
+}
