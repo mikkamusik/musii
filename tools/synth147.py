@@ -311,6 +311,8 @@ def vox(notes, vowels):
         non = max(1, b2s(st + du) - s0 - int(0.012 * SR))
         R = int(0.03 * SR)
         L = min(non + R, N - s0)
+        if L <= int(0.01 * SR):
+            continue
         t = np.arange(L) / SR
         f = float(mtof(m)) * 2 ** ((-0.9 * np.exp(-t / 0.025) + 0.12 * np.sin(2 * np.pi * 6 * t)) / 12)
         src = osc(f, 'saw', rng.random()) + 0.6 * osc(f * 1.003, 'saw', rng.random())
